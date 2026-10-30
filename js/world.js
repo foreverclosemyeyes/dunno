@@ -15,35 +15,35 @@ const LANTERN_POS=[[6,13],[11,10],[15,13],[16,18],[25,10],[24,13],[28,9],[32,5]]
 const DINER_DOOR=[7,6];
 let OUT,INN;
 function genOutside(){
-  const W=34,H=26,m=newMap('out',W,H);const set=(x,y,g)=>{if(m.inb(x,y))m.ground[m.ix(x,y)]=g;};
+  const W=50,H=36,m=newMap('out',W,H);const set=(x,y,g)=>{if(m.inb(x,y))m.ground[m.ix(x,y)]=g;};
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){const dx=(x-25)/6.3,dy=(y-19.5)/4.4,d=dx*dx+dy*dy+(hash(x,y,7)-.5)*.25;if(d<1)set(x,y,WA);else if(d<1.55)set(x,y,SA);}
   for(let y=0;y<=16;y++){set(29,y,WA);set(30,y,WA);for(const sx of[28,31])if(m.g(sx,y)!==WA)set(sx,y,SA);}
   const path=(x0,y0,x1,y1)=>{for(let y=Math.min(y0,y1);y<=Math.max(y0,y1);y++)for(let x=Math.min(x0,x1);x<=Math.max(x0,x1);x++)if(m.g(x,y)!==WA)set(x,y,PA);};
-  path(7,7,7,12);path(2,12,27,12);path(8,7,12,7);path(18,11,18,12);path(17,12,17,19);path(31,4,31,12);path(28,8,28,8);path(27,12,28,12);path(28,9,28,12);
+  path(7,7,7,12);path(2,12,27,12);path(8,7,12,7);path(18,11,18,12);path(17,12,17,19);path(31,4,31,12);path(28,8,28,8);path(27,12,28,12);path(28,9,28,12);path(12,13,12,30);path(12,30,40,30);path(40,8,40,30);path(31,8,40,8);path(40,6,43,6);
   for(let x=18;x<=23;x++)set(x,19,PL);set(29,8,PL);set(30,8,PL);
   for(let y=4;y<=10;y++)for(let x=13;x<=23;x++)m.field[m.ix(x,y)]=1;
   addObj(m,'diner',4,3,6,4);
   for(let x=12;x<=24;x++){addObj(m,'wall',x,3);if(x!==18)addObj(m,'wall',x,11);}
   for(let y=4;y<=10;y++){if(y!==7)addObj(m,'wall',12,y);addObj(m,'wall',24,y);}
   LANTERN_POS.forEach(([x,y],i)=>addObj(m,'lantern',x,y,1,1,true,{i}));
-  addObj(m,'well',25,7);addObj(m,'crates',10,5,2,1);addObj(m,'sign',8,8);addObj(m,'bench',13,13,2,1);addObj(m,'bench',20,16,2,1);
+  addObj(m,'well',25,7);addObj(m,'board',10,9);addObj(m,'cairn',44,5);addObj(m,'crates',10,5,2,1);addObj(m,'sign',8,8);addObj(m,'bench',13,13,2,1);addObj(m,'bench',20,16,2,1);
   addObj(m,'tree',32,9,1,1,true,{kind:'persimmon',seed:2});addObj(m,'tree',3,9,1,1,true,{kind:'persimmon',seed:4});
   addObj(m,'tree',26,4,1,1,true,{kind:'blossom',seed:1});addObj(m,'tree',10,15,1,1,true,{kind:'blossom',seed:3});addObj(m,'tree',21,14,1,1,true,{kind:'maple',seed:5});
   const nearPath=(x,y)=>[[0,0],[1,0],[-1,0],[0,1],[0,-1]].some(([i,j])=>{const g=m.g(x+i,y+j);return g===PA||g===PL;});
   m.mushSpots=[];
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=m.ix(x,y);if(m.ground[i]!==GR&&m.ground[i]!==SA)continue;if(m.ogrid[i]||m.field[i])continue;
-    const border=x<2||x>=W-1||y<2||y>=H-2,r=hash(x,y,3),r2=hash(x,y,9);
-    const kinds=r2<.55?'oak':r2<.72?'maple':r2<.88?'blossom':'persimmon';
+    const border=x<2||x>=W-2||y<2||y>=H-2,r=hash(x,y,3),r2=hash(x,y,9);
+    const kinds=r2<.45?'oak':r2<.6?'pine':r2<.74?'maple':r2<.88?'blossom':'persimmon';
     if(border){if(m.ground[i]===GR||r<.5)addObj(m,'tree',x,y,1,1,true,{kind:kinds,seed:(r2*5)|0});continue;}
     if(m.ground[i]===SA||nearPath(x,y))continue;
     if(x>=2&&x<=11&&y>=7&&y<=11)continue;
-    const forest=y>=14&&x<=15,east=x>=25&&y<=10&&x<=27,grove=x>=32;
-    let pt=.03,pb=.03,pr=.02;if(forest){pt=.28;pb=.07;pr=.03;}if(east){pt=.25;}if(grove){pt=.3;}
+    const forest=y>=14&&x<=15&&y<26,east=x>=25&&y<=10&&x<=27,grove=x>=32,south=y>=26,clear=x>=36&&x<=46&&y>=3&&y<=11;
+    let pt=.03,pb=.03,pr=.02;if(forest){pt=.28;pb=.07;pr=.03;}if(east){pt=.25;}if(grove){pt=.24;pb=.05;}if(south){pt=.1;pb=.05;pr=.03;}if(clear){pt=.06;}
     if(r<pt)addObj(m,'tree',x,y,1,1,true,{kind:forest&&r2<.7?'oak':kinds,seed:(r2*5)|0});
     else if(r<pt+pb)addObj(m,'bush',x,y,1,1,true,{seed:(r2*6)|0,flower:r2>.6?(r2>.8?'#f1bbb1':'#f3e6cf'):null});
     else if(r<pt+pb+pr)addObj(m,'rock',x,y,1,1,true,{seed:(r2*4)|0});
   }
-  for(let y=13;y<H-2;y++)for(let x=2;x<16;x++){const i=m.ix(x,y);if(m.ground[i]!==GR||m.ogrid[i])continue;
+  for(let y=13;y<26;y++)for(let x=2;x<16;x++){const i=m.ix(x,y);if(m.ground[i]!==GR||m.ogrid[i])continue;
     if([[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>{const o=m.inb(x+a,y+b)&&m.ogrid[m.ix(x+a,y+b)];return o&&o.t==='tree';}))m.mushSpots.push([x,y]);}
   m.bake=bakeOutside(m);
   m.shore=[];m.sparkles=[];

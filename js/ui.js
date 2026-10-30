@@ -61,7 +61,7 @@ function setHint(label){const h=$('hint');if(label){h.hidden=false;if(h.dataset.
 // ---------------- 바구니(가방) ----------------
 function openBasket(tab){
   tab=tab||'bag';
-  const tabs=`<div class="tabs">${[['bag','바구니'],['recipe','요리 수첩'],['guest','손님 수첩'],['fish','물고기 도감']].map(([k,n])=>`<button type="button" class="tab${k===tab?' on':''}" data-tab="${k}">${n}</button>`).join('')}</div>`;
+  const tabs=`<div class="tabs">${[['bag','바구니'],['recipe','요리 수첩'],['guest','손님 수첩'],['fish','물고기 도감'],['relic','수집품']].map(([k,n])=>`<button type="button" class="tab${k===tab?' on':''}" data-tab="${k}">${n}</button>`).join('')}</div>`;
   let body=tabs;
   if(tab==='bag'){
     const groups=[['요리',k=>k.startsWith('d_')],['채소',k=>ITEMS[k]&&ITEMS[k].kind==='veg'],['물고기',k=>ITEMS[k]&&ITEMS[k].kind==='fish'],['씨앗',k=>ITEMS[k]&&ITEMS[k].kind==='seed'],['미끼·농사',k=>ITEMS[k]&&(ITEMS[k].kind==='bait'||ITEMS[k].kind==='farm')]];
@@ -79,6 +79,8 @@ function openBasket(tab){
     body+='<div class="glist">';SPIRITS.forEach((sp,i)=>{const met=i<S.spiritIdx||(i===S.spiritIdx&&S.metCur);
       body+=`<div class="gcard${i<S.spiritIdx?' lit':''}"><img class="px" src="${curl(met?spiritSprite(sp.kind):IC.lanternOff)}" alt=""><div>`+(met?`<b>${sp.n}</b> <span class="ds">${sp.title}</span><div class="ds">“${sp.hint}”</div>${i<S.spiritIdx?`<div class="okk">등불이 되었어요 · ${DISHES[sp.dish].n}</div>`:'<div class="wait">아직 그 맛을 찾는 중…</div>'}`:`<b>???</b><div class="ds">아직 만나지 못한 손님</div>`)+'</div></div>';});
     body+='</div>';
+  }else if(tab==='relic'){
+    body+=`<p class="sub2">마을 곳곳 반짝이는 흙을 파면 가끔 나와요. 소원 돌탑에 빌면 다음 날 잘 나와요. (${Object.keys(S.relics).length}/${RELICS.length})</p><div class="flist">`;for(const q of RELICS){const h=S.relics[q.id];body+=`<div class="fcard${h?'':' unk'}">${h?img(q.id):'<span class="qm">?</span>'}<b>${h?q.n:'???'}</b><span class="ds">${h?q.d:''}</span></div>`;}body+='</div>';
   }else{
     body+='<div class="flist">';for(const k of FISHKEYS){const j=S.journal[k];body+=`<div class="fcard${j?'':' unk'}">${j?img(k):'<span class="qm">?</span>'}<b>${j?ITEMS[k].n:'???'}</b><span class="ds">${j?`${j.n}마리 · 최대 ${j.best}cm`:''}</span></div>`;}
     body+='</div>';
