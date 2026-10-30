@@ -58,7 +58,7 @@ const BAYER=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5].map(v=>(v+.5)/16);
 const LV=(()=>{const v=[-.5,-.65,.58],l=Math.hypot(...v);return v.map(a=>a/l);})();
 // 빛을 받는 타원(구체) — 도트 음영의 핵심
 function shadeEll(c,cx,cy,rx,ry,ramp,o={}){
-  const ang=o.ang||0,ca=Math.cos(ang),sa=Math.sin(ang),dith=o.dither!==false,amb=o.amb||0,R=Math.max(rx,ry)+1,flat=o.flat||1;
+  const ang=o.ang||0,ca=Math.cos(ang),sa=Math.sin(ang),dith=o.dither===true,amb=o.amb||0,R=Math.max(rx,ry)+1,flat=o.flat||1;
   for(let y=Math.floor(cy-R);y<=cy+R;y++)for(let x=Math.floor(cx-R);x<=cx+R;x++){
     if(o.clip&&!o.clip(x,y))continue;
     const px=x+.5-cx,py=y+.5-cy,lx=(px*ca+py*sa)/rx,ly=(-px*sa+py*ca)/ry,r2=lx*lx+ly*ly;if(r2>1)continue;
@@ -90,35 +90,59 @@ function line(c,x0,y0,x1,y1,ch){const n=Math.max(Math.abs(x1-x0),Math.abs(y1-y0)
 // =====================================================================
 //  나무, 덤불, 돌
 // =====================================================================
+function fe(c,cx,cy,rx,ry,ch){c.fillStyle=col(ch);for(let y=Math.floor(cy-ry);y<=cy+ry;y++)for(let x=Math.floor(cx-rx);x<=cx+rx;x++){const dx=(x+.5-cx)/rx,dy=(y+.5-cy)/ry;if(dx*dx+dy*dy<=1)c.fillRect(x,y,1,1);}}
+// 단순한 셀 음영 나무: 어두운 실루엣 → 중간톤 → 밝은 덩어리 → 몇 점 하이라이트
+const TREEPAL={
+  oak:['#3e5839','#577a45','#7b9c57','#a7c179'],
+  persimmon:['#4f5b37','#6c7a44','#8f9a53','#b9bd78'],
+  blossom:['#9a6672','#c08a94','#e0b2b3','#f5dad4'],
+  maple:['#83432f','#ad5c3b','#d3854e','#ecb878'],
+  pine:['#2d4637','#3d5f45','#557d56','#7c9f6d'],
+};
+const BARK=['#4c372c','#694b38','#8a6a50'];
+function trunk(x,tx,ty,th){P(x,BARK[1],tx,ty,6,th);P(x,BARK[2],tx,ty,2,th);P(x,BARK[0],tx+4,ty,2,th);
+  P(x,BARK[1],tx-1,ty+th-3,8,3);P(x,BARK[2],tx-1,ty+th-3,2,2);P(x,BARK[0],tx+6,ty+th-2,1,2);P(x,BARK[0],tx+2,ty+4,1,2);P(x,BARK[0],tx+3,ty+9,1,2);}
 function makeTree(kind,seed){
-  const r=rng(seed*131+kind.length*7);
-  const c=mk(44,56,x=>{
-    const tx=19,tw=6,ty=34,th=19;
-    shadeCyl(x,tx,ty,tw,th,RAMP.bark);
-    P(x,RAMP.bark[2],tx-1,ty+th-4,1,4);P(x,RAMP.bark[1],tx-2,ty+th-2,1,2);P(x,RAMP.bark[1],tx+tw,ty+th-4,1,4);P(x,RAMP.bark[0],tx+tw+1,ty+th-2,1,2);
-    for(let k=0;k<6;k++)P(x,RAMP.bark[0],tx+1+(r()*4|0),ty+3+(r()*15|0),1,2);
-    const ramp=RAMP[{oak:'leaf',persimmon:'leafY',blossom:'blossom',maple:'maple'}[kind]];
-    const cx=22,cy=21,rx=17,ry=15,cl=[];
-    for(let k=0;k<30;k++){const a=r()*Math.PI*2,d=Math.sqrt(r());cl.push([cx+Math.cos(a)*d*(rx-5),cy+Math.sin(a)*d*(ry-5),4+r()*2.6]);}
-    cl.sort((a,b)=>a[1]-b[1]);
-    for(const[a,b,rr]of cl)shadeEll(x,a,b,rr,rr*.88,ramp,{amb:-((b-cy)/ry)*.16-.02});
-    for(let k=0;k<26;k++){const a=(r()*36+4)|0,b=(r()*30+3)|0;const p=x.getImageData(a,b,1,1).data;if(p[3])P(x,r()<.5?ramp[ramp.length-1]:ramp[1],a,b);}
-    if(kind==='persimmon')for(let k=0;k<8;k++){const a=8+r()*28,b=8+r()*22;shadeEll(x,a,b,1.9,1.7,RAMP.orange,{dither:false});P(x,'#5f7c47',Math.round(a),Math.round(b-2));}
+  if(kind==='pine')return makePine(seed);
+  const r=rng(seed*131+kind.length*7),pl=TREEPAL[kind];
+  const c=mk(42,52,x=>{
+    trunk(x,18,31,18);
+    const B=[[21,21,13,10.5],[11,25,8,6.5],[31,25,8,6.5],[21,12,10,7.5],[14,15,6,5],[28,16,6,5]].map(([a,b,rx,ry])=>[a+(r()-.5)*2,b+(r()-.5)*1.5,rx+(r()-.5),ry]);
+    for(const[a,b,rx,ry]of B)fe(x,a,b,rx,ry,pl[0]);
+    for(const[a,b,rx,ry]of B)fe(x,a-.8,b-1.6,rx-1.4,ry-1.6,pl[1]);
+    for(const[a,b,rx,ry]of B)if(b<23)fe(x,a-2.2,b-3,rx*.55,ry*.5,pl[2]);
+    for(const[a,b,rx]of B){if(b>=23)continue;P(x,pl[3],Math.round(a-rx*.45),Math.round(b-4),2,1);P(x,pl[3],Math.round(a-rx*.2),Math.round(b-5),1,1);}
+    for(const[a,b,rx,ry]of B){for(let k=-1;k<=1;k++){const sx=Math.round(a+k*rx*.45),sy=Math.round(b+ry*.45);P(x,pl[0],sx-1,sy,1,1);P(x,pl[0],sx,sy+1,2,1);P(x,pl[0],sx+2,sy,1,1);}}
+    if(kind==='persimmon')for(const[a,b]of[[12,24],[27,19],[19,27],[32,26],[16,16],[24,13]]){fe(x,a,b,1.8,1.6,'#d8783f');P(x,'#f2b06c',a-1,b-1);P(x,'#566b3c',a,b-2);}
+    if(kind==='blossom')for(let k=0;k<10;k++){const a=6+r()*30|0,b=6+r()*24|0;if(x.getImageData(a,b,1,1).data[3])P(x,'#fbf0ea',a,b);}
   });
   return outline(c);
 }
+function makePine(seed){const pl=TREEPAL.pine,r=rng(seed*7+1);return outline(mk(36,52,x=>{
+  trunk(x,15,38,12);
+  const tiers=[[6,9],[14,12],[23,15],[32,16]];
+  for(const[ty,hw]of tiers){for(let j=0;j<10;j++){const w=Math.round(hw*(j+1)/10);P(x,pl[0],18-w,ty+j,w*2,1);}}
+  for(const[ty,hw]of tiers){for(let j=0;j<9;j++){const w=Math.round((hw-1.5)*(j+1)/10);P(x,pl[1],18-w-1,ty+j,w*2,1);P(x,pl[2],18-w-1,ty+j,Math.max(1,Math.round(w*.6)),1);}
+    for(let i=-hw+2;i<hw-1;i+=3)P(x,pl[0],18+i,ty+9,2,1);P(x,pl[3],18-Math.round(hw*.5),ty+5,2,1);}
+  P(x,pl[2],17,5,2,2);}));}
 function makeBush(seed,flower){
-  const r=rng(seed*53+5);
-  return outline(mk(20,16,x=>{const cl=[];for(let k=0;k<11;k++)cl.push([5+r()*10,6+r()*5,3+r()*1.6]);cl.sort((a,b)=>a[1]-b[1]);
-    for(const[a,b,rr]of cl)shadeEll(x,a,b,rr,rr*.85,RAMP.leaf,{amb:-(b-8)*.03});
-    if(flower)for(let k=0;k<5;k++){const a=4+r()*12|0,b=3+r()*8|0;P(x,flower,a,b);P(x,'#fbf5ea',a,b-1);}}));
+  const r=rng(seed*53+5),pl=TREEPAL.oak;
+  return outline(mk(20,16,x=>{const B=[[10,9,7.5,5],[6,10,4,3.5],[14,10,4,3.5],[10,6,4.5,3.5]].map(([a,b,rx,ry])=>[a+(r()-.5),b,rx,ry]);
+    for(const[a,b,rx,ry]of B)fe(x,a,b,rx,ry,pl[0]);for(const[a,b,rx,ry]of B)fe(x,a-.6,b-1,rx-1.2,ry-1.2,pl[1]);fe(x,8,6,3,1.8,pl[2]);P(x,pl[3],7,5,2,1);
+    if(flower)for(const[a,b]of[[5,8],[11,6],[14,9],[8,11],[16,7]]){P(x,flower,a,b);P(x,'#fbf5ea',a,b-1);}}));
 }
-function makeRock(seed){const r=rng(seed+900);return outline(mk(18,14,x=>{shadeEll(x,9,8.5,7,4.6,RAMP.stone,{amb:.02});shadeEll(x,6+r()*2,9.5,3.4,2.6,RAMP.stone,{amb:-.05});
-  for(let k=0;k<4;k++)P(x,RAMP.leaf[2+(k&1)],4+(r()*9|0),5+(r()*2|0));}));}
+const STONE=['#6f6a66','#8f8981','#b2aba0','#d2ccc1'];
+function makeRock(seed){const v=seed%4,r=rng(seed+900);return outline(mk(18,15,x=>{
+  const rock=(a,b,rx,ry)=>{fe(x,a,b,rx,ry,STONE[0]);fe(x,a-.5,b-1,rx-.8,ry-1,STONE[1]);fe(x,a-1.5,b-1.8,rx*.55,ry*.5,STONE[2]);P(x,STONE[3],Math.round(a-rx*.5),Math.round(b-ry*.6),2,1);};
+  if(v===0){rock(9,9,7,4.6);P(x,STONE[0],10,8,1,2);P(x,STONE[0],11,10,1,1);}
+  else if(v===1){rock(6,10,4.5,3.4);rock(12.5,10.5,4,3);}
+  else if(v===2){rock(9,8.5,5,5.4);}
+  else{rock(8,10,6.5,3.6);rock(12,8,3,2.4);}
+  for(const[a,b]of[[5,6],[6,6],[4,7]])if(r()<.7)P(x,'#7b9c57',a+(v===1?-1:0),b+(v===2?-1:0));}));}
 function makeStump(){return outline(mk(18,16,x=>{shadeCyl(x,3,6,12,7,RAMP.wood);shadeEll(x,9,6,6,2.6,['#a07a56','#bb956c','#d4b087','#e6c9a2'],{dither:false,flat:.2});
   x.strokeStyle='#a07a56';x.beginPath();x.ellipse(9,6,3,1.2,0,0,7);x.stroke();P(x,RAMP.wood[0],2,12,2,1);P(x,RAMP.wood[0],14,12,2,1);}));}
 function makeStoneWall(seed){const r=rng(seed*7+3);return outline(mk(18,18,x=>{
-  for(const[a,b,rx,ry]of[[4.5,13,4.4,3.2],[13,13.3,4.6,3.1],[8.5,8.6,4.6,3.1],[16.5,8.8,3,2.8],[1.5,8.8,2.6,2.8]])shadeEll(x,a+(r()-.5),b,rx,ry,RAMP.stone,{amb:(r()-.5)*.12});
+  for(const[a,b,rx,ry]of[[4.5,13,4.4,3.2],[13,13.3,4.6,3.1],[8.5,8.6,4.6,3.1],[16.5,8.8,3,2.8],[1.5,8.8,2.6,2.8]]){const a2=a+(r()-.5);fe(x,a2,b,rx,ry,STONE[0]);fe(x,a2-.4,b-.8,rx-.8,ry-.9,STONE[1]);fe(x,a2-1.2,b-1.5,rx*.45,ry*.4,STONE[2]);}
   for(let k=0;k<3;k++)P(x,RAMP.leaf[3],2+(r()*14|0),6+(r()*2|0));}));}
 function makeMushrooms(){return outline(mk(16,14,x=>{for(const[a,b,s]of[[5,8,1],[10,9,.8],[8,10,.6]]){shadeCyl(x,Math.round(a-1),b,2,4,RAMP.white);shadeEll(x,a,b,4*s,2.4*s,RAMP.brown,{dither:false,spec:'#e6c9a2'});}}));}
 function makeLantern(lit){return outline(mk(18,34,x=>{
@@ -259,6 +283,9 @@ function pouch(c1,c2){return outline(mk(18,18,x=>{shadeEll(x,9,11,5.6,5,['#9a846
   P(x,c1,7,9,4,4);P(x,c2,8,10,2,2);line(x,9,3,6,1,'#87603f');}));}
 IC.s_radish=pouch('#efe8dc','#86a35a');IC.s_potato=pouch('#906e53','#c5a382');IC.s_onion=pouch('#86a35a','#efe8dc');
 IC.s_carrot=pouch('#d4975a','#86a35a');IC.s_pumpkin=pouch('#4c6b40','#d4975a');IC.s_strawberry=pouch('#c77162','#86a35a');
+IC.worm=outline(mk(18,18,x=>{for(let i=0;i<12;i++){const a=i/11;fe(x,3+i,10+Math.sin(a*6)*3,1.6,1.6,i===2?'#b8746a':'#d99a8e');}P(x,'#f1bbb1',4,9,1,1);}));
+IC.paste=outline(mk(18,18,x=>{fe(x,9,10,6,4.6,'#c9a86a');fe(x,8,9,4.5,3.2,'#ddc08a');for(const[a,b]of[[6,9],[10,8],[11,11],[8,12]])P(x,'#a8854c',a,b);}));
+IC.fert=outline(mk(18,18,x=>{P(x,'#8a7a5a',4,4,10,12);P(x,'#a8946a',4,4,10,3);P(x,'#5b6e49',6,9,6,4);P(x,'#86a35a',7,9,2,2);P(x,'#c9b48a',5,3,8,1);}));
 IC.coin=outline(mk(18,18,x=>{shadeEll(x,9,9,6.6,6.6,RAMP.gold,{dither:false,spec:'#fff6d0'});P(x,'#8a6326',7,7,4,4);P(x,'rgba(0,0,0,0)',8,8,2,2);x.clearRect(8,8,2,2);
   P(x,'#ad7f30',9,3,1,2);P(x,'#ad7f30',9,13,1,2);P(x,'#ad7f30',3,9,2,1);P(x,'#ad7f30',13,9,2,1);}));
 IC.lanternOn=outline(mk(14,18,x=>{shadeEll(x,7,9,5,6,RAMP.orange,{spec:'#fff1c8'});P(x,'#3d2c2e',4,2,6,2);P(x,'#3d2c2e',4,15,6,2);P(x,'#ffe7b0',6,7,2,4);}));
@@ -270,107 +297,101 @@ IC.rod=outline(mk(18,18,x=>{line(x,2,16,15,2,RAMP.wood[4]);line(x,3,16,16,2,RAMP
 // =====================================================================
 //  주인공 — 큰 머리, 점 두 개 눈, 앞치마. 머리 모양/색/옷/장식 조합
 // =====================================================================
-const HAIRS=[{id:'bob',n:'단발'},{id:'twin',n:'양갈래'},{id:'pony',n:'포니테일'},{id:'long',n:'긴 생머리'},{id:'hime',n:'히메컷'},{id:'buns',n:'똥머리'},{id:'short',n:'숏컷'}];
+const HAIRS=[
+  {id:'crew',n:'짧은 머리'},{id:'part',n:'가르마'},{id:'twoblock',n:'투블럭'},{id:'bowl',n:'덮머리'},{id:'spiky',n:'까치머리'},{id:'slick',n:'올백'},
+  {id:'curly',n:'곱슬'},{id:'wolf',n:'울프컷'},{id:'mpony',n:'꽁지머리'},{id:'mlong',n:'장발'},
+  {id:'short',n:'숏컷'},{id:'bob',n:'단발'},{id:'twin',n:'양갈래'},{id:'pony',n:'포니테일'},{id:'long',n:'긴 생머리'},{id:'hime',n:'히메컷'},{id:'buns',n:'똥머리'},{id:'braid',n:'땋은 머리'}];
+const HS={crew:{b:'up',side:9,back:0},part:{b:'side',side:10,back:11},twoblock:{b:'side2',side:8,back:10,vol:1},bowl:{b:'straight',bl:8,side:11,back:12},
+  spiky:{b:'jag',bl:6,side:9,back:10,spikes:1},slick:{b:'none',side:9,back:11},curly:{b:'curl',bl:7,side:11,back:12,curl:1},wolf:{b:'jag',bl:7,side:13,back:15,ragged:1},
+  mpony:{b:'side',side:10,back:11,tail:'small'},mlong:{b:'center',side:14,back:16},short:{b:'jag',bl:7,side:11,back:11},bob:{b:'straight',bl:7,side:14,back:14},
+  twin:{b:'jag',bl:7,side:11,back:11,tail:'twin'},pony:{b:'jag',bl:7,side:10,back:10,tail:'pony'},long:{b:'center',side:15,back:22},hime:{b:'straight',bl:7,side:13,back:22,hime:1},
+  buns:{b:'jag',bl:7,side:10,back:10,tail:'buns'},braid:{b:'side',side:11,back:11,tail:'braid'}};
 const HAIRCOL=[
-  {n:'밤색',r:['#4a332b','#654638','#80594a','#a2765d','#c49c7d']},
-  {n:'먹색',r:['#26232b','#35303b','#48424f','#5f5868','#7d7588']},
-  {n:'벚꽃',r:['#8e5560','#ad707a','#c98d93','#e0aeae','#f2cfca']},
-  {n:'라벤더',r:['#564a6c','#706289','#8e80a8','#ad9fc4','#cdc3dd']},
-  {n:'민트',r:['#3e6359','#557f72','#6f9d8c','#91baa6','#b8d5c3']},
-  {n:'은발',r:['#77727a','#959099','#b4afb5','#d1cdcf','#ebe8e7']},
-  {n:'금발',r:['#8f6f3c','#ad8b4a','#c9a85f','#dfc27e','#efdcaa']},
-  {n:'하늘',r:['#46617f','#5f7d9c','#7d9bba','#a0bbd3','#c4d6e6']},
-  {n:'다홍',r:['#7c3c37','#9c5046','#bb6a57','#d48b72','#e8b098']},
+  {n:'밤색',r:['#4a332b','#654638','#80594a','#a2765d']},{n:'먹색',r:['#26232b','#35303b','#48424f','#625a6c']},
+  {n:'갈색',r:['#5a3a26','#7a5235','#9a6c45','#bb8a5c']},{n:'벚꽃',r:['#8e5560','#ad707a','#c98d93','#e3b2b0']},
+  {n:'라벤더',r:['#564a6c','#706289','#8e80a8','#b2a5c8']},{n:'민트',r:['#3e6359','#557f72','#6f9d8c','#97bca8']},
+  {n:'은발',r:['#77727a','#959099','#b8b3b8','#dad6d6']},{n:'금발',r:['#8f6f3c','#ad8b4a','#c9a85f','#e2c785']},
+  {n:'하늘',r:['#46617f','#5f7d9c','#7d9bba','#a5bfd6']},{n:'다홍',r:['#7c3c37','#9c5046','#bb6a57','#d8917a']},
 ];
 const OUTFITS=[
-  {n:'감물',r:['#7c4a30','#99603d','#b67b4f','#cd9766']},
-  {n:'쪽빛',r:['#36435c','#475874','#5e7290','#7c90ab']},
-  {n:'쑥색',r:['#46553a','#5b6e49','#73885c','#90a477']},
-  {n:'팥죽',r:['#5f2f33','#7b3f44','#985659','#b47472']},
-  {n:'연분홍',r:['#9d6a70','#b9878b','#d2a3a4','#e5c0bd']},
-  {n:'먹색',r:['#2c2930','#3c3842','#504b57','#68626f']},
+  {n:'감물',r:['#7c4a30','#99603d','#b67b4f','#cd9766']},{n:'쪽빛',r:['#36435c','#475874','#5e7290','#7c90ab']},
+  {n:'쑥색',r:['#46553a','#5b6e49','#73885c','#90a477']},{n:'팥죽',r:['#5f2f33','#7b3f44','#985659','#b47472']},
+  {n:'연분홍',r:['#9d6a70','#b9878b','#d2a3a4','#e5c0bd']},{n:'먹색',r:['#2c2930','#3c3842','#504b57','#68626f']},{n:'흰색',r:['#a8a097','#c9c1b6','#e4ddd2','#f6f1e8']},
 ];
-const ACCS=[{n:'없음'},{n:'리본'},{n:'고양이 귀'},{n:'꽃핀'},{n:'바보털'},{n:'여우 가면'}];
-const CW=26,CH=32;
+const BOTTOMS=[{n:'바지'},{n:'치마'}];
+const ACCS=[{n:'없음'},{n:'리본'},{n:'고양이 귀'},{n:'꽃핀'},{n:'바보털'},{n:'여우 가면'},{n:'머리띠'},{n:'두건'},{n:'안경'}];
+const CW=22,CH=25;
+const SKIN=['#ebc5a8','#f7dfc9'];
+function bangY(b,i,bl){switch(b){
+  case'straight':return bl;case'jag':return bl+[0,1,0,-1,0,1,0,0,1,0,-1,0,1,0,0][i];
+  case'side':return[9,9,9,8,8,8,7,7,6,6,5,5,5,5,5][i];case'side2':return[8,8,7,7,7,6,6,5,5,5,4,4,4,4,4][i];
+  case'center':return[9,8,8,7,6,5,5,4,5,5,6,7,8,8,9][i];case'none':return i===7?4:3;
+  case'up':return[5,5,4,5,5,4,5,5,4,5,5,4,5,5,5][i];case'curl':return bl+[0,1,1,0,1,1,0,1,1,0,1,1,0,1,0][i];}return 7;}
 function drawChar(L,dir,fr){
-  const H=HAIRCOL[L.hc].r,O=OUTFITS[L.top].r,hair=HAIRS[L.hair].id,S=RAMP.skin;
-  const side=dir==='side',up=dir==='up',walk=fr==='A'||fr==='B',blink=fr==='blink';
+  const H=HAIRCOL[L.hc].r,O=OUTFITS[L.top].r,st=HS[HAIRS[L.hair].id],side=dir==='side',up=dir==='up',skirt=(L.bot??1)===1;
   const c=mk(CW,CH,x=>{
-    const cx=13,hy=11.5,bob=0;
-    const sw=fr==='A'?1:fr==='B'?-1:0;
-    const px=(ch,a,b,w=1,h=1)=>P(x,ch,a,b,w,h);
-    const hairEll=(a,b,rx,ry,clip,amb=0)=>shadeEll(x,a,b,rx,ry,H,{dither:false,clip,amb});
+    const px=(ch,a,b,w=1,h=1)=>P(x,ch,a,b,w,h);const cx=11;
+    const la=fr==='A'?-1:0,lb=fr==='B'?-1:0,sw=fr==='A'?1:fr==='B'?-1:0;
     // ---- 뒷머리
-    const backLen={bob:20,twin:15,pony:14,long:28,hime:27,buns:14,short:13}[hair];
-    if(!side){
-      if(backLen>14)for(let y=9;y<backLen;y++){const t=(y-9)/(backLen-9);const half=8.6-(hair==='bob'?0:t*1.6);for(let i=Math.round(cx-half);i<=Math.round(cx+half);i++){const e=(i-cx)/half;let k=up?2+(e<-.3?1:0)-(e>.4?1:0):1+(e<-.5?1:0);if(hash(i,0,7)<.25)k--;
-        if(hair==='bob'&&y===backLen-1&&(i%3===0))continue;px(H[clamp(k,0,4)],i,y);}}
-      if(hair==='twin')for(const s of[-1,1]){const tx=cx+s*10+(walk?s*sw*.5:0);shadeEll(x,tx,18,3,8,H,{dither:false,amb:-.05});shadeEll(x,tx-s*.5,24.5,2,3,H,{dither:false});px('#c4614f',Math.round(tx)-1,10,3,2);}
-      if(hair==='buns')for(const s of[-1,1])shadeEll(x,cx+s*6.5,4.2,3.4,3.2,H,{dither:false});
-      if(hair==='pony'&&up)shadeEll(x,cx,19,3.2,7.5,H,{dither:false});
-    }else{
-      if(backLen>14)for(let y=9;y<backLen;y++){const t=(y-9)/(backLen-9);for(let i=Math.round(5+t*1.5);i<=12;i++)px(H[clamp(1+(i<7?-1:0)+(hash(i,y,3)<.2?1:0),0,4)],i,y);}
-      if(hair==='pony'){for(let k=0;k<12;k++){const a=k/11;shadeEll(x,6-a*2.2+(walk?sw*a:0),8+a*11,3-a*1.2,2.4,H,{dither:false});}}
-      if(hair==='twin'){shadeEll(x,5+(walk?sw*.6:0),18,3,7.5,H,{dither:false});px('#c4614f',5,10,3,2);}
-      if(hair==='buns')shadeEll(x,6,4.6,3.4,3.2,H,{dither:false});
-    }
+    if(st.back>13){for(let y=8;y<=st.back;y++){const t=(y-8)/(st.back-8);const x0=side?4+Math.round(t*1.5):5+(t>.8?1:0),x1=side?11:17-(t>.8?1:0);for(let i=x0;i<=x1;i++){if(y===st.back&&(i===x0||i===x1))continue;if(st.ragged&&y>=st.back-1&&(i%2))continue;px(H[i>=x1-1||(!side&&(i===8||i===14)&&y>13)?1:2],i,y);}}}
+    if(st.tail==='twin'){for(const t of side?[-1]:[-1,1]){const tx=side?6:cx+t*8.5;fe(x,tx+(side?0:sw*.4),14.5,2.2,5.2,H[1]);fe(x,tx-.4,14,1.3,4.4,H[2]);px('#c4614f',Math.round(tx)-1,9,2,1);}}
+    if(st.tail==='buns')for(const t of side?[-1]:[-1,1]){const bx=side?6:cx+t*6;fe(x,bx,2.8,2.6,2.4,H[1]);fe(x,bx-.4,2.4,1.7,1.5,H[2]);}
+    if(up&&st.tail==='pony'){fe(x,cx,15,2.4,5,H[1]);fe(x,cx-.4,14.5,1.4,4,H[2]);}
+    if(up&&st.tail==='small'){fe(x,cx,12.5,1.8,2.4,H[1]);fe(x,cx-.3,12,1,1.6,H[2]);}
+    if(up&&st.tail==='braid')for(let y=11;y<20;y+=2){fe(x,cx,y,1.6,1.2,H[(y>>1)%2?1:2]);}
+    if(side&&st.tail==='pony'){for(let k=0;k<9;k++){const a=k/8;fe(x,5-a*2+(sw*a*.6),7+a*8,2.2-a*.8,1.6,H[k%3===2?1:2]);}}
+    if(side&&st.tail==='small'){fe(x,5,9,1.8,2,H[1]);}
     // ---- 몸
-    const legY=27;
+    const legs=(xa,xb,ya,yb)=>{px(SKIN[1],xa,20+ya,2,1);px(SKIN[1],xb,20+yb,2,1);px('#5a4033',xa,21+ya,2,1);px('#5a4033',xb,21+yb,2,1);};
     if(!side){
-      const lu=fr==='A'?1:0,ru=fr==='B'?1:0;
-      for(const[lx,u]of[[10,lu],[14,ru]]){px(S[2],lx,legY-u,2,2);px('#fbf5ea',lx,legY+2-u,2,1);px('#5a4033',lx,legY+3-u,2,1);px('#5a4033',lx-(lx<13?1:0),legY+3-u,3,1);}
-      const rows=[[11,15],[10,16],[9,17],[9,17],[9,17],[9,17],[8,18],[8,18],[7,19]];
-      rows.forEach(([a,b],j)=>{for(let i=a;i<=b;i++){const e=(i-a)/(b-a);px(O[e<.2?3:e<.7?2:e<.88?1:0],i,19+j);}});
-      if(!up){px('#f6eedf',10,21,7,7);px('#e3d6c0',10,27,7,1);px('#e3d6c0',16,21,1,6);px('#f6eedf',10,19,1,2);px('#f6eedf',16,19,1,2);px('#e3d6c0',12,24,3,1);
-        px('#fbf5ea',12,19,3,1);}
-      else{px('#f6eedf',12,22,3,1);px('#f6eedf',11,21,1,1);px('#f6eedf',15,21,1,1);}
-      const as=walk?sw:0;for(const[ax,s]of[[6,as],[19,-as]]){px(O[ax<10?2:1],ax,20+s,2,5);px(S[2],ax,25+s,2,1);}
+      for(let y=14;y<=17;y++)for(let i=8;i<=14;i++)px(O[i<10?3:i>12?1:2],i,y);
+      if(skirt){for(let i=7;i<=15;i++){px(O[i<9?2:i>13?0:1],i,18);px(O[i<9?2:i>13?0:1],i,19);}legs(9,12,la,lb);}
+      else{for(let y=18;y<=20;y++)for(let i=8;i<=14;i++){if(i===11&&y>18)continue;px(i<11?'#6a5a52':'#55463f',i,y+(y===20?(i<11?la:lb):0));}px('#5a4033',8,21+la,3,1);px('#5a4033',12,21+lb,3,1);}
+      if(!up){px('#f6eedf',9,15,5,3);px('#e3d6c0',9,17,5,1);px('#f6eedf',9,14,1,1);px('#f6eedf',13,14,1,1);}else{px('#f6eedf',10,15,3,1);}
+      for(const[ax,s]of[[7,sw],[15,-sw]]){px(O[ax<10?2:1],ax,14+Math.max(0,s),1,3);px(SKIN[1],ax,17+Math.max(0,s),1,1);}
     }else{
-      const st=fr==='A'?2:fr==='B'?-2:0;
-      for(const[lx,u]of[[12+st,0],[14-st,0]]){px(S[1],lx,legY,2,2);px('#fbf5ea',lx,legY+2,2,1);px('#5a4033',lx,legY+3,3,1);}
-      const rows=[[11,16],[10,16],[10,17],[10,17],[10,17],[10,17],[9,17],[9,18],[9,18]];
-      rows.forEach(([a,b],j)=>{for(let i=a;i<=b;i++){const e=(i-a)/(b-a);px(O[e<.25?3:e<.75?2:1],i,19+j);}});
-      px('#f6eedf',15,21,3,7);px('#e3d6c0',15,27,3,1);px('#f6eedf',15,19,1,2);
-      const as=walk?sw*1.5:0;px(O[1],12+Math.round(as),20,2,5);px(S[2],12+Math.round(as),25,2,1);
+      for(let y=14;y<=17;y++)for(let i=9;i<=13;i++)px(O[i<10?3:i>12?1:2],i,y);
+      const st2=fr==='A'?2:fr==='B'?0:1;
+      if(skirt){for(let i=8;i<=14;i++){px(O[i>13?0:1],i,18);px(O[i>13?0:1],i,19);}px(SKIN[1],10-st2+1,20,2,1);px(SKIN[1],11+st2-1,20,2,1);px('#5a4033',10-st2+1,21,2,1);px('#5a4033',11+st2-1,21,3,1);}
+      else{for(let y=18;y<=20;y++){px('#55463f',10-(y>18?st2-1:0),y,2,1);px('#6a5a52',11+(y>18?st2-1:0),y,2,1);}px('#5a4033',10-st2+1,21,2,1);px('#5a4033',11+st2-1,21,3,1);}
+      px('#f6eedf',13,15,1,3);px(O[1],11+sw,14,2,3);px(SKIN[1],11+sw,17,2,1);
     }
-    // ---- 얼굴
-    const fx=side?cx+1:cx;
-    shadeEll(x,fx,hy,7.4,6.6,S,{dither:false,amb:.08});
-    if(!up){
-      const eyes=side?[[17]]:[[10],[16]];
-      for(const[ex]of eyes){if(blink)px('#3d2c2e',ex,14,side?1:2,1);else px('#3d2c2e',ex,13,1,2);}
-      const bl=side?[[17.5]]:[[8],[17]];for(const[bx]of bl)px('rgba(232,140,128,.7)',Math.round(bx),15,2,1);
-      px('#c97b6b',side?19:13,16,1,1);
-    }
-    // ---- 앞머리 (정수리 + 앞머리 + 옆머리)
-    const bangs={bob:[13,14,12,13,14,13,12,13,14,13,12,14,13,14,13,12,13],hime:Array(17).fill(13),short:[12,13,11,12,13,12,11,12,13,12,11,12,13,12,12,11,12],
-      twin:[13,14,12,14,13,12,14,13,12,13,14,12,13,14,12,13,13],pony:[12,13,14,12,13,12,14,13,12,13,12,14,13,12,13,12,12],long:[13,14,13,12,14,13,12,13,14,12,13,14,12,13,14,13,13],
-      buns:[12,13,12,14,13,12,13,12,13,14,12,13,12,13,12,12,12]}[hair];
-    const lockLen={bob:19,hime:19,long:20,twin:16,pony:15,buns:16,short:14}[hair];
-    if(up){hairEll(cx,hy-.5,8.6,7.6,null);px(H[4],cx-4,hy-6,3,1);px(H[4],cx+2,hy-6,2,1);}
-    else if(!side){
-      hairEll(cx,hy-1,8.6,7.4,(a,b)=>{const k=a-(cx-8);if(k<0||k>16)return b<hy-2||(a<=cx-7||a>=cx+7)&&b<=lockLen;return b<=bangs[k]-1;});
-      for(const s of[-1,1]){const lx=s<0?cx-8:cx+7;for(let y=hy-1;y<=lockLen;y++){px(H[s<0?2:1],lx,y,2,1);if(y===lockLen)px(H[0],lx+(s<0?1:0),y,1,1);}}
-      for(const k of[3,7,11])px(H[0],cx-8+k,bangs[k]-2,1,2);
-      px(H[4],cx-4,hy-6,3,1);px(H[4],cx+2,hy-6,2,1);px(H[3],cx-5,hy-5,1,1);px(H[3],cx+4,hy-5,1,1);
-    }else{
-      hairEll(cx-1,hy-1,8.4,7.4,(a,b)=>b<hy-3||a<cx-1||(b<=bangs[clamp(a-cx+4,0,16)]-3));
-      for(let y=Math.ceil(hy);y<=lockLen-2;y++)px(H[1],cx-1,y,2,1);
-      px(H[4],cx-2,hy-6,4,1);px(H[3],cx+3,hy-5,1,1);
-    }
+    // ---- 얼굴 (점 두 개)
+    const hx=side?cx+.4:cx;fe(x,hx,8,6.4,5.7,SKIN[1]);for(let i=6;i<=16;i++)if(x.getImageData(i,13,1,1).data[3])px(SKIN[0],i,13);
+    if(!up){if(fr==='blink'){if(side)px('#3d2c2e',15,10,1,1);else{px('#3d2c2e',8,10,1,1);px('#3d2c2e',14,10,1,1);}}
+      else if(side)px('#3d2c2e',15,9,1,2);else{px('#3d2c2e',8,9,1,2);px('#3d2c2e',14,9,1,2);}}
+    // ---- 앞머리
+    const capCx=side?10:cx;
+    const inHead=(i,y)=>{const dx=(i+.5-capCx)/7.1,dy=(y+.5-7.4)/(up?6.1:5.7);return dx*dx+dy*dy<=1;};
+    for(let y=0;y<=14;y++)for(let i=2;i<=19;i++){if(!inHead(i,y))continue;let on=false;
+      if(up)on=true;
+      else if(!side){const k=i-4;if(k>=0&&k<=14)on=y<=bangY(st.b,k,st.bl);if((i<=5||i>=16)&&y<=st.side)on=true;if(y<=3)on=true;}
+      else{on=y<=3||i<=10||(i>=11&&y<=bangY(st.b,Math.min(14,i-4+4),st.bl)-1);if(i<=11&&y>st.side)on=false;}
+      if(on)px(H[2],i,y);}
+    if(!up&&!side)for(const sx of[4,5,16,17])for(let y=7;y<=st.side;y++){if(st.hime&&y>11&&(sx===5||sx===16))continue;px(H[sx>=16?1:2],sx,y);}
+    if(side)for(let y=7;y<=st.side;y++)px(H[1],4,y);
+    if(!up&&!side)for(let k=0;k<15;k++){const by=bangY(st.b,k,st.bl);if(by>4&&inHead(k+4,by))px(H[1],k+4,by);}
+    if(st.b==='side'||st.b==='side2'){if(!side&&!up)px(H[1],14,2,1,2);}
+    px(H[3],side?7:8,3,3,1);px(H[3],side?6:7,4,1,1);
+    if(st.vol){for(let i=6;i<=16;i++)px(H[2],i,1);px(H[3],8,1,3,1);}
+    if(st.spikes)for(const[i,h]of[[6,2],[9,3],[12,2],[15,2]]){for(let j=0;j<h;j++)px(H[2],i+(side?-1:0),1-j,2-j>0?2-j:1,1);}
+    if(st.curl)for(const[a,b]of[[3,6],[3,9],[19,6],[19,9],[6,1],[11,0],[16,1]])if(!(side&&a>15)){fe(x,a+(side?-1:0),b,1.6,1.6,H[2]);}
+    if(st.tail==='braid'&&!up&&!side)for(let y=11;y<19;y+=2){fe(x,5,y,1.5,1.2,H[(y>>1)%2?1:2]);}
     // ---- 장식
     const acc=L.acc;
-    if(acc===1){const rx=side?6:cx+5,ry=side?6:3;if(!(side&&false)){shadeEll(x,rx-2,ry,2.4,2,RAMP.red,{dither:false});shadeEll(x,rx+3,ry,2.4,2,RAMP.red,{dither:false});px('#94443d',rx,ry-1,2,3);}}
-    if(acc===2){const ear=(ex,dirn)=>{for(let j=0;j<5;j++)for(let i=0;i<=4-j;i++){px(H[j<2?2:3],ex+(dirn<0?i:-i),2-j+3,1,1);}px('#e8a9a2',ex+(dirn<0?1:-1),4,1,2);};
-      if(!side){ear(cx-7,-1);ear(cx+7,1);}else{ear(cx-5,-1);ear(cx+3,1);}}
-    if(acc===3&&!up){const fx2=side?cx-3:cx+6,fy=side?6:7;for(const[a,b]of[[0,-1],[-1,0],[1,0],[0,1]])px('#f1bbb1',fx2+a,fy+b);px('#e3bd55',fx2,fy);px('#fbf5ea',fx2-1,fy-1);}
-    if(acc===4){const ax=side?cx-1:cx;px(H[2],ax,2,1,2);px(H[2],ax+1,1,1,1);px(H[3],ax+2,0,2,1);px(H[2],ax+4,1,1,1);}
-    if(acc===5){const mx=side?5:cx-9,my=4;shadeEll(x,mx+3,my+3,3.4,3,RAMP.white,{dither:false});px('#c4614f',mx+1,my+2,2,1);px('#c4614f',mx+4,my+2,2,1);px('#c4614f',mx+3,my+5,1,1);px('#fbf5ea',mx,my-1,2,2);px('#fbf5ea',mx+5,my-1,2,2);}
+    if(acc===1&&!(side&&false)){const rx=side?6:cx+5;fe(x,rx-1.6,2.5,1.8,1.5,'#c4614f');fe(x,rx+1.6,2.5,1.8,1.5,'#c4614f');px('#94443d',rx,2,1,2);}
+    if(acc===2){const ear=(ex,d)=>{for(let j=0;j<4;j++)for(let i=0;i<4-j;i++)px(H[j<2?2:3],ex+d*i,3-j,1,1);px('#e8a9a2',ex+d,2,1,1);};if(side){ear(6,1);ear(11,-1);}else{ear(5,1);ear(17,-1);}}
+    if(acc===3&&!up){const fx=side?6:cx+5,fy=6;for(const[a,b]of[[0,-1],[-1,0],[1,0],[0,1]])px('#f1bbb1',fx+a,fy+b);px('#e3bd55',fx,fy);}
+    if(acc===4){const ax=side?9:cx;px(H[2],ax,0,1,2);px(H[2],ax+1,-0,1,1);px(H[2],ax+2,0,1,1);}
+    if(acc===5){const mx=side?3:cx-9,my=2;fe(x,mx+2.5,my+2.5,2.6,2.4,'#f6f1e8');px('#c4614f',mx+1,my+2,1,1);px('#c4614f',mx+3,my+2,1,1);px('#f6f1e8',mx,my-1,1,2);px('#f6f1e8',mx+4,my-1,1,2);}
+    if(acc===6)for(let i=4;i<=18;i++)if(inHead(i,4))px(up?'#c4614f':'#c4614f',i,4);
+    if(acc===7){for(let y=0;y<=4;y++)for(let i=2;i<=19;i++)if(inHead(i,y))px(y===4?'#d8cdbb':'#f3ead9',i,y);if(!side)px('#e3d6c0',17,5,2,2);else px('#e3d6c0',3,5,2,2);}
+    if(acc===8&&!up){const g='#5b4141';if(side){px(g,14,8,3,1);px(g,14,11,3,1);px(g,16,8,1,4);px(g,13,9,1,1);}else{for(const ex of[8,14]){px(g,ex-1,8,3,1);px(g,ex-1,11,3,1);px(g,ex-2,9,1,2);px(g,ex+2,9,1,2);}px(g,10,9,3,1);}}
   });
   return outline(c);
 }
 const charCache=new Map();
-function charSprite(L,dir,fr){const key=[L.hair,L.hc,L.top,L.acc,dir,fr].join(',');let s=charCache.get(key);
+function charSprite(L,dir,fr){const key=[L.hair,L.hc,L.top,L.acc,L.bot??1,dir,fr].join(',');let s=charCache.get(key);
   if(!s){if(dir==='left')s=flipH(charSprite(L,'right',fr));else s=drawChar(L,dir==='right'?'side':dir,fr);charCache.set(key,s);}return s;}
 
 // =====================================================================

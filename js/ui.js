@@ -64,16 +64,16 @@ function openBasket(tab){
   const tabs=`<div class="tabs">${[['bag','바구니'],['recipe','요리 수첩'],['guest','손님 수첩'],['fish','물고기 도감']].map(([k,n])=>`<button type="button" class="tab${k===tab?' on':''}" data-tab="${k}">${n}</button>`).join('')}</div>`;
   let body=tabs;
   if(tab==='bag'){
-    const groups=[['요리',k=>k.startsWith('d_')],['채소',k=>ITEMS[k]&&ITEMS[k].kind==='veg'],['물고기',k=>ITEMS[k]&&ITEMS[k].kind==='fish'],['씨앗',k=>ITEMS[k]&&ITEMS[k].kind==='seed']];
+    const groups=[['요리',k=>k.startsWith('d_')],['채소',k=>ITEMS[k]&&ITEMS[k].kind==='veg'],['물고기',k=>ITEMS[k]&&ITEMS[k].kind==='fish'],['씨앗',k=>ITEMS[k]&&ITEMS[k].kind==='seed'],['미끼·농사',k=>ITEMS[k]&&(ITEMS[k].kind==='bait'||ITEMS[k].kind==='farm')]];
     let any=false;
     for(const[g,f]of groups){const ks=Object.keys(S.inv).filter(f).filter(k=>cnt(k)>0);if(!ks.length)continue;any=true;body+=`<h3>${g}</h3><div class="items">`;
       for(const k of ks){const a=S.inv[k];const q=ITEMS[k]&&ITEMS[k].kind==='seed'?'':[3,2,1].filter(s=>a[s-1]).map(s=>`<span class="q">${'★'.repeat(s)}×${a[s-1]}</span>`).join(' ');
-        body+=`<div class="item${k===S.seed?' sel':''}" ${ITEMS[k]&&ITEMS[k].kind==='seed'?`data-seed="${k}"`:''}>${img(k)}<div><b>${nameOf(k)}</b> ×${cnt(k)}<div class="ds">${q||(ITEMS[k].kind==='seed'?'눌러서 뿌릴 씨앗으로 고르기':'')}</div></div></div>`;}
+        const kd=ITEMS[k]&&ITEMS[k].kind;body+=`<div class="item${k===S.seed||k===S.bait?' sel':''}" ${kd==='seed'?`data-seed="${k}"`:kd==='bait'?`data-bait="${k}"`:''}>${img(k)}<div><b>${nameOf(k)}</b> ×${cnt(k)}<div class="ds">${kd==='seed'||kd==='bait'||kd==='farm'?(kd==='seed'?'눌러서 뿌릴 씨앗으로 고르기':kd==='bait'?(k===S.bait?'지금 쓰는 미끼':'눌러서 이 미끼 쓰기'):ITEMS[k].d):q}</div></div></div>`;}
       body+='</div>';}
     if(!any)body+='<p class="empty">바구니가 비었어요. 밭과 호수, 숲에서 재료를 모아 보세요.</p>';
   }else if(tab==='recipe'){
     body+='<div class="rlist">';for(const k of S.recipes){const d=DISHES[k];const best=S.dishLog[k];
-      body+=`<div class="rcard"><img class="px big" src="${curl(DISHART[k])}" alt=""><div><b>${d.n}</b>${best?stars(best):''}<div class="ds">${d.d}</div><div class="need">${needHtml(d)}</div><div class="ds">과정: ${d.steps.map(s=>STEPNAME[s]).join(' → ')}</div></div></div>`;}
+      body+=`<div class="rcard"><img class="px big" src="${curl(DISHART[k])}" alt=""><div><b>${d.n}</b>${best?stars(best):''}<div class="ds">${d.d}</div><div class="need">${needHtml(d)}</div><div class="ds">순서: ${d.steps.map(s=>s.txt).join(' → ')}</div></div></div>`;}
     body+='</div>';
   }else if(tab==='guest'){
     body+='<div class="glist">';SPIRITS.forEach((sp,i)=>{const met=i<S.spiritIdx||(i===S.spiritIdx&&S.metCur);
@@ -86,6 +86,7 @@ function openBasket(tab){
   openPanel('basket','바구니','',body,`<span class="ds">등불 ${S.spiritIdx}/8 · 낚은 물고기 ${S.stats.fish} · 수확 ${S.stats.harvest} · 요리 ${S.stats.cook}</span><span class="row"><button type="button" id="bMus" class="ghost">${AU.music?'음악 끄기':'음악 켜기'}</button><button type="button" id="bSave">저장</button></span>`);
   on('[data-tab]',el=>openBasket(el.dataset.tab));
   on('[data-seed]',el=>{S.seed=el.dataset.seed;hudKey='';openBasket('bag');});
+  on('[data-bait]',el=>{S.bait=el.dataset.bait;openBasket('bag');});
   $('bSave').onclick=()=>{save();toast('저장했어요.');};
   $('bMus').onclick=()=>{AU.music=!AU.music;if(AU.ctx)AU.mT=AU.ctx.currentTime+.1;openBasket(tab);};
 }
@@ -97,9 +98,10 @@ function openLedger(){
   for(const k of S.seedsAvail){const it=ITEMS[k],c=CROPS[it.crop];
     body+=`<div class="row">${img(k)}<div class="info"><b>${it.n}</b><div class="ds">${c.days}일이면 다 자라요${c.regrow?` · 수확 뒤 ${c.regrow}일마다 또 열림`:''}</div></div><div class="pr">${it.price}냥</div>
       <div class="btns"><button type="button" data-buy="${k}" data-n="1" ${S.gold<it.price?'disabled':''}>1</button><button type="button" data-buy="${k}" data-n="5" ${S.gold<it.price*5?'disabled':''}>5</button></div></div>`;}
+  for(const k of['paste','fert']){const it=ITEMS[k];body+=`<div class="row">${img(k)}<div class="info"><b>${it.n}</b><div class="ds">${it.d}</div></div><div class="pr">${it.price}냥</div><div class="btns"><button type="button" data-buy="${k}" data-n="5" ${S.gold<it.price*5?'disabled':''}>5</button><button type="button" data-buy="${k}" data-n="10" ${S.gold<it.price*10?'disabled':''}>10</button></div></div>`;}
   body+='</div>';
   openPanel('ledger','주문 장부','',body,`<span>가진 돈 <b>${S.gold.toLocaleString()}냥</b></span>`);
-  on('[data-buy]',el=>{const k=el.dataset.buy,n=+el.dataset.n,c=ITEMS[k].price*n;if(S.gold<c)return;S.gold-=c;addInv(k,1,n);if(!S.seed||!cnt(S.seed))S.seed=k;sfx('coin');hudKey='';openLedger();});
+  on('[data-buy]',el=>{const k=el.dataset.buy,n=+el.dataset.n,c=ITEMS[k].price*n;if(S.gold<c)return;S.gold-=c;addInv(k,1,n);if(ITEMS[k].kind==='seed'&&(!S.seed||!cnt(S.seed)))S.seed=k;sfx('coin');hudKey='';openLedger();});
 }
 
 // ---------------- 요리 고르기 ----------------
@@ -110,27 +112,27 @@ function openCookPick(title,sub,onPick,guest){
     body+=`<div class="row${ok||have?'':' off'}"><img class="px mid" src="${curl(DISHICON[k])}" alt=""><div class="info"><b>${d.n}</b>${have?` <span class="have">만들어 둔 것 ${have}</span>`:''}<div class="need">${needHtml(d)}</div></div>
       <div class="btns">${guest&&have?`<button type="button" data-serve="${k}">내기</button>`:''}<button type="button" data-cook="${k}" ${ok?'':'disabled'}>만들기</button></div></div>`;}
   body+='</div>';
-  openPanel('cookpick',title,sub,body,'');
+  openPanel('cookpick',title,sub,body,'<span class="ds">밥·달걀·우유·양념 같은 기본 재료는 찬장에 늘 있어요.</span>');
   on('[data-cook]',el=>{const k=el.dataset.cook;closePanel();onPick(k,'cook');});
   on('[data-serve]',el=>{const k=el.dataset.serve;closePanel();onPick(k,'serve');});
 }
 
 // ---------------- 캐릭터 만들기 ----------------
-let creatorLook={hair:1,hc:2,top:0,acc:1},creatorDir=0;
+let creatorLook={hair:12,hc:3,top:0,acc:1,bot:1},creatorDir=0;
 function openCreator(done){
   $('title').hidden=true;$('creator').hidden=false;
-  const rows=[['hair','머리 모양',HAIRS.map(h=>h.n)],['hc','머리 색',HAIRCOL.map(h=>h.n)],['top','옷 색',OUTFITS.map(h=>h.n)],['acc','장식',ACCS.map(h=>h.n)]];
+  const rows=[['hair','머리 모양',HAIRS.map(h=>h.n)],['hc','머리 색',HAIRCOL.map(h=>h.n)],['top','옷 색',OUTFITS.map(h=>h.n)],['bot','하의',BOTTOMS.map(h=>h.n)],['acc','장식',ACCS.map(h=>h.n)]];
   let h='';for(const[k,n,opts]of rows){h+=`<div class="crow"><span class="cl">${n}</span><div class="chips">`;
     opts.forEach((o,i)=>{const sw=k==='hc'?`<i style="background:${HAIRCOL[i].r[3]}"></i>`:k==='top'?`<i style="background:${OUTFITS[i].r[2]}"></i>`:'';h+=`<button type="button" class="chip" data-k="${k}" data-v="${i}">${sw}${o}</button>`;});h+='</div></div>';}
   $('copts').innerHTML=h;
   const sync=()=>{$('copts').querySelectorAll('.chip').forEach(b=>b.classList.toggle('on',creatorLook[b.dataset.k]===+b.dataset.v));};
   $('copts').querySelectorAll('.chip').forEach(b=>b.onclick=()=>{creatorLook[b.dataset.k]=+b.dataset.v;sync();sfx('pick');});sync();
   $('crot').onclick=()=>{creatorDir=(creatorDir+1)%4;};
-  $('crand').onclick=()=>{creatorLook={hair:Math.random()*HAIRS.length|0,hc:Math.random()*HAIRCOL.length|0,top:Math.random()*OUTFITS.length|0,acc:Math.random()*ACCS.length|0};sync();sfx('pick');};
+  $('crand').onclick=()=>{creatorLook={hair:Math.random()*HAIRS.length|0,hc:Math.random()*HAIRCOL.length|0,top:Math.random()*OUTFITS.length|0,acc:Math.random()*ACCS.length|0,bot:Math.random()*2|0};sync();sfx('pick');};
   $('cgo').onclick=()=>{const nm=$('cname').value.trim()||'사장님';$('creator').hidden=true;done(nm,Object.assign({},creatorLook));};
 }
 function drawCreatorPreview(t){const cv=$('cprev');if(!cv||$('creator').hidden)return;const x=cv.getContext('2d');x.imageSmoothingEnabled=false;x.clearRect(0,0,cv.width,cv.height);
   const dir=['down','right','up','left'][creatorDir],fr=Math.floor(t*2.2)%8===0?'blink':(Math.floor(t*4)%4===1?'A':Math.floor(t*4)%4===3?'B':'idle');
-  const s=charSprite(creatorLook,dir,dir==='up'&&fr==='blink'?'idle':fr);const sc=Math.floor(cv.height/CH);
+  const s=charSprite(creatorLook,dir,dir==='up'&&fr==='blink'?'idle':fr);const sc=Math.floor(Math.min(cv.height/CH,cv.width/CW));
   x.fillStyle='rgba(61,44,46,.18)';x.beginPath();x.ellipse(cv.width/2,cv.height-sc*2.5,sc*7,sc*2,0,0,7);x.fill();
   x.drawImage(s,(cv.width-CW*sc)/2,cv.height-CH*sc-sc,CW*sc,CH*sc);}

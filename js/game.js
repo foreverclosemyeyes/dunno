@@ -12,8 +12,8 @@ addEventListener('resize',resize);
 
 // ---------------- 상태 ----------------
 function newState(name,look){
-  return{v:1,name:name||'사장님',look:look||{hair:1,hc:2,top:0,acc:1},day:1,min:360,weather:'sun',tomorrow:'sun',map:'out',px:7*T+8,py:7*T+12,dir:'down',
-    gold:120,inv:{s_radish:[6,0,0],s_potato:[3,0,0],radish:[0,2,0]},seed:'s_radish',water:20,canLv:0,rodLv:0,
+  return{v:1,name:name||'사장님',look:look||{hair:12,hc:3,top:0,acc:1,bot:1},day:1,min:360,weather:'sun',tomorrow:'sun',map:'out',px:7*T+8,py:7*T+12,dir:'down',
+    gold:120,inv:{s_radish:[6,0,0],s_potato:[3,0,0],radish:[0,2,0],worm:[4,0,0]},bait:'worm',fert:{},seed:'s_radish',water:20,canLv:0,rodLv:0,
     tilled:{},wet:{},crops:{},weeds:{},mush:{},recipes:START_RECIPES.slice(),seedsAvail:START_SEEDS.slice(),
     spiritIdx:0,metCur:false,guests:[],guestDay:0,journal:{},dishLog:{},flags:{},todayEarn:0,stats:{fish:0,harvest:0,cook:0,earned:0}};
 }
@@ -64,12 +64,12 @@ function solidAt(x,y){if(!MAP.inb(x,y))return true;const g=MAP.ground[MAP.ix(x,y
 function boxFree(px,py){const x0=Math.floor((px-5)/T),x1=Math.floor((px+5)/T),y0=Math.floor((py-5)/T),y1=Math.floor((py-1)/T);
   for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)if(solidAt(x,y))return false;return true;}
 const DIRV={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
-function facing(){const[dx,dy]=DIRV[S.dir];return[Math.floor((S.px+dx*12)/T),Math.floor((S.py-4+dy*12)/T)];}
+function facing(){const[dx,dy]=DIRV[S.dir];return[Math.floor(S.px/T)+dx,Math.floor((S.py-3)/T)+dy];}
 const objAt=(x,y)=>MAP.inb(x,y)?MAP.ogrid[MAP.ix(x,y)]:null;
 
 // ---------------- 작물 ----------------
 function cropStage(c){const d=CROPS[c.t].days;if(c.g>=d)return 3;if(c.g<=0)return 0;return c.g<d/2?1:2;}
-function cropQ(c){const r=c.age?c.g/c.age:1;return r>=.95&&!c.weedy?3:r>=.66?2:1;}
+function cropQ(c){const r=c.age?c.g/c.age:1;const f=S.fert&&S.fert[MAP.ix?0:0]?0:0;return Math.min(3,(r>=.95&&!c.weedy?3:r>=.66?2:1)+(c.fertQ||0));}
 
 // ---------------- 행동 (상황에 따라 자동) ----------------
 function contextAction(){
@@ -92,26 +92,30 @@ function contextAction(){
   }
   if(S.mush[i])return{l:'버섯 줍기',f:()=>{delete S.mush[i];addInv('mushroom',2+(Math.random()<.4?1:0));sfx('pick');toast('표고버섯을 주웠어요','mushroom');spark(fx*T+8,fy*T+8);}};
   const c=S.crops[i];
-  if(S.weeds[i])return{l:'잡초 뽑기',f:()=>{delete S.weeds[i];sfx('weed');for(let k=0;k<6;k++)part(fx*T+8,fy*T+10,{vx:(Math.random()-.5)*40,vy:-40,g:160,life:.5,c:'#57714d'});}};
-  if(c&&cropStage(c)===3)return{l:CROPS[c.t].n+' 수확',f:()=>harvest(fx,fy)};
-  {const[dx,dy]=DIRV[S.dir];if(MAP===OUT&&!S.tilled[i]&&(g===WA||g===PL||g===SA)&&[14,22,30].some(d=>isWaterPx(S.px+dx*d,S.py-6+dy*d)))return{l:'낚시 (꾹 눌렀다 떼서 던지기)',hold:true};}
-  if(c){if(S.wet[i])return{l:`${CROPS[c.t].n} · ${Math.max(1,CROPS[c.t].days-c.g)}일 남음`,none:true};
-    return{l:'물 주기',f:()=>waterAt(fx,fy)};}
-  if(S.tilled[i]){if(S.seed&&cnt(S.seed))return{l:ITEMS[S.seed].n.replace(/ 씨앗| 모종|씨/,'')+' 심기',f:()=>plant(fx,fy)};return{l:'씨앗 없음 (장부에서 주문)',none:true};}
-  if(MAP.field[i]&&g===GR)return{l:'땅 갈기',f:()=>till(fx,fy)};
+  if(S.weeds[i])return{l:'잡초 뽑기',rep:1,f:()=>{delete S.weeds[i];sfx('weed');for(let k=0;k<6;k++)part(fx*T+8,fy*T+10,{vx:(Math.random()-.5)*40,vy:-40,g:160,life:.5,c:'#57714d'});}};
+  if(c&&c.dead)return{l:'말라 죽은 작물 치우기',rep:1,f:()=>{delete S.crops[i];sfx('weed');toast('작물이 말라 죽었어요. 물을 이틀 넘게 못 받았어요.');}};
+  if(c&&cropStage(c)===3)return{l:CROPS[c.t].n+' 수확'+(c.over>=2?' (너무 익음)':''),rep:1,f:()=>harvest(fx,fy)};
+  {const[dx,dy]=DIRV[S.dir];if(MAP===OUT&&!S.tilled[i]&&(g===WA||g===PL||g===SA)&&[14,22,30].some(d=>isWaterPx(S.px+dx*d,S.py-6+dy*d)))return{l:baitCnt()?`낚시 · ${ITEMS[curBait()].n} ${cnt(curBait())} (꾹 눌렀다 떼기)`:'미끼가 없어요',hold:baitCnt()>0,none:!baitCnt(),f:()=>{}};}
+  if(c){if(S.wet[i])return{l:`${CROPS[c.t].n} · ${Math.max(1,CROPS[c.t].days-c.g)}일 남음${c.dry>=2?' (시들었어요)':''}`,none:true};
+    return{l:c.dry>=1?'물 주기 (목말라해요!)':'물 주기',rep:1,f:()=>waterAt(fx,fy)};}
+  if(S.tilled[i]){if(S.seed&&cnt(S.seed))return{l:ITEMS[S.seed].n.replace(/ 씨앗| 모종|씨/,'')+' 심기'+(cnt('fert')&&!S.fert[i]?' + 퇴비':''),rep:1,f:()=>plant(fx,fy)};return{l:'씨앗 없음 (장부에서 주문)',none:true};}
+  if(MAP.field[i]&&g===GR)return{l:'땅 갈기',rep:1,f:()=>till(fx,fy)};
   return null;
 }
 function till(x,y){const i=MAP.ix(x,y);S.tilled[i]=1;if(S.weather==='rain')S.wet[i]=1;sfx('till');tool='hoe';toolT=.3;
+  if(Math.random()<.22){addInv('worm');toast('흙 속에서 지렁이를 찾았어요 (낚시 미끼)','worm');}
   for(let k=0;k<7;k++)part(x*T+8,y*T+10,{vx:(Math.random()-.5)*44,vy:-30-Math.random()*25,g:170,life:.5,c:'#735441'});}
-function plant(x,y){const i=MAP.ix(x,y);S.crops[i]={t:ITEMS[S.seed].crop,g:0,age:0};takeInv(S.seed);sfx('plant');if(!cnt(S.seed)){const n=Object.keys(S.inv).find(k=>ITEMS[k]&&ITEMS[k].kind==='seed');S.seed=n||null;}hudKey='';}
+function plant(x,y){const i=MAP.ix(x,y);S.crops[i]={t:ITEMS[S.seed].crop,g:0,age:0,dry:0,over:0};if(cnt('fert')&&!S.fert[i]){takeInv('fert');S.fert[i]=1;}takeInv(S.seed);sfx('plant');if(!cnt(S.seed)){const n=Object.keys(S.inv).find(k=>ITEMS[k]&&ITEMS[k].kind==='seed');S.seed=n||null;}hudKey='';}
 function waterAt(x,y){if(S.water<=0){toast('물뿌리개가 비었어요. 밭 옆 우물에서 채워요.');sfx('bad');return;}
   const[dx,dy]=DIRV[S.dir];const tiles=[[x,y]];if(S.canLv)tiles.push([x+dy,y+dx],[x-dy,y-dx]);
   for(const[a,b]of tiles){const i=MAP.ix(a,b);if(!MAP.inb(a,b)||!S.tilled[i]||S.water<=0)continue;if(!S.wet[i]){S.wet[i]=1;S.water--;}
     for(let k=0;k<6;k++)part(a*T+3+Math.random()*10,b*T,{vx:(Math.random()-.5)*8,vy:20+Math.random()*25,g:150,life:.45,c:'#9cc0b4'});}
   sfx('water');tool='can';toolT=.4;hudKey='';}
-function harvest(x,y){const i=MAP.ix(x,y),c=S.crops[i],cd=CROPS[c.t],q=cropQ(c);const n=1+(Math.random()<.15?1:0);
+function harvest(x,y){const i=MAP.ix(x,y),c=S.crops[i],cd=CROPS[c.t],q=Math.max(1,cropQ(c)-(c.over>=2?1:0));const n=1+(Math.random()<.15?1:0);
   addInv(cd.item,q,n);S.stats.harvest+=n;sfx('harvest');pop(cd.item,x*T+8,y*T+4);toast(`${cd.n} ${'★'.repeat(q)}${n>1?' ×2 풍작!':''}`,cd.item);
-  if(cd.regrow){c.g=cd.days-cd.regrow;c.age=c.g;c.weedy=0;}else delete S.crops[i];spark(x*T+8,y*T+8);}
+  if(cd.regrow){c.g=cd.days-cd.regrow;c.age=c.g;c.weedy=0;c.over=0;}else{delete S.crops[i];delete S.fert[i];}spark(x*T+8,y*T+8);}
+function curBait(){return cnt(S.bait)?S.bait:cnt('worm')?'worm':'paste';}
+const baitCnt=()=>cnt('worm')+cnt('paste');
 
 // ---------------- 낚시 ----------------
 let F=null;const shadows=[];
@@ -127,7 +131,7 @@ function updateShadows(dt){
   while(shadows.length<7)spawnShadow();
   for(const s of shadows){s.t+=dt;s.a+=dt*4;
     if(s.st==='wander'){if(Math.hypot(s.tx-s.x,s.ty-s.y)<2||s.t>6){for(let n=0;n<10;n++){const a=Math.random()*6.28,r=10+Math.random()*40;const nx2=s.x+Math.cos(a)*r,ny2=s.y+Math.sin(a)*r;if(isWaterPx(nx2,ny2)){s.tx=nx2;s.ty=ny2;break;}}s.t=0;}
-      if(F&&F.st==='wait'&&!F.fish&&Math.hypot(F.bx-s.x,F.by-s.y)<64){s.st='approach';F.fish=s;}}
+      if(F&&F.st==='wait'&&!F.fish&&F.bait&&Math.hypot(F.bx-s.x,F.by-s.y)<64&&Math.random()<dt*1.6*baitAff(s.sp,F.bait)){s.st='approach';F.fish=s;}}
     const sp=s.st==='approach'?16:s.st==='flee'?60:7;const tx=s.st==='approach'?F.bx:s.tx,ty=s.st==='approach'?F.by:s.ty;
     if(s.st==='flee'){s.x+=s.fx*dt*sp;s.y+=s.fy*dt*sp;s.t+=dt;if(s.t>1.5)s.dead=1;}
     else if(s.st!=='hooked'&&s.st!=='nibble'){const d=Math.hypot(tx-s.x,ty-s.y);if(d>1){const nx2=s.x+(tx-s.x)/d*sp*dt,ny2=s.y+(ty-s.y)/d*sp*dt;if(isWaterPx(nx2,ny2)||s.st==='approach'){s.x=nx2;s.y=ny2;}else s.t=99;}
@@ -148,11 +152,11 @@ function fishUpdate(dt){
   if(F.st==='wait'){
     if(INP.pressed){if(F.fish)scare(F.fish);F=null;toast('낚싯줄을 감았어요.');return;}
     if(F.t>14&&!F.fish&&Math.random()<dt){spawnShadow();}
-    if(F.fish&&F.fish.st==='nibble'){F.nt-=dt;if(F.nt<=0){if(F.nib>0){F.nib--;F.nt=.7+Math.random()*1.1;F.dip=.25;sfx('nibble');ripple(F.bx,F.by);}else{F.st='bite';F.t=0;F.dip=1;sfx('bite');ripple(F.bx,F.by);ripple(F.bx,F.by);}}}
+    if(F.fish&&F.fish.st==='nibble'){F.nt-=dt;if(F.nt<=0){if(F.nib>0){F.nib--;F.nt=.7+Math.random()*1.1;F.dip=.25;sfx('nibble');ripple(F.bx,F.by);if(Math.random()<.18){takeInv(F.bait);F.bait=null;scare(F.fish,'미끼만 뜯어먹혔어요. 감아서 다시 끼워요.');}}else{F.st='bite';F.t=0;F.dip=1;sfx('bite');ripple(F.bx,F.by);ripple(F.bx,F.by);}}}
     if(F.dip>0)F.dip-=dt;
     return;}
   if(F.st==='bite'){
-    if(INP.pressed){startFight();return;}
+    if(INP.pressed){takeInv(F.bait);startFight();return;}
     if(F.t>.6+S.rodLv*.12){scare(F.fish,'찌가 다시 떠올랐어요. 놓쳤다!');F=null;}return;}
   if(F.st==='fight'){const fd=FISH[F.sp];F.phT-=dt;
     if(F.phT<=0){F.run=!F.run&&F.stam>0;F.phT=F.run?.8+Math.random()*1.2:1+Math.random()*1.6;F.lat=(Math.random()<.5?-1:1);if(F.run){sfx('bite');ripple(F.bx,F.by);}}
@@ -165,10 +169,15 @@ function fishUpdate(dt){
     if(F.ten>=1){sfx('snap');toast('줄이 끊어졌어요! 물고기가 날뛸 땐 손을 떼요.');scare(F.fish);F=null;return;}
     if(F.dist>F.maxD){toast('너무 멀리 도망갔어요…');scare(F.fish);F=null;return;}
     if(F.slack>3.2){toast('줄이 느슨해서 바늘이 빠졌어요.');scare(F.fish);F=null;return;}
-    if(F.dist<12){landFish();}
+    if(F.run&&!F.jump&&Math.random()<dt*.5){F.jump=.6;sfx('plop');}if(F.jump>0)F.jump=Math.max(0,F.jump-dt);
+    if(F.dist<20){F.st='net';F.t=0;F.ring=1;}
     return;}
+  if(F.st==='net'){F.ring-=dt*.9;if(Math.random()<dt*10)part(F.bx,F.by,{vx:(Math.random()-.5)*30,vy:-30,g:120,life:.4,c:'#e3eee8'});
+    if(INP.pressed){if(F.ring<.35&&F.ring>.08){landFish();return;}F.st='fight';F.dist=36;F.run=true;F.phT=1;F.ten=.4;toast('뜰채가 빗나갔어요! 다시 감아요.');return;}
+    if(F.ring<=0){F.st='fight';F.dist=36;F.run=true;F.phT=1;F.ten=.4;toast('물고기가 다시 도망쳐요!');}return;}
   if(F.st==='show'&&F.t>1.4)F=null;
 }
+function baitAff(sp,b){return(b==='paste'?{f_crucian:1.5,f_sweet:1.3,f_gold:2,f_trout:.5,f_catfish:.5,f_cray:.4}:{f_crucian:1,f_sweet:.4,f_trout:1.4,f_catfish:1.5,f_cray:1.4,f_gold:.3})[sp]||1;}
 function startFight(){const s=F.fish,fd=FISH[s.sp];s.st='hooked';const d0=Math.hypot(F.bx-S.px,F.by-S.py+6);
   Object.assign(F,{st:'fight',t:0,sp:s.sp,dist:d0,maxD:d0+5*T,ten:.2,run:true,phT:.8,stam:fd.stam,off:0,lat:1,slack:0});sfx('bite');}
 function landFish(){const sp=F.sp,fd=FISH[sp];const s=F.fish;const k=shadows.indexOf(s);if(k>=0)shadows.splice(k,1);
@@ -236,7 +245,8 @@ function askSleep(){openPanel('sleep','다락방에서 잘까요?',S.min<18*60?'
 function goSleep(passOut){if(sleepFx)return;F=null;sleepFx={t:0,passOut};}
 function newDay(passOut){
   const earned=S.todayEarn;S.todayEarn=0;
-  for(const k in S.crops){const c=S.crops[k];c.age++;if(S.wet[k])c.g++;if(S.weeds[k])c.weedy=1;}
+  for(const k in S.crops){const c=S.crops[k];if(c.dead)continue;const ripe=c.g>=CROPS[c.t].days;c.age++;if(S.wet[k]){c.g+=1;c.dry=0;}else if(!ripe){c.dry=(c.dry||0)+1;if(c.dry>=3)c.dead=1;}
+    if(ripe)c.over=(c.over||0)+1;if(S.weeds[k])c.weedy=1;c.fertQ=S.fert[k]?1:0;}
   for(const k in S.tilled){if(!S.weeds[k]&&Math.random()<.07)S.weeds[k]=1;if(!S.crops[k]&&!S.weeds[k]&&Math.random()<.06)delete S.tilled[k];}
   S.wet={};S.day++;S.weather=S.tomorrow;S.tomorrow=Math.random()<(S.flags.rainy?.35:.22)?'rain':'sun';
   if(S.weather==='rain')for(const k in S.tilled)S.wet[k]=1;
@@ -260,7 +270,7 @@ function ripple(x,y){ripples.push({x,y,t:0});}
 function pop(id,x,y){pops.push({id,x,y,t:0});}
 const bugs=[];for(let i=0;i<12;i++)bugs.push({x:(3+Math.random()*28)*T,y:(3+Math.random()*20)*T,a:Math.random()*6,c:['#fbf5ea','#f1bbb1','#f2d58d'][i%3]});
 const drops=[];for(let i=0;i<120;i++)drops.push({x:Math.random(),y:Math.random(),s:.7+Math.random()*.6});
-let tool=null,toolT=0,stepT=0,walkT=0,moving=false;
+let tool=null,toolT=0,stepT=0,walkT=0,moving=false,repTile='',repT=0;
 
 // ---------------- 업데이트 ----------------
 let time=0,minAcc=0;
@@ -292,16 +302,20 @@ function update(dt){
   if(len>.2&&!F){mx/=Math.max(1,len);my/=Math.max(1,len);
     if(Math.abs(mx)>Math.abs(my))S.dir=mx<0?'left':'right';else S.dir=my<0?'up':'down';
     const sp=74;const nx2=S.px+mx*sp*dt,ny2=S.py+my*sp*dt;
-    if(boxFree(nx2,S.py))S.px=nx2;if(boxFree(S.px,ny2))S.py=ny2;moving=true;walkT+=dt;stepT+=dt;if(stepT>.28){stepT=0;sfx('step');}
+    if(boxFree(nx2,S.py))S.px=nx2;if(boxFree(S.px,ny2))S.py=ny2;
+    if(Math.abs(mx)<.3){const c=Math.floor(S.px/T)*T+8,d=clamp(c-S.px,-36*dt,36*dt);if(boxFree(S.px+d,S.py))S.px+=d;}
+    if(Math.abs(my)<.3){const c=Math.floor((S.py-3)/T)*T+12,d=clamp(c-S.py,-36*dt,36*dt);if(boxFree(S.px,S.py+d))S.py+=d;}
+    moving=true;walkT+=dt;stepT+=dt;if(stepT>.28){stepT=0;sfx('step');}
     if(S.map==='in'&&MAP.g(Math.floor(S.px/T),Math.floor((S.py-1)/T))===DR&&my>0)exitDiner();
   }else{moving=false;walkT=0;}
   if(toolT>0)toolT-=dt;
   // 행동
   const ca=F?null:contextAction();
-  if(F)setHint(F.st==='charge'?'떼면 던져요':F.st==='wait'?(F.fish?'기다려요… 톡톡은 무시!':'입질을 기다려요 (누르면 감기)'):F.st==='bite'?'지금!':F.st==='fight'?(F.run?'날뛴다! 손을 떼요':'꾹 눌러 감아요'):'');
+  if(F)setHint(F.st==='charge'?'떼면 던져요':F.st==='wait'?(F.fish?'기다려요… 톡톡은 무시!':'입질을 기다려요 (누르면 감기)'):F.st==='bite'?'지금!':F.st==='fight'?(F.run?'날뛴다! 손을 떼요':'꾹 눌러 감아요'):F.st==='net'?'원이 작아질 때 눌러서 뜰채로!':'');
   else setHint(ca?ca.l:'');
   if(F)fishUpdate(dt);
-  else if(INP.pressed&&ca&&!ca.none){if(ca.hold){F={st:'charge',p:0,pd:1,t:0};}else ca.f();}
+  else if(INP.pressed&&ca&&!ca.none){if(ca.hold){F={st:'charge',p:0,pd:1,t:0,bait:curBait()};}else{ca.f();repTile=facing().join();repT=.35;}}
+  else if(INP.down&&ca&&ca.rep&&!ca.none){repT-=dt;const ft=facing().join();if(ft!==repTile||repT<=0){ca.f();repTile=ft;repT=.35;}}
   if(S.flags.chime&&S.map==='out'&&Math.random()<dt*.04)sfx('chime');
   refreshHud();finishInput();
 }
@@ -315,6 +329,7 @@ function initSprites(){
   SPR.walls=[0,1,2,3].map(makeStoneWall);SPR.rocks=[0,1,2,3].map(makeRock);SPR.bushes={};SPR.mush=makeMushrooms();
   SPR.stove=makeStove();SPR.stool=makeStool();SPR.ladder=makeLadder();SPR.ledger=makeLedger();SPR.table=makeTable();SPR.plants=[1,2,3].map(makePlant);
 }
+const wiltCache={};function wilted(kind,st,dead){const k=kind+st+dead;return wiltCache[k]||(wiltCache[k]=mk(18,20,x=>{x.drawImage(CROPART[kind][st],0,dead?2:1);x.globalCompositeOperation='source-atop';x.fillStyle=dead?'rgba(110,80,50,.78)':'rgba(160,125,60,.45)';x.fillRect(0,0,18,20);}));}
 const treeCache={};function treeSpr(v){const k=v.kind+v.seed;return treeCache[k]||(treeCache[k]=makeTree(v.kind,v.seed+1));}
 function bushSpr(v){const k=(v.seed||0)+(v.flower||'');return SPR.bushes[k]||(SPR.bushes[k]=makeBush(v.seed||0,v.flower));}
 function darkness(){if(S.map==='in')return 0;const m=S.min;if(m<17.5*60)return 0;if(m<19.5*60)return(m-17.5*60)/120*.45;if(m<21*60)return .45+(m-19.5*60)/90*.15;return .6;}
@@ -337,10 +352,10 @@ function render(){
   }
   for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const i=MAP.ix(x,y),X=x*T-camX,Y=y*T-camY;
     if(MAP===OUT){if(MAP.ground[i]===PL)ctx.drawImage(PLANK,X,Y);
-      if(S.tilled[i])ctx.drawImage(SOIL[S.wet[i]?1:0],X,Y);if(S.weeds[i])ctx.drawImage(WEED,X+1,Y+3);if(S.mush[i])ctx.drawImage(SPR.mush,X,Y+1);}}
+      if(S.tilled[i]){ctx.drawImage(SOIL[S.wet[i]?1:0],X,Y);if(S.fert[i]){P(ctx,'#3a2a22',X+4,Y+5,1,1);P(ctx,'#3a2a22',X+10,Y+9,1,1);P(ctx,'#8a7a50',X+7,Y+12,1,1);P(ctx,'#3a2a22',X+12,Y+4,1,1);}}if(S.weeds[i])ctx.drawImage(WEED,X+1,Y+3);if(S.mush[i])ctx.drawImage(SPR.mush,X,Y+1);}}
   for(const r of ripples){const a=1-r.t/1.3;ctx.strokeStyle=`rgba(232,242,236,${a*.8})`;ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(Math.round(r.x-camX)+.5,Math.round(r.y-camY)+.5,2+r.t*8,1+r.t*3.2,0,0,7);ctx.stroke();}
   // 바라보는 칸
-  if(mode==='play'&&!F&&!PANEL.open&&!DLG.open&&!CK.on){const[fx,fy]=facing();const X=fx*T-camX,Y=fy*T-camY,a=.5+Math.sin(time*5)*.25;ctx.fillStyle=`rgba(251,245,234,${a})`;
+  if(mode==='play'&&!F&&!PANEL.open&&!DLG.open&&!CK.on){const[fx,fy]=facing();const X=fx*T-camX,Y=fy*T-camY,a=.55+Math.sin(time*5)*.2;ctx.fillStyle='rgba(255,246,225,.16)';ctx.fillRect(X,Y,T,T);ctx.fillStyle=`rgba(251,245,234,${a})`;
     for(const[cx,cy]of[[0,0],[13,0],[0,13],[13,13]]){ctx.fillRect(X+cx,Y+cy+(cy?2:0),3,1);ctx.fillRect(X+cx+(cx?2:0),Y+cy,1,3);}}
   // y 정렬
   const L=[];const lit=darkness()>.12||S.min>=18*60;
@@ -392,7 +407,7 @@ function drawObj(o,lit){
   const X=o.x*T-camX,Y=o.y*T-camY;
   switch(o.t){
     case'player':drawPlayer();break;
-    case'crop':{const st=cropStage(o.c);const s=CROPART[o.c.t][st];const sway=st>1&&Math.sin(time*1.6+o.x*.9+o.y)>.75?1:0;ctx.drawImage(s,X-1+sway,Y-5);
+    case'crop':{const st=cropStage(o.c);const s=o.c.dead?wilted(o.c.t,2,1):(o.c.dry>=2?wilted(o.c.t,st,0):CROPART[o.c.t][st]);const sway=st>1&&Math.sin(time*1.6+o.x*.9+o.y)>.75?1:0;ctx.drawImage(s,X-1+sway,Y-5);
       if(st===3&&Math.sin(time*2+o.x*1.7+o.y)>.94){P(ctx,'#fffbe6',X+13,Y,1,3);P(ctx,'#fffbe6',X+12,Y+1,3,1);}break;}
     case'tree':{const s=treeSpr(o.v);shadow(X+8,Y+14,12,4);const behind=mode==='play'&&S.py<o.y*T+12&&S.py>o.y*T-36&&Math.abs(S.px-(o.x*T+8))<20;if(behind)ctx.globalAlpha=.55;ctx.drawImage(s,X+8-s.width/2,Y+16-s.height+2);ctx.globalAlpha=1;
       if(o.v.kind==='blossom'&&Math.random()<.02)part(o.x*T+8+(Math.random()-.5)*28,o.y*T-26,{vx:8+Math.random()*6,vy:8,g:2,life:3,c:'#efc6c0'});break;}
@@ -432,18 +447,18 @@ function drawPlayer(){
   const rodBehind=S.dir==='up';
   if(F&&rodBehind)drawRod();
   if(toolT>0&&tool&&S.dir==='up')drawTool(px,py);
-  ctx.drawImage(s,px-13,py-31+bob);
+  ctx.drawImage(s,px-11,py-23+bob);
   if(F&&!rodBehind)drawRod();
   if(toolT>0&&tool&&S.dir!=='up')drawTool(px,py);
-  if(F&&F.st==='show'){const fi=IC[F.sp];ctx.drawImage(fi,px-9,py-44-Math.min(1,F.t*4)*3);}
+  if(F&&F.st==='show'){const fi=IC[F.sp];ctx.drawImage(fi,px-9,py-38-Math.min(1,F.t*4)*3);}
 }
-function drawTool(px,py){const[dx,dy]=DIRV[S.dir];const ph=toolT>.15?0:1;const ic=IC[tool];ctx.save();ctx.translate(px+dx*(9+ph*2),py-16+dy*3+ph*4);if(dx<0)ctx.scale(-1,1);ctx.drawImage(ic,-9,-9);ctx.restore();}
-function rodGeom(){const[dx,dy]=DIRV[S.dir];const hx=S.px+(dy?(dy>0?5:-5):dx*4),hy=S.py-12;let tx=hx+dx*12+(dy?(dy>0?4:-4):0),ty=hy-12+(dy>0?6:0);
+function drawTool(px,py){const[dx,dy]=DIRV[S.dir];const ph=toolT>.15?0:1;const ic=IC[tool];ctx.save();ctx.translate(px+dx*(8+ph*2),py-11+dy*3+ph*4);if(dx<0)ctx.scale(-1,1);ctx.drawImage(ic,-9,-9);ctx.restore();}
+function rodGeom(){const[dx,dy]=DIRV[S.dir];const hx=S.px+(dy?(dy>0?4:-4):dx*4),hy=S.py-7;let tx=hx+dx*12+(dy?(dy>0?4:-4):0),ty=hy-12+(dy>0?6:0);
   if(F.st==='charge'){tx=hx-dx*5;ty=hy-17;}if(F.st==='fight'){const pull=F.ten*5;tx+=(F.bx-tx)/Math.max(1,Math.hypot(F.bx-tx,F.by-ty))*pull;ty+=4*F.ten;}return[hx,hy,tx,ty];}
 function drawRod(){if(!F||F.st==='show')return;const[hx,hy,tx,ty]=rodGeom();line(ctx,hx-camX,hy-camY,tx-camX,ty-camY,'#5f4334');line(ctx,hx-camX+1,hy-camY,tx-camX+1,ty-camY,'#a07a56');}
 function drawFishing(){
   if(!F||F.st==='show')return;const[hx,hy,tx,ty]=rodGeom();
-  if(F.st==='charge'){const X=Math.round(S.px-camX)-12,Y=Math.round(S.py-camY)-44;P(ctx,'#3d2c2e',X-1,Y-1,26,6);P(ctx,'#efe3cf',X,Y,24,4);P(ctx,F.p>.85?'#e2887a':'#86a35a',X,Y,Math.round(24*F.p),4);return;}
+  if(F.st==='charge'){const X=Math.round(S.px-camX)-12,Y=Math.round(S.py-camY)-36;P(ctx,'#3d2c2e',X-1,Y-1,26,6);P(ctx,'#efe3cf',X,Y,24,4);P(ctx,F.p>.85?'#e2887a':'#86a35a',X,Y,Math.round(24*F.p),4);return;}
   let bx=F.bx,by=F.by;const p=F.st==='fly'?Math.min(1,F.t/.45):1;
   if(F.st==='fly'){bx=tx+(F.bx-tx)*p;by=ty+(F.by-ty)*p-Math.sin(p*Math.PI)*22;}
   const dip=F.st==='bite'?2+Math.sin(time*40)*.8:F.dip>0?1:F.st==='fight'?0:Math.sin(time*2.6)*.6;
@@ -453,9 +468,11 @@ function drawFishing(){
   const BX=Math.round(bx-camX),BY=Math.round(by+dip-camY);
   if(F.st==='fight'){P(ctx,'rgba(32,52,56,.45)',BX-5,BY-1,10,3);if(F.run){P(ctx,'#e3eee8',BX-3,BY-3,2,1);P(ctx,'#e3eee8',BX+2,BY-4,1,1);}}
   else if(F.st!=='bite'||Math.sin(time*30)>0){P(ctx,'#3d2c2e',BX-2,BY-3,4,5);P(ctx,'#e2887a',BX-1,BY-2,2,2);P(ctx,'#fbf5ea',BX-1,BY,2,1);}
-  if(F.st==='bite')bubble(S.px-camX,S.py-camY-38,'!');
-  if(F.st==='fight'){const X=Math.round(S.px-camX)+12,Y=Math.round(S.py-camY)-36;P(ctx,'#3d2c2e',X-1,Y-1,6,30);P(ctx,'#efe3cf',X,Y,4,28);const h=Math.round(28*Math.min(1,F.ten));
-    P(ctx,F.ten>.75?'#c4614f':F.ten>.45?'#d9ae5f':'#86a35a',X,Y+28-h,4,h);if(F.run)bubble(S.px-camX,S.py-camY-38,'!!');
+  if(F.st==='bite')bubble(S.px-camX,S.py-camY-32,'!');
+  if(F.st==='net'){ctx.strokeStyle=F.ring<.35&&F.ring>.08?'#9fc07a':'#fbf5ea';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(BX+.5,BY+.5,3+F.ring*16,2+F.ring*8,0,0,7);ctx.stroke();ctx.strokeStyle='rgba(159,192,122,.6)';ctx.beginPath();ctx.ellipse(BX+.5,BY+.5,5,3,0,0,7);ctx.stroke();ctx.drawImage(IC[F.sp],BX-9,BY-8);}
+  if(F.st==='fight'&&F.jump>0){const q=1-F.jump/.6;ctx.drawImage(IC[F.sp],BX-9,BY-12-Math.sin(q*Math.PI)*16);}
+  if(F.st==='fight'){const X=Math.round(S.px-camX)+12,Y=Math.round(S.py-camY)-30;P(ctx,'#3d2c2e',X-1,Y-1,6,30);P(ctx,'#efe3cf',X,Y,4,28);const h=Math.round(28*Math.min(1,F.ten));
+    P(ctx,F.ten>.75?'#c4614f':F.ten>.45?'#d9ae5f':'#86a35a',X,Y+28-h,4,h);if(F.run)bubble(S.px-camX,S.py-camY-32,'!!');
     const dd=Math.max(0,Math.min(1,(F.dist-12)/(F.maxD-12)));P(ctx,'#3d2c2e',X-28,Y+31,24,3);P(ctx,'#9cc0b4',X-27,Y+32,Math.round(22*(1-dd)),1);}
 }
 function bubble(x,y,s){x=Math.round(x);y=Math.round(y)-(Math.sin(time*12)>0?1:0);const w=s.length>1?11:7;P(ctx,'#3d2c2e',x-w/2-1|0,y-6,w+2,11);P(ctx,'#fbf5ea',x-w/2|0,y-5,w,9);P(ctx,'#3d2c2e',x-1,y+5,3,2);
