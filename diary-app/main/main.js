@@ -1,0 +1,459 @@
+// 업무다이어리 — 메인 프로세스
+// 창/트레이/자동 실행/알림/노션 동기화/정시 비서/자정 날짜 넘김을 담당
+'use strict';
+const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
+const { pathToFileURL } = require('url');
+const {
+  app, BrowserWindow, Tray, Menu, ipcMain, Notification, shell, dialog,
+  nativeImage, protocol, net, session, powerMonitor,
+} = require('electron');
+
+const { JsonStore } = require('./store');
+const { Secrets } = require('./secrets');
+const notion = require('./notion');
+const assistant = require('./assistant');
+
+const SYNC_MS = 2 * 60 * 1000;
+const DEFAULT_CFG = {
+  databaseId: 'ca74544b319f4aef888b8302b527232f',
+  dataSourceId: '77d1be1a-43f1-4944-9e21-79f2de3301f0',
+  userId: '387d872b-594c-813c-9970-0002e617b3d5',
+};
+
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'diary-asset', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, corsEnabled: true } },
+]);
+
+if (process.env.DIARY_USER_DATA) app.setPath('userData', process.env.DIARY_USER_DATA);
+if (!app.requestSingleInstanceLock()) { app.quit(); process.exit(0); }
+
+let win = null;
+let tray = null;
+let quitting = false;
+let store, cache, secrets, assetsDir;
+
+// ---------- 날짜 도우미 ----------
+const pad = (n) => String(n).padStart(2, '0');
+const isoOf = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const todayISO = () => isoOf(new Date());
+
+// ---------- 상태 ----------
+const state = {
+  today: todayISO(),
+  viewMonth: todayISO().slice(0, 7), // 렌더러가 보고 있는 달
+  selected: todayISO(),
+  quests: [],
+  weeks: [], // [{id,url,name,start,end,lastEdited,days}]
+  lastSync: null,
+  syncing: false,
+  error: null,
+  needsSetup: false,
+};
+
+function snapshot() {
+  const days = {};
+  for (const w of state.weeks) {
+    for (const [date, items] of Object.entries(w.days || {})) {
+      days[date] = { items, pageId: w.id, url: w.url, pageName: w.name };
+    }
+  }
+  return {
+    today: state.today,
+    quests: state.quests,
+    weeks: state.weeks.map(({ days: _d, ...rest }) => rest),
+    days,
+    lastSync: state.lastSync,
+    syncing: state.syncing,
+    error: state.error,
+    needsSetup: state.needsSetup,
+  };
+}
+
+function push(channel, payload) {
+  if (win && !win.isDestroyed()) win.webContents.send(channel, payload);
+}
+const pushData = () => push('data', snapshot());
+
+// ---------- 노션 동기화 ----------
+function cfg() {
+  return { ...DEFAULT_CFG, ...store.get('notionCfg', {}) };
+}
+
+function monthRange(ym) {
+  const [y, m] = ym.split('-').map(Number);
+  const first = new Date(y, m - 1, 1);
+  const last = new Date(y, m, 0);
+  return [isoOf(first), isoOf(last)];
+}
+
+let syncPromise = null;
+let lastSyncAt = 0;
+function sync(force = false) {
+  if (syncPromise) return syncPromise;
+  syncPromise = doSync(force).finally(() => { syncPromise = null; });
+  return syncPromise;
+}
+
+async function doSync(force) {
+  if (process.env.DIARY_DEMO) { // 화면 확인용 가짜 데이터
+    Object.assign(state, require('../test/demo-data.js')(state.today), { lastSync: new Date().toISOString(), error: null });
+    lastSyncAt = Date.now();
+    pushData();
+    return;
+  }
+  const token = secrets.get('notion');
+  if (!token) {
+    state.needsSetup = true;
+    state.error = '노션 키를 아직 넣지 않았어요. 오른쪽 위 ⚙ 설정 > 연결에서 넣어 주세요.';
+    pushData();
+    return;
+  }
+  state.needsSetup = false;
+  state.syncing = true;
+  pushData();
+  lastSyncAt = Date.now();
+  const client = new notion.NotionClient(token);
+  const c = cfg();
+  try {
+    // 보고 있는 달 + 오늘이 있는 달을 모두 포함
+    const months = new Set([state.viewMonth, state.today.slice(0, 7)]);
+    let start = '9999', end = '0000';
+    for (const ym of months) {
+      const [s, e] = monthRange(ym);
+      if (s < start) start = s;
+      if (e > end) end = e;
+    }
+    const [quests, pages] = await Promise.all([
+      notion.fetchQuests(client, c),
+      notion.fetchWeeklyPages(client, c, start, end),
+    ]);
+    state.quests = quests;
+
+    const prev = new Map(state.weeks.map((w) => [w.id, w]));
+    const weeks = [];
+    for (const p of pages) {
+      const old = prev.get(p.id);
+      const active = (p.start <= state.today && (p.end || p.start) >= state.today) ||
+        (p.start <= state.selected && (p.end || p.start) >= state.selected);
+      // 오늘/보고 있는 주는 매번 새로 읽고, 나머지는 노션에서 바뀌었을 때만 다시 읽음
+      if (!force && !active && old && old.lastEdited === p.lastEdited && old.days) {
+        weeks.push({ ...p, days: old.days });
+        continue;
+      }
+      const tree = await client.getBlockTree(p.id);
+      weeks.push({ ...p, days: notion.parseChecklist(tree, p.start) });
+    }
+    state.weeks = weeks;
+    state.lastSync = new Date().toISOString();
+    state.error = null;
+    cache.set('snapshot', { quests: state.quests, weeks: state.weeks, lastSync: state.lastSync });
+  } catch (e) {
+    state.error = e.friendly || e.message;
+    console.error('[sync]', e);
+  } finally {
+    state.syncing = false;
+    pushData();
+  }
+}
+
+// ---------- 비서 ----------
+function persona() {
+  const t = store.get('theme', null);
+  const a = (t && t.assistant) || {};
+  return { name: a.name || '비서', tone: a.tone || '' };
+}
+
+async function runAssistant({ notify }) {
+  const snap = snapshot();
+  const day = snap.days[state.today];
+  const ctx = assistant.buildContext({
+    todayISO: state.today,
+    now: new Date().toLocaleString('ko-KR', { weekday: 'long', hour: 'numeric', minute: '2-digit' }),
+    todayItems: day ? day.items : [],
+    quests: snap.quests,
+  });
+  push('assistant', { thinking: true });
+  let msg;
+  try {
+    msg = await assistant.generate(secrets.get('anthropic'), persona(), ctx);
+  } catch (e) {
+    console.error('[assistant]', e);
+    msg = { ...assistant.fallbackMessage(ctx, persona()), note: assistant.friendlyError(e) };
+  }
+  msg.at = new Date().toISOString();
+  store.set('lastAssistant', msg);
+  push('assistant', msg);
+  if (notify && Notification.isSupported()) {
+    const n = new Notification({ title: msg.name || persona().name, body: msg.text, silent: false });
+    n.on('click', showWindow);
+    n.show();
+  }
+  return msg;
+}
+
+// ---------- 시계 (자정 넘김 / 2분 새로고침 / 정시 체크) ----------
+function tick() {
+  const now = new Date();
+  const t = isoOf(now);
+  if (t !== state.today) {
+    const wasViewingToday = state.selected === state.today;
+    state.today = t;
+    if (wasViewingToday) state.selected = t;
+    state.viewMonth = t.slice(0, 7);
+    push('day-changed', { today: t });
+    sync(true); // 월요일이면 여기서 새 주차 페이지를 다시 찾음
+  } else if (Date.now() - lastSyncAt >= SYNC_MS) {
+    sync(false);
+  }
+
+  if (store.get('settings', {}).hourly) {
+    const wd = now.getDay();
+    const h = now.getHours();
+    const key = `${t}-${h}`;
+    if (wd >= 1 && wd <= 5 && h >= 9 && h <= 19 && now.getMinutes() < 3 && store.get('lastHourly') !== key) {
+      store.set('lastHourly', key);
+      sync(true).then(() => runAssistant({ notify: true }));
+    }
+  }
+}
+
+// ---------- 창 / 트레이 ----------
+function showWindow() {
+  if (!win || win.isDestroyed()) createWindow(true);
+  else { win.show(); win.focus(); }
+  if (process.platform === 'darwin') app.dock && app.dock.show();
+}
+
+function createWindow(show) {
+  const bounds = store.get('bounds', { width: 1180, height: 800 });
+  const settings = store.get('settings', {});
+  win = new BrowserWindow({
+    ...bounds,
+    minWidth: 900,
+    minHeight: 640,
+    show: false,
+    title: '업무다이어리',
+    backgroundColor: '#121212',
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    alwaysOnTop: !!settings.alwaysOnTop,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  });
+  win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+  win.once('ready-to-show', () => { if (show) win.show(); });
+  const saveBounds = () => { if (!win.isMinimized() && !win.isMaximized()) store.set('bounds', win.getBounds()); };
+  win.on('resize', saveBounds);
+  win.on('move', saveBounds);
+  win.on('close', (e) => {
+    if (!quitting) {
+      e.preventDefault();
+      win.hide();
+      if (process.platform === 'darwin' && app.dock) app.dock.hide();
+      if (!store.get('closeHintShown')) {
+        store.set('closeHintShown', true);
+        new Notification({ title: '업무다이어리', body: '창을 닫아도 메뉴 막대(트레이)에서 계속 실행돼요. 정시 알림도 그대로 와요.' }).show();
+      }
+    }
+  });
+  win.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' }; });
+  win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('file:')) { e.preventDefault(); shell.openExternal(url); } });
+}
+
+function createTray() {
+  const iconName = process.platform === 'darwin' ? 'trayTemplate.png' : 'tray.png';
+  let img = nativeImage.createFromPath(path.join(__dirname, '..', 'build', iconName));
+  if (process.platform === 'darwin') img.setTemplateImage(true);
+  tray = new Tray(img);
+  tray.setToolTip('업무다이어리');
+  const menu = () => Menu.buildFromTemplate([
+    { label: '다이어리 열기', click: showWindow },
+    { label: '지금 확인해줘', click: () => runAssistant({ notify: true }) },
+    { label: '노션 새로고침', click: () => sync(true) },
+    { type: 'separator' },
+    {
+      label: '매시간 체크', type: 'checkbox', checked: !!store.get('settings', {}).hourly,
+      click: (item) => { setSettings({ hourly: item.checked }); },
+    },
+    { type: 'separator' },
+    { label: '완전히 종료', click: () => { quitting = true; app.quit(); } },
+  ]);
+  tray.setContextMenu(menu());
+  tray.on('click', () => { if (process.platform !== 'darwin') showWindow(); });
+  tray.refreshMenu = () => tray.setContextMenu(menu());
+}
+
+function setSettings(partial) {
+  const s = { ...store.get('settings', {}), ...partial };
+  store.set('settings', s);
+  if ('autoLaunch' in partial) applyAutoLaunch(!!partial.autoLaunch);
+  if ('alwaysOnTop' in partial && win) win.setAlwaysOnTop(!!partial.alwaysOnTop);
+  if (tray && tray.refreshMenu) tray.refreshMenu();
+  push('settings', s);
+  return s;
+}
+
+function applyAutoLaunch(on) {
+  if (!app.isPackaged) return; // 개발 중에는 등록하지 않음
+  app.setLoginItemSettings({ openAtLogin: on, openAsHidden: true, args: ['--hidden'] });
+}
+
+// ---------- 파일(글씨체/그림/동영상) ----------
+const KIND_FILTERS = {
+  font: [{ name: '글씨체', extensions: ['ttf', 'otf', 'woff', 'woff2'] }],
+  image: [{ name: '그림', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'] }],
+  video: [{ name: '동영상', extensions: ['mp4', 'webm'] }],
+  media: [{ name: '그림/동영상', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'mp4', 'webm'] }],
+};
+
+function saveAsset(buffer, originalName) {
+  const ext = path.extname(originalName).toLowerCase();
+  const hash = crypto.createHash('sha1').update(buffer).digest('hex').slice(0, 16);
+  const id = hash + ext;
+  const file = path.join(assetsDir, id);
+  if (!fs.existsSync(file)) fs.writeFileSync(file, buffer);
+  return { id, name: originalName, url: `diary-asset://local/${id}` };
+}
+
+function registerIpc() {
+  ipcMain.handle('init', () => ({
+    platform: process.platform,
+    settings: store.get('settings', {}),
+    notionCfg: cfg(),
+    hasKeys: { notion: secrets.has('notion') || !!process.env.DIARY_DEMO, anthropic: secrets.has('anthropic') },
+    theme: store.get('theme', null),
+    themes: store.get('themes', []),
+    stats: store.get('stats', {}),
+    lastAssistant: store.get('lastAssistant', null),
+    data: snapshot(),
+    isPackaged: app.isPackaged,
+  }));
+  ipcMain.handle('settings:set', (_e, partial) => setSettings(partial));
+  ipcMain.handle('notionCfg:set', (_e, partial) => {
+    store.set('notionCfg', { ...store.get('notionCfg', {}), ...partial });
+    state.weeks = [];
+    sync(true);
+    return cfg();
+  });
+  ipcMain.handle('secret:set', (_e, name, value) => {
+    if (!['notion', 'anthropic'].includes(name)) return false;
+    secrets.set(name, (value || '').trim());
+    if (name === 'notion') sync(true);
+    return { notion: secrets.has('notion'), anthropic: secrets.has('anthropic') };
+  });
+  ipcMain.handle('notion:test', async () => {
+    const token = secrets.get('notion');
+    if (!token) return { ok: false, message: '먼저 노션 키를 저장해 주세요.' };
+    const client = new notion.NotionClient(token);
+    try {
+      const me = await client.me();
+      await client.request('GET', `/data_sources/${cfg().dataSourceId}`);
+      return { ok: true, message: `연결 성공! (통합 이름: ${me.name || me.bot?.workspace_name || '확인됨'})` };
+    } catch (e) {
+      return { ok: false, message: e.friendly || e.message };
+    }
+  });
+  ipcMain.handle('sync', (_e, force) => sync(!!force).then(snapshot));
+  ipcMain.handle('view', (_e, { month, selected }) => {
+    const before = state.viewMonth;
+    if (month) state.viewMonth = month;
+    if (selected) state.selected = selected;
+    if (month && month !== before) sync(false);
+    return true;
+  });
+  ipcMain.handle('assistant:ask', () => runAssistant({ notify: false }));
+  ipcMain.handle('theme:save', (_e, theme) => { store.set('theme', theme); return true; });
+  ipcMain.handle('themes:save', (_e, list) => { store.set('themes', list); return true; });
+  ipcMain.handle('stats:save', (_e, stats) => { store.set('stats', stats); return true; });
+  ipcMain.handle('open', (_e, url) => {
+    if (/^https:\/\/(www\.|app\.)?notion\.(so|com)\//.test(url) || /^https:\/\/(console\.anthropic\.com|www\.notion\.so|platform\.claude\.com)/.test(url)) shell.openExternal(url);
+  });
+
+  ipcMain.handle('asset:pick', async (_e, kind) => {
+    const r = await dialog.showOpenDialog(win, { properties: ['openFile', 'multiSelections'], filters: KIND_FILTERS[kind] || KIND_FILTERS.media });
+    if (r.canceled) return [];
+    return r.filePaths.map((p) => ({ ...saveAsset(fs.readFileSync(p), path.basename(p)), kind }));
+  });
+  ipcMain.handle('asset:read', (_e, id) => {
+    const file = path.join(assetsDir, path.basename(id));
+    return fs.existsSync(file) ? fs.readFileSync(file).toString('base64') : null;
+  });
+  ipcMain.handle('asset:write', (_e, name, b64) => saveAsset(Buffer.from(b64, 'base64'), name));
+
+  ipcMain.handle('theme:export', async (_e, json, name) => {
+    const r = await dialog.showSaveDialog(win, {
+      defaultPath: `${(name || '테마').replace(/[\\/:*?"<>|]/g, '_')}.diarytheme`,
+      filters: [{ name: '다이어리 테마', extensions: ['diarytheme'] }],
+    });
+    if (r.canceled || !r.filePath) return false;
+    fs.writeFileSync(r.filePath, json);
+    return true;
+  });
+  ipcMain.handle('theme:import', async () => {
+    const r = await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: '다이어리 테마', extensions: ['diarytheme', 'json'] }] });
+    if (r.canceled || !r.filePaths[0]) return null;
+    return fs.readFileSync(r.filePaths[0], 'utf8');
+  });
+
+  ipcMain.handle('fonts:system', async () => {
+    try {
+      const fontList = require('font-list');
+      const fonts = await fontList.getFonts({ disableQuoting: true });
+      return [...new Set(fonts)].sort((a, b) => a.localeCompare(b, 'ko'));
+    } catch (e) {
+      console.error('[fonts]', e);
+      return [];
+    }
+  });
+}
+
+// ---------- 시작 ----------
+app.on('second-instance', showWindow);
+app.on('before-quit', () => { quitting = true; store && store.saveNow(); cache && cache.saveNow(); });
+app.on('activate', showWindow);
+app.on('window-all-closed', () => { /* 트레이에 남아 있음 */ });
+
+app.whenReady().then(() => {
+  if (process.platform === 'win32') app.setAppUserModelId('com.workdiary.app');
+  const ud = app.getPath('userData');
+  store = new JsonStore(path.join(ud, 'diary-data.json'));
+  cache = new JsonStore(path.join(ud, 'notion-cache.json'));
+  secrets = new Secrets(path.join(ud, 'secrets.json'));
+  assetsDir = path.join(ud, 'assets');
+  fs.mkdirSync(assetsDir, { recursive: true });
+
+  // 지난번 동기화 결과로 먼저 화면을 채움 (인터넷이 없어도 보임)
+  const snap = cache.get('snapshot');
+  if (snap) { state.quests = snap.quests || []; state.weeks = snap.weeks || []; state.lastSync = snap.lastSync; }
+
+  protocol.handle('diary-asset', (req) => {
+    const id = path.basename(decodeURIComponent(new URL(req.url).pathname));
+    const file = path.join(assetsDir, id);
+    return net.fetch(pathToFileURL(file).toString(), { headers: req.headers });
+  });
+
+  const allowed = ['local-fonts', 'notifications'];
+  session.defaultSession.setPermissionRequestHandler((_wc, perm, cb) => cb(allowed.includes(perm)));
+  session.defaultSession.setPermissionCheckHandler((_wc, perm) => allowed.includes(perm));
+
+  registerIpc();
+  createTray();
+
+  const settings = store.get('settings', null);
+  if (!settings) setSettings({ autoLaunch: true, hourly: true, alwaysOnTop: false });
+  else if (app.isPackaged) applyAutoLaunch(!!settings.autoLaunch);
+
+  const startHidden = process.argv.includes('--hidden') || (app.getLoginItemSettings().wasOpenedAsHidden === true);
+  createWindow(!startHidden);
+  if (startHidden && process.platform === 'darwin' && app.dock) app.dock.hide();
+
+  sync(true);
+  setInterval(tick, 15 * 1000);
+  powerMonitor.on('resume', () => setTimeout(tick, 3000));
+  powerMonitor.on('unlock-screen', () => setTimeout(tick, 3000));
+});

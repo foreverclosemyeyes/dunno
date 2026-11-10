@@ -1,0 +1,83 @@
+{
+  "name": "work-diary",
+  "productName": "업무다이어리",
+  "version": "1.0.0",
+  "description": "노션과 연결되는 업무용 데스크탑 다이어리",
+  "main": "main/main.js",
+  "author": "work-diary",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "test": "node test/parse.test.js",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.7.0",
+    "@fontsource-variable/noto-sans-kr": "^5.3.1",
+    "@fontsource/gasoek-one": "^5.3.0",
+    "font-list": "^2.1.0"
+  },
+  "devDependencies": {
+    "electron": "^45.2.3",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "com.workdiary.app",
+    "productName": "업무다이어리",
+    "artifactName": "WorkDiary-${version}-${os}-${arch}.${ext}",
+    "files": [
+      "main/**/*",
+      "renderer/**/*",
+      "build/tray*.png",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/font-list/**"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.png",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "extendInfo": {
+        "LSUIElement": false,
+        "NSUserNotificationAlertStyle": "alert"
+      }
+    },
+    "dmg": {
+      "title": "업무다이어리 설치"
+    },
+    "win": {
+      "icon": "build/icon.png",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "업무다이어리"
+    },
+    "publish": null
+  }
+}

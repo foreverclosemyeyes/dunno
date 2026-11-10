@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: diary-asset:; media-src 'self' blob: diary-asset:; font-src 'self' data: blob: diary-asset:; connect-src 'self' diary-asset:">
+  <title>업무다이어리</title>
+  <link rel="stylesheet" href="../node_modules/@fontsource/gasoek-one/index.css">
+  <link rel="stylesheet" href="../node_modules/@fontsource-variable/noto-sans-kr/index.css">
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/settings.css">
+</head>
+<body>
+  <!-- 배경 -->
+  <div id="bg">
+    <div id="bg-base"></div>
+    <div id="bg-media"></div>
+    <div id="bg-overlay"></div>
+    <div id="bg-stripe"></div>
+    <div id="bg-texture"></div>
+  </div>
+  <div id="bg-drag" hidden></div>
+
+  <div id="app">
+    <header id="topbar">
+      <div class="brand"><span class="el-body">WORK&nbsp;DIARY</span></div>
+      <div class="top-actions">
+        <span id="sync-status" class="sync"></span>
+        <button id="btn-today" class="chip" hidden>오늘로</button>
+        <button id="btn-refresh" class="icon-btn" title="노션 새로고침">⟳</button>
+        <button id="btn-pin" class="icon-btn" title="항상 위에 띄우기">📌</button>
+        <button id="btn-settings" class="icon-btn" title="꾸미기·설정">⚙</button>
+      </div>
+    </header>
+
+    <main id="layout">
+      <!-- 왼쪽: 달력 덩어리 (통째로 기울어짐) -->
+      <section id="left">
+        <div id="cal-block">
+          <div class="today-head">
+            <div id="big-date"></div>
+            <div class="md">
+              <div id="md-month"></div>
+              <div id="md-day"></div>
+              <div id="md-year" class="muted"></div>
+            </div>
+          </div>
+          <div id="week-strip"></div>
+          <div id="month-cal">
+            <div class="mc-head">
+              <button class="mc-nav" id="mc-prev">‹</button>
+              <div id="mc-title"></div>
+              <button class="mc-nav" id="mc-next">›</button>
+            </div>
+            <div id="mc-grid"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 오른쪽: 오늘의 기록 + 퀘스트 -->
+      <section id="right">
+        <article id="record" class="card">
+          <div class="card-head">
+            <div>
+              <div id="record-title"></div>
+              <div id="record-sub" class="muted"></div>
+            </div>
+            <div id="record-count"></div>
+          </div>
+          <div id="record-list" class="scroll"></div>
+          <div class="card-foot">
+            <button id="btn-open-notion" class="chip dark">노션에서 열기 ↗</button>
+            <span id="record-sync" class="muted"></span>
+          </div>
+        </article>
+        <article id="quests" class="panel">
+          <div class="panel-head" id="quest-title"></div>
+          <div id="quest-list" class="scroll"></div>
+        </article>
+      </section>
+
+      <!-- 아래: 비서 + 능력치 -->
+      <section id="bottom">
+        <div id="assistant">
+          <div id="asst-figure"></div>
+          <div id="asst-bubble">
+            <div id="asst-name"></div>
+            <div id="asst-text"></div>
+            <div class="asst-actions">
+              <button id="btn-ask" class="chip accent">지금 확인해줘</button>
+              <label class="switch"><input type="checkbox" id="chk-hourly"><span></span><em class="el-body">매시간 체크</em></label>
+              <span id="asst-meta" class="muted"></span>
+            </div>
+          </div>
+        </div>
+        <div id="stats">
+          <div class="panel-head" id="stats-title"></div>
+          <div id="stats-list"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <aside id="settings" aria-hidden="true"></aside>
+  <div id="toast"></div>
+
+  <script src="js/defaults.js"></script>
+  <script src="js/fonts.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/controls.js"></script>
+  <script src="js/settings.js"></script>
+</body>
+</html>

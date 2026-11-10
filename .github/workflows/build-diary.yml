@@ -1,0 +1,71 @@
+# 업무다이어리 설치 파일 자동 만들기
+# - diary-app 폴더가 바뀌어 올라오면: Mac(.dmg)·Windows(.exe) 설치 파일을 만들어 "Artifacts"에 올림
+# - Actions 탭에서 "Run workflow" 버튼을 누르면: 위와 같이 만들고 "Releases"에도 올림 (다운로드가 더 쉬움)
+name: 업무다이어리 설치 파일 만들기
+
+on:
+  push:
+    paths:
+      - 'diary-app/**'
+      - '.github/workflows/build-diary.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: --mac
+          - os: windows-latest
+            target: --win
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: diary-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: diary-app/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - name: 설치 파일 만들기
+        run: npx electron-builder ${{ matrix.target }} --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WorkDiary-${{ runner.os }}
+          path: |
+            diary-app/dist/*.dmg
+            diary-app/dist/*.exe
+          if-no-files-found: error
+
+  release:
+    if: github.event_name == 'workflow_dispatch'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - name: 버전 읽기
+        id: v
+        run: echo "version=$(node -p "require('./diary-app/package.json').version")" >> "$GITHUB_OUTPUT"
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: diary-v${{ steps.v.outputs.version }}-${{ github.run_number }}
+          name: 업무다이어리 ${{ steps.v.outputs.version }} (빌드 ${{ github.run_number }})
+          body: |
+            Mac: Apple 칩(M1~M4) → `WorkDiary-...-mac-arm64.dmg`, 인텔 Mac → `WorkDiary-...-mac-x64.dmg`
+            Windows: `WorkDiary-...-win-x64.exe`
+          files: out/*
