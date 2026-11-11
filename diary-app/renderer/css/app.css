@@ -1273,3 +1273,6 @@ body.layout-bigcal #bg-panel {
 .cut .cut-day.today .cut-wd { font-size: 6vh; }
 .cut-head { -webkit-text-stroke: 1.5vh #fff;
   filter: drop-shadow(.4vh 0 0 #111) drop-shadow(-.4vh 0 0 #111) drop-shadow(0 .4vh 0 #111) drop-shadow(0 -.4vh 0 #111); }
+
+/* 요일 머리글: 대소문자 섞은 그대로 (SuN MoN …) */
+#bc-grid .bc-h, #bc-grid .bc-h * { text-transform: none !important; }
