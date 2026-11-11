@@ -350,36 +350,34 @@ body.dialog-angular .asst-actions { margin-top: 8px; }
 .cut-note span { font-size: 16px; font-weight: 700; }
 .cut-skip { position: absolute; left: 50%; bottom: 2.6vh; transform: translateX(-50%); z-index: 6; font: 600 12px "Noto Sans KR Variable", sans-serif; color: var(--card); opacity: .45; }
 
-/* --- 하루 시작 컷 연출 강화 --- */
-/* 숫자들이 위에서 차례로 '쿵쿵' 떨어짐 */
+/* 배경: 3D 도시 캔버스 (평소 파란 하늘 / 타운홀 날 빨강·검정 동심원) */
+.cut { background: #0b0b0b; }
+.cut::after { display: none; }
+.cut-city { position: absolute; inset: 0; z-index: 1; scale: 1.1; transition: scale 3.8s cubic-bezier(.2,.7,.2,1); }
+.cut.in .cut-city { scale: 1; }
+.cut-city canvas { width: 100%; height: 100%; display: block; }
+.cut-stage, .cut-head, .cut-note, .cut-skip { z-index: 5; }
+.cut-hall { margin-top: 4px; padding: 3px 10px; align-self: flex-start; background: var(--accent); color: #fff; font-weight: 900; }
+.cut-skip { color: #fff; text-shadow: 0 0 3px #000, 0 0 3px #000; opacity: .7; }
+
+/* 숫자·요일: 레퍼런스처럼 검은 글자 + 두꺼운 흰 테두리 + 가는 검은 바깥선 */
+.cut .cut-num { color: #111; -webkit-text-stroke: 2.2vh #fff; paint-order: stroke fill;
+  filter: drop-shadow(.35vh 0 0 #111) drop-shadow(-.35vh 0 0 #111) drop-shadow(0 .35vh 0 #111) drop-shadow(0 -.35vh 0 #111) drop-shadow(.8vh .8vh 0 rgba(0,0,0,.35)); }
+.cut .cut-day.sun .cut-num { color: #e3201b; }
+.cut .cut-day.sat .cut-num { color: #2f9be0; }
+.cut .cut-day.past .cut-num { color: #111; }
+.cut .cut-wd { background: none; clip-path: none; padding: 0; margin-top: .6vh; font-size: 5.6vh; color: #fff; transform: rotate(-6deg);
+  -webkit-text-stroke: 1.3vh #111; paint-order: stroke fill; filter: drop-shadow(.5vh .5vh 0 rgba(0,0,0,.35)); position: relative; z-index: 2; }
+.cut .cut-wd b { -webkit-text-stroke: .6vh #111; paint-order: stroke fill; color: #fff; font-size: .7em; }
+.cut .cut-day.today .cut-wd { font-size: 7vh; }
+.cut-head { color: #111; -webkit-text-stroke: 1.6vh #fff; paint-order: stroke fill;
+  filter: drop-shadow(.3vh 0 0 #111) drop-shadow(-.3vh 0 0 #111) drop-shadow(0 .3vh 0 #111) drop-shadow(0 -.3vh 0 #111); }
+.cut-head .cut-month { color: #111; }
+
+/* 등장: 숫자들이 차례로 떨어짐, 넘어갈 때 살짝 흐려짐, 끝날 때 다가가며 사라짐 */
 @keyframes cutDrop { 0% { translate: 0 -70vh; } 70% { translate: 0 2vh; } 85% { translate: 0 -.8vh; } 100% { translate: 0 0; } }
 .cut.in .cut-day > .cut-num, .cut.in .cut-day > .cut-wd { animation: cutDrop .55s calc(var(--i, 0) * 55ms + 80ms) cubic-bezier(.3,.9,.35,1) both; }
-/* 한 칸 넘어가는 순간 살짝 흐려지며 휙 */
 .cut.moving .cut-day { filter: blur(1.6px); }
-/* 오늘: 뒤에서 빨간 별이 터지고 충격파 고리 */
-.cut-burst { position: absolute; left: 50%; top: 44%; width: 60vh; height: 60vh; z-index: -1; translate: -50% -50%; scale: 0; rotate: -40deg;
-  background: var(--accent); filter: drop-shadow(0 0 0 #111) drop-shadow(8px 8px 0 #111);
-  clip-path: polygon(50% 0, 60% 30%, 93% 12%, 72% 42%, 100% 55%, 68% 62%, 82% 97%, 51% 72%, 20% 98%, 32% 63%, 0 60%, 28% 42%, 5% 13%, 40% 30%);
-  transition: scale .45s cubic-bezier(.3,1.7,.4,1), rotate .6s cubic-bezier(.2,.9,.3,1); }
-.cut.pop .cut-burst { scale: 1; rotate: 8deg; }
-@keyframes cutShock { from { scale: .3; opacity: .9; } to { scale: 2.6; opacity: 0; } }
-.cut-shock { position: absolute; left: 50%; top: 42%; width: 30vh; height: 30vh; z-index: -2; translate: -50% -50%; border-radius: 50%;
-  border: 1.4vh solid var(--card); opacity: 0; }
-.cut.pop .cut-shock { animation: cutShock .6s cubic-bezier(.2,.7,.3,1) forwards; }
-/* 오늘 요일 띠는 빨갛게 */
-.cut-day.today .cut-wd { transition: background .2s, color .2s; }
-.cut.pop .cut-day.today .cut-wd { background: var(--accent); color: #fff; }
-.cut.pop .cut-day.today .cut-wd b { color: #111; }
-/* 쿵 하는 화면 흔들림 + 고리가 한 번 펄스 */
-@keyframes cutShake { 0%, 100% { translate: 0 0; } 20% { translate: -10px 6px; } 40% { translate: 8px -5px; } 60% { translate: -5px 3px; } 80% { translate: 3px -2px; } }
-.cut.pop .cut-stage { animation: cutShake .32s ease-out; }
-.cut.pop .cut-rings { transform: translate(-50%, -50%) scale(1.13); transition: transform .5s cubic-bezier(.2,1.5,.4,1); }
-/* 시간대 꼬리표 (MORNING / AFTERNOON …) */
-.cut-time { position: absolute; left: 4vw; bottom: 8vh; z-index: 6; padding: .8vh 2.4vh 1vh; background: var(--card); color: #111; font-size: 5vh;
-  clip-path: polygon(0 8%, 100% 0, 97% 100%, 2% 90%); rotate: -4deg; translate: -60vw 0; transition: translate .45s cubic-bezier(.3,1.3,.4,1); }
-.cut-time::first-letter { color: var(--accent); }
-.cut.time-in .cut-time { translate: 0 0; }
-/* 끝날 때: 오늘 쪽으로 확 다가가며 사라짐 */
 .cut.out .cut-stage { scale: 1.18; opacity: 0; transition: scale .45s cubic-bezier(.6,0,.4,1), opacity .4s; }
 @media (prefers-reduced-motion: reduce) { .cut *, .cut { animation: none !important; } }
 
