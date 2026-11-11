@@ -799,3 +799,14 @@ body.layout-bigcal .rq-more { letter-spacing: .06em; }
 body.layout-bigcal .stats-legend { letter-spacing: -.2px; }
 .chip { border-radius: 0; clip-path: polygon(0 0, 100% 0, 94% 100%, 0 100%); }
 .top-actions .chip { clip-path: none; border-radius: 3px; }
+/* ---------- 일정 점·선: 레퍼런스처럼 (숫자색 회색, 테두리 없음, 작은 점 + 가는 선) ---------- */
+body.layout-bigcal .ev-line, body.layout-bigcal .ev-line.meet {
+  height: 4px; margin-top: -2px; border-radius: 2px; box-shadow: none;
+  background: color-mix(in srgb, var(--main-solid) 68%, var(--bg));
+}
+body.layout-bigcal .ev-dot, body.layout-bigcal .ev-dot.meet {
+  width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px; border-radius: 50%; box-shadow: none;
+  background: color-mix(in srgb, var(--main-solid) 68%, var(--bg));
+}
+body.layout-bigcal .ev-line, body.layout-bigcal .ev-line.meet { height: 7px; margin-top: -3.5px; border-radius: 4px; }
+body.layout-bigcal .ev-dot, body.layout-bigcal .ev-dot.meet { width: 18px; height: 18px; margin: -9px 0 0 -9px; }
