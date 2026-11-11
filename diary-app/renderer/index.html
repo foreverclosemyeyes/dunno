@@ -81,12 +81,22 @@
       <!-- 아래: 비서 + 능력치 -->
       <section id="bottom">
         <div id="assistant">
+          <div id="chat-log" hidden>
+            <div class="chat-head"><b>대화</b><span><button id="btn-chat-clear" class="chip">지우기</button><button id="btn-chat-close" class="chip">닫기</button></span></div>
+            <div id="chat-list" class="scroll"></div>
+          </div>
           <div id="asst-figure"></div>
           <div id="asst-bubble">
             <div id="asst-name"></div>
             <div id="asst-text"></div>
+            <form id="chat-form" autocomplete="off">
+              <input id="chat-input" type="text" placeholder="비서에게 말하기… (Enter)">
+              <button type="submit" class="chip dark-on-main">보내기</button>
+            </form>
             <div class="asst-actions">
               <button id="btn-ask" class="chip accent">지금 확인해줘</button>
+              <button id="btn-chatlog" class="chip">대화 보기</button>
+              <button id="btn-claude" class="chip" hidden>Claude에서 열기 ↗</button>
               <label class="switch"><input type="checkbox" id="chk-hourly"><span></span><em class="el-body">매시간 체크</em></label>
               <span id="asst-meta" class="muted"></span>
             </div>

@@ -1,4 +1,4 @@
-// 노션 API 연결 (읽기 전용)
+// 노션 API 연결 (읽기 + 체크박스 체크만 쓰기)
 // - 진행 중 퀘스트: 담당자=나, 상태=진행중/시작 전
 // - 운영성 업무 페이지: 본문의 칼럼 → 날짜 제목 → 체크박스(+하위 체크박스) 구조를 읽음
 'use strict';
@@ -19,7 +19,7 @@ function friendlyMessage(status, code, message) {
   if (status === 401) return '노션 키가 올바르지 않아요. 설정 > 연결에서 키를 다시 확인해 주세요.';
   if (status === 404 || code === 'object_not_found')
     return '노션 DB를 찾을 수 없어요. 경영지원_Tasks 페이지의 ••• > 연결(Connections)에 내 통합을 추가했는지 확인해 주세요.';
-  if (status === 403) return '이 통합에 읽기 권한이 없어요. 노션 통합 설정에서 "콘텐츠 읽기"를 켜 주세요.';
+  if (status === 403) return '이 통합에 권한이 없어요. 노션 통합 설정 > 기능에서 "콘텐츠 읽기"와 "콘텐츠 업데이트"를 켜 주세요.';
   if (status === 429) return '노션 요청이 많아 잠시 쉬는 중이에요. 곧 다시 시도할게요.';
   if (status >= 500) return '노션 서버가 잠시 응답하지 않아요. 곧 다시 시도할게요.';
   if (!status) return '인터넷 연결을 확인해 주세요.';
@@ -119,6 +119,11 @@ class NotionClient {
 
   me() {
     return this.request('GET', '/users/me');
+  }
+
+  // 체크박스 켜기/끄기 (통합에 "콘텐츠 업데이트" 권한 필요)
+  setTodo(blockId, checked) {
+    return this.request('PATCH', `/blocks/${blockId}`, { to_do: { checked: !!checked } });
   }
 }
 

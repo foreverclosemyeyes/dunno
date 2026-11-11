@@ -1,13 +1,13 @@
 # 업무다이어리 (Work Diary)
 
-노션 `경영지원_Tasks` DB를 읽어 와서 오늘의 체크리스트·진행 중 퀘스트를 보여 주는 Electron 데스크탑 앱.
+노션 `경영지원_Tasks` DB를 읽어 와서 (체크박스는 앱에서 눌러도 노션에 반영) 오늘의 체크리스트·진행 중 퀘스트를 보여 주는 Electron 데스크탑 앱.
 **설치·사용법은 [사용설명서.md](사용설명서.md)** 를 보세요.
 
 ## 구조
 ```
 main/main.js       창·트레이·자동 실행·알림·2분 동기화·자정 넘김·정시 비서
 main/notion.js     노션 API (data source 쿼리, 블록 트리 읽기, 체크리스트 파싱)
-main/assistant.js  Claude Haiku 5.5 비서 (키 없으면 규칙 기반 문장)
+main/assistant.js  Claude Haiku 5.5 비서: 정시 체크 + 앱 안 대화 (키 없으면 규칙 기반 문장)
 main/secrets.js    API 키 암호화 저장 (Electron safeStorage → Mac 키체인)
 main/preload.js    화면에 노출하는 안전한 기능 목록
 renderer/          화면 (HTML/CSS/JS, 번들러 없음)

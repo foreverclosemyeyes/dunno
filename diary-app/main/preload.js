@@ -17,6 +17,9 @@ contextBridge.exposeInMainWorld('diary', {
   sync: (force) => ipcRenderer.invoke('sync', force),
   setView: (v) => ipcRenderer.invoke('view', v),
   askAssistant: () => ipcRenderer.invoke('assistant:ask'),
+  chat: (text) => ipcRenderer.invoke('assistant:chat', text),
+  clearChat: () => ipcRenderer.invoke('chat:clear'),
+  toggleTodo: (id, checked) => ipcRenderer.invoke('todo:toggle', id, checked),
   saveTheme: (t) => ipcRenderer.invoke('theme:save', t),
   saveThemes: (l) => ipcRenderer.invoke('themes:save', l),
   saveStats: (s) => ipcRenderer.invoke('stats:save', s),
@@ -31,4 +34,5 @@ contextBridge.exposeInMainWorld('diary', {
   onDayChanged: on('day-changed'),
   onAssistant: on('assistant'),
   onSettings: on('settings'),
+  onChat: on('chat'),
 });

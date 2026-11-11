@@ -443,7 +443,27 @@
       C.toggle(ctx, 'assistant.flip', '좌우 뒤집기'),
     );
     img.body.append(note('말풍선 글씨는 "글씨" 탭 > 비서 말풍선에서 꾸밀 수 있어요. AI 키는 "연결" 탭에서 넣어요.'));
-    body.append(a.el, img.el);
+
+    const cl = C.section('업무비서 지침 · Claude 채팅 연결', true);
+    const ins = h('textarea'); ins.value = state.settings.assistantInstructions || '';
+    ins.placeholder = 'Claude의 "업무비서" 프로젝트 지침(또는 채팅에서 정해 둔 규칙)을 그대로 붙여 넣으세요.\n예: 나는 경영지원 담당이고, 매주 월요일엔 자금일보를 먼저 챙긴다…';
+    ins.style.minHeight = '140px';
+    const url = h('input'); url.type = 'text'; url.value = state.settings.claudeUrl || '';
+    url.placeholder = 'https://claude.ai/project/… 또는 https://claude.ai/chat/…';
+    const r1 = h('div', 'ctl'); r1.append(h('label', 'ctl-label', '업무비서 지침'), ins, h('span'));
+    const r2 = h('div', 'ctl'); r2.append(h('label', 'ctl-label', 'Claude 채팅 주소'), url, h('span'));
+    cl.body.append(r1, r2, h('div', 'row-inline'));
+    cl.body.lastChild.append(
+      btn('저장', 'primary', async () => {
+        const u = url.value.trim();
+        if (u && !/^https:\/\/claude\.ai\//.test(u)) return D.toast('주소는 https://claude.ai/ 로 시작해야 해요.');
+        state.settings = await window.diary.setSettings({ assistantInstructions: ins.value.trim(), claudeUrl: u });
+        D.toast('저장했어요. 다음 대화부터 이 지침을 따라요.'); D.renderAll();
+      }),
+      btn('Claude 채팅 열기 ↗', '', () => url.value.trim() && window.diary.open(url.value.trim())),
+    );
+    cl.body.append(note('앱 안의 비서는 Claude(Haiku 5.5)가 이 지침과 오늘 노션 업무를 보고 대답해요. claude.ai 채팅방 자체와 대화 기록이 직접 이어지지는 않아요(Claude가 그걸 외부 앱에 열어 주지 않아요). 대신 지침을 똑같이 맞추고, "Claude에서 열기" 버튼으로 그 채팅방을 바로 열 수 있어요.'));
+    body.append(a.el, img.el, cl.el);
   }
 
   // ---------- 테마 ----------

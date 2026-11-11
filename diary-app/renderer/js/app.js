@@ -20,6 +20,7 @@
     settings: {},
     hasKeys: {},
     lastAssistant: null,
+    chat: [],
     previewBg: null,
   });
 
@@ -109,6 +110,13 @@
     const row = h('div', 'todo' + (item.checked ? ' done' : ''));
     row.append(h('span', 'box', item.checked ? '✓' : ''));
     row.append(S('checklist', item.text, 'txt'));
+    row.title = item.checked ? '눌러서 체크 풀기 (노션에도 반영)' : '눌러서 완료 체크 (노션에도 반영)';
+    row.onclick = async () => {
+      row.classList.add('busy');
+      const r = await window.diary.toggleTodo(item.id, !item.checked);
+      row.classList.remove('busy');
+      if (!r.ok) toast(r.message, 5000);
+    };
     wrap.append(row);
     if (item.children && item.children.length) {
       const ch = h('div', 'todo-children');
@@ -182,6 +190,25 @@
       meta.textContent = `${pad(t.getHours())}:${pad(t.getMinutes())} · ${msg.source === 'claude' ? 'AI' : '기본 문장'}${msg.note ? ' · ' + msg.note : ''}`;
     } else meta.textContent = '';
     $('#chk-hourly').checked = !!state.settings.hourly;
+    $('#btn-claude').hidden = !state.settings.claudeUrl;
+  }
+
+  function renderChat() {
+    const list = $('#chat-list'); list.innerHTML = '';
+    if (!state.chat.length) list.append(h('div', 'msg auto', '아직 대화가 없어요. 아래 칸에 말을 걸어 보세요.'));
+    for (const m of state.chat) {
+      if (m.auto) { list.append(h('div', 'msg auto', `⏰ 정시 체크 · ${new Date(m.at).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' })}`)); continue; }
+      const el = h('div', 'msg ' + m.role, m.text);
+      const t = h('time', null, new Date(m.at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }));
+      el.append(t);
+      list.append(el);
+    }
+    list.scrollTop = list.scrollHeight;
+  }
+  function openChat(on) {
+    $('#chat-log').hidden = !on;
+    $('#btn-chatlog').textContent = on ? '대화 닫기' : '대화 보기';
+    if (on) renderChat();
   }
 
   function renderStats() {
@@ -283,6 +310,7 @@
     state.stats = init.stats || {};
     state.themes = init.themes || [];
     state.lastAssistant = init.lastAssistant;
+    state.chat = init.chat || [];
     state.data = init.data;
     state.today = init.data.today || state.today;
     state.selected = state.today;
@@ -302,6 +330,22 @@
     $('#mc-prev').onclick = () => shiftMonth(-1);
     $('#mc-next').onclick = () => shiftMonth(1);
     $('#btn-ask').onclick = () => window.diary.askAssistant();
+    window.diary.onChat((list) => { state.chat = list; if (!$('#chat-log').hidden) renderChat(); });
+    $('#chat-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const input = $('#chat-input');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      input.disabled = true;
+      await window.diary.chat(text);
+      input.disabled = false;
+      input.focus();
+    };
+    $('#btn-chatlog').onclick = () => openChat($('#chat-log').hidden);
+    $('#btn-chat-close').onclick = () => openChat(false);
+    $('#btn-chat-clear').onclick = async () => { if (confirm('비서와의 대화 기록을 지울까요?')) state.chat = await window.diary.clearChat(); renderChat(); };
+    $('#btn-claude').onclick = () => state.settings.claudeUrl && window.diary.open(state.settings.claudeUrl);
     $('#chk-hourly').onchange = (e) => window.diary.setSettings({ hourly: e.target.checked });
     $('#btn-pin').onclick = () => window.diary.setSettings({ alwaysOnTop: !state.settings.alwaysOnTop });
 

@@ -146,6 +146,7 @@ async function doSync(force) {
       weeks.push({ ...p, days: notion.parseChecklist(tree, p.start) });
     }
     state.weeks = weeks;
+    applyPending();
     state.lastSync = new Date().toISOString();
     state.error = null;
     cache.set('snapshot', { quests: state.quests, weeks: state.weeks, lastSync: state.lastSync });
@@ -162,22 +163,35 @@ async function doSync(force) {
 function persona() {
   const t = store.get('theme', null);
   const a = (t && t.assistant) || {};
-  return { name: a.name || '비서', tone: a.tone || '' };
+  const st = store.get('settings', {});
+  return { name: a.name || '비서', tone: a.tone || '', instructions: st.assistantInstructions || '' };
 }
 
-async function runAssistant({ notify }) {
+function currentContext() {
   const snap = snapshot();
   const day = snap.days[state.today];
-  const ctx = assistant.buildContext({
+  return assistant.buildContext({
     todayISO: state.today,
-    now: new Date().toLocaleString('ko-KR', { weekday: 'long', hour: 'numeric', minute: '2-digit' }),
+    now: new Date().toLocaleString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long', hour: 'numeric', minute: '2-digit' }),
     todayItems: day ? day.items : [],
     quests: snap.quests,
   });
+}
+
+// 대화 기록 (앱 안의 비서 대화. 정시 체크도 같은 대화에 이어서 쌓임)
+function chatHistory() { return store.get('chat', []); }
+function addChat(...msgs) {
+  const list = [...chatHistory(), ...msgs].slice(-200);
+  store.set('chat', list);
+  push('chat', list);
+}
+
+async function runAssistant({ notify }) {
+  const ctx = currentContext();
   push('assistant', { thinking: true });
   let msg;
   try {
-    msg = await assistant.generate(secrets.get('anthropic'), persona(), ctx);
+    msg = await assistant.generate(secrets.get('anthropic'), persona(), ctx, chatHistory());
   } catch (e) {
     console.error('[assistant]', e);
     msg = { ...assistant.fallbackMessage(ctx, persona()), note: assistant.friendlyError(e) };
@@ -185,12 +199,73 @@ async function runAssistant({ notify }) {
   msg.at = new Date().toISOString();
   store.set('lastAssistant', msg);
   push('assistant', msg);
+  if (msg.source === 'claude') addChat({ role: 'user', text: assistant.CHECK_PROMPT, auto: true, at: msg.at }, { role: 'assistant', text: msg.text, at: msg.at });
   if (notify && Notification.isSupported()) {
     const n = new Notification({ title: msg.name || persona().name, body: msg.text, silent: false });
     n.on('click', showWindow);
     n.show();
   }
   return msg;
+}
+
+async function chatWithAssistant(text) {
+  text = String(text || '').trim().slice(0, 4000);
+  if (!text) return null;
+  const at = new Date().toISOString();
+  const history = chatHistory();
+  addChat({ role: 'user', text, at });
+  push('assistant', { thinking: true });
+  let msg;
+  try {
+    msg = await assistant.chat(secrets.get('anthropic'), persona(), currentContext(), history, text);
+  } catch (e) {
+    console.error('[chat]', e);
+    msg = { text: assistant.friendlyError(e), source: 'local', name: persona().name, error: true };
+  }
+  msg.at = new Date().toISOString();
+  addChat({ role: 'assistant', text: msg.text, at: msg.at, ...(msg.source === 'claude' && !msg.error ? {} : { local: true }) });
+  store.set('lastAssistant', msg);
+  push('assistant', msg);
+  return msg;
+}
+
+// ---------- 체크박스 → 노션 ----------
+const pendingTodos = new Map(); // blockId → checked (노션에 쓰는 중)
+function setLocalTodo(blockId, checked) {
+  const walk = (items) => {
+    for (const i of items || []) {
+      if (i.id === blockId) { i.checked = checked; return true; }
+      if (walk(i.children)) return true;
+    }
+    return false;
+  };
+  for (const w of state.weeks) for (const items of Object.values(w.days || {})) if (walk(items)) return true;
+  return false;
+}
+function applyPending() { for (const [id, c] of pendingTodos) setLocalTodo(id, c); }
+
+async function toggleTodo(blockId, checked) {
+  setLocalTodo(blockId, checked);
+  pendingTodos.set(blockId, checked);
+  pushData();
+  if (process.env.DIARY_DEMO) { pendingTodos.delete(blockId); return { ok: true }; }
+  try {
+    const token = secrets.get('notion');
+    if (!token) throw Object.assign(new Error('no key'), { friendly: '노션 키가 없어요.' });
+    await new notion.NotionClient(token).setTodo(blockId, checked);
+    pendingTodos.delete(blockId);
+    cache.set('snapshot', { quests: state.quests, weeks: state.weeks, lastSync: state.lastSync });
+    return { ok: true };
+  } catch (e) {
+    console.error('[todo]', e);
+    pendingTodos.delete(blockId);
+    setLocalTodo(blockId, !checked); // 되돌리기
+    pushData();
+    const msg = e.status === 403 || e.status === 404
+      ? '노션에 체크하지 못했어요. 노션 통합 설정 > 기능에서 "콘텐츠 업데이트"를 켜 주세요.'
+      : (e.friendly || '노션에 체크하지 못했어요.');
+    return { ok: false, message: msg };
+  }
 }
 
 // ---------- 시계 (자정 넘김 / 2분 새로고침 / 정시 체크) ----------
@@ -275,6 +350,7 @@ function createTray() {
     { label: '다이어리 열기', click: showWindow },
     { label: '지금 확인해줘', click: () => runAssistant({ notify: true }) },
     { label: '노션 새로고침', click: () => sync(true) },
+    ...(store.get('settings', {}).claudeUrl ? [{ label: 'Claude 업무비서 채팅 열기', click: () => shell.openExternal(store.get('settings', {}).claudeUrl) }] : []),
     { type: 'separator' },
     {
       label: '매시간 체크', type: 'checkbox', checked: !!store.get('settings', {}).hourly,
@@ -330,6 +406,7 @@ function registerIpc() {
     themes: store.get('themes', []),
     stats: store.get('stats', {}),
     lastAssistant: store.get('lastAssistant', null),
+    chat: store.get('chat', []),
     data: snapshot(),
     isPackaged: app.isPackaged,
   }));
@@ -367,11 +444,14 @@ function registerIpc() {
     return true;
   });
   ipcMain.handle('assistant:ask', () => runAssistant({ notify: false }));
+  ipcMain.handle('assistant:chat', (_e, text) => chatWithAssistant(text));
+  ipcMain.handle('chat:clear', () => { store.set('chat', []); push('chat', []); return []; });
+  ipcMain.handle('todo:toggle', (_e, id, checked) => toggleTodo(String(id), !!checked));
   ipcMain.handle('theme:save', (_e, theme) => { store.set('theme', theme); return true; });
   ipcMain.handle('themes:save', (_e, list) => { store.set('themes', list); return true; });
   ipcMain.handle('stats:save', (_e, stats) => { store.set('stats', stats); return true; });
   ipcMain.handle('open', (_e, url) => {
-    if (/^https:\/\/(www\.|app\.)?notion\.(so|com)\//.test(url) || /^https:\/\/(console\.anthropic\.com|www\.notion\.so|platform\.claude\.com)/.test(url)) shell.openExternal(url);
+    if (/^https:\/\/(www\.|app\.)?notion\.(so|com)\//.test(url) || /^https:\/\/(console\.anthropic\.com|www\.notion\.so|platform\.claude\.com|claude\.ai)\//.test(url)) shell.openExternal(url);
   });
 
   ipcMain.handle('asset:pick', async (_e, kind) => {
