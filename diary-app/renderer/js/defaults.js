@@ -70,7 +70,7 @@
   });
 
   const DEFAULT_THEME = {
-    version: 11,
+    version: 12,
     colors: toColors(PALETTES[0][1]),
     layout: {
       mode: 'bigcal', // bigcal = 큰 달력 + 노트 카드, classic = 큰 날짜 숫자 + 이번 주 띠
@@ -99,7 +99,7 @@
       quest: T({ font: 'Nanum Gothic', size: 14, weight: 700, lineHeight: 1.3, tracking: 0 }),
       bubble: T({ font: 'Nanum Gothic', size: 16, weight: 700, lineHeight: 1.45, tracking: 0.3 }),
       body: T({ font: 'Nanum Gothic', size: 13, weight: 700, tracking: 0 }),
-      calNum: T({ font: 'Gasoek One', size: 92, tracking: -4, lineHeight: 0.9 }),
+      calNum: T({ font: 'Gasoek One', size: 92, tracking: -4, lineHeight: 0.9, scaleY: 122 }),
       calHead: T({ font: 'Gasoek One', size: 30, tracking: -1, lineHeight: 1, upper: true }),
       stamp: T({ font: 'Permanent Marker', size: 72, tracking: -2, lineHeight: 0.9, rotate: -14, color: { c: '#E3170A', a: 1 } }),
     },
@@ -162,6 +162,13 @@
     t.version = 4;
     return true;
   };
+  // 12판: 달력 숫자 세로로 조금 더 길게
+  const migrate12 = (t) => {
+    if ((t.version || 1) >= 12) return false;
+    if (t.text.calNum && t.text.calNum.scaleY === 100) t.text.calNum.scaleY = 122;
+    t.version = 12;
+    return true;
+  };
   // 11판: 작은 글씨 전부 나눔고딕, 말풍선 줄간격 살짝 좁게
   const migrate11 = (t) => {
     if ((t.version || 1) >= 11) return false;
@@ -220,15 +227,16 @@
     return true;
   };
   D.migrateTheme = (t) => {
-    if ((t.version || 1) >= 10) return migrate11(t);
-    if ((t.version || 1) >= 9) { migrate10(t); migrate11(t); return true; }
-    if ((t.version || 1) >= 8) { migrate9(t); migrate10(t); migrate11(t); return true; }
-    if ((t.version || 1) >= 7) { migrate8(t); migrate9(t); migrate10(t); migrate11(t); return true; }
-    if ((t.version || 1) >= 6) { migrate7(t); migrate8(t); migrate9(t); migrate10(t); migrate11(t); return true; }
-    if ((t.version || 1) >= 5) { migrate6(t); migrate7(t); migrate8(t); migrate9(t); migrate10(t); migrate11(t); return true; }
-    if ((t.version || 1) >= 4) { migrate5(t); migrate6(t); migrate7(t); migrate8(t); migrate9(t); migrate10(t); migrate11(t); return true; }
-    if ((t.version || 1) >= 3) { migrate4(t); migrate5(t); migrate6(t); migrate7(t); migrate8(t); migrate9(t); migrate10(t); migrate11(t); return true; }
-    if ((t.version || 1) >= 2) { migrate3(t); migrate4(t); migrate5(t); migrate6(t); migrate7(t); migrate8(t); migrate9(t); migrate10(t); migrate11(t); return true; }
+    if ((t.version || 1) >= 11) return migrate12(t);
+    if ((t.version || 1) >= 10) { migrate11(t); migrate12(t); return true; }
+    if ((t.version || 1) >= 9) { migrate10(t); migrate11(t); migrate12(t); return true; }
+    if ((t.version || 1) >= 8) { migrate9(t); migrate10(t); migrate11(t); migrate12(t); return true; }
+    if ((t.version || 1) >= 7) { migrate8(t); migrate9(t); migrate10(t); migrate11(t); migrate12(t); return true; }
+    if ((t.version || 1) >= 6) { migrate7(t); migrate8(t); migrate9(t); migrate10(t); migrate11(t); migrate12(t); return true; }
+    if ((t.version || 1) >= 5) { migrate6(t); migrate7(t); migrate8(t); migrate9(t); migrate10(t); migrate11(t); migrate12(t); return true; }
+    if ((t.version || 1) >= 4) { migrate5(t); migrate6(t); migrate7(t); migrate8(t); migrate9(t); migrate10(t); migrate11(t); migrate12(t); return true; }
+    if ((t.version || 1) >= 3) { migrate4(t); migrate5(t); migrate6(t); migrate7(t); migrate8(t); migrate9(t); migrate10(t); migrate11(t); migrate12(t); return true; }
+    if ((t.version || 1) >= 2) { migrate3(t); migrate4(t); migrate5(t); migrate6(t); migrate7(t); migrate8(t); migrate9(t); migrate10(t); migrate11(t); migrate12(t); return true; }
     for (const k in OLD) if (t.colors[k] && t.colors[k].c && t.colors[k].c.toUpperCase() === OLD[k].toUpperCase()) t.colors[k] = { ...DEFAULT_THEME.colors[k] };
     if (t.layout.panelOpacity === 12) t.layout.panelOpacity = 100;
     if (t.layout.stripeOn === true && t.layout.stripeAngle === -24) t.layout.stripeOn = false;
@@ -244,6 +252,7 @@
     migrate9(t);
     migrate10(t);
     migrate11(t);
+    migrate12(t);
     return true;
   };
   D.clone = (o) => JSON.parse(JSON.stringify(o));

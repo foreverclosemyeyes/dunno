@@ -91,7 +91,7 @@
     svg.setAttribute('width', w); svg.setAttribute('height', h);
     const tail = 34;
     const R = w - tail;
-    const pts = [[10, 4], [R - 6, 0], [R - 2, h * 0.32], [R + tail * 0.55, h * 0.42], [R + 4, h * 0.5], [w, h * 0.78], [R - 8, h * 0.68], [R - 12, h], [0, h - 5]];
+    const pts = [[10, 4], [R - 6, 0], [R - 3, h * 0.34], [w, h * 0.6], [R - 8, h * 0.72], [R - 12, h], [0, h - 5]]; // 꼬리 하나
     svg.firstChild.setAttribute('d', 'M' + pts.map((p) => p.map((v) => v.toFixed(1)).join(',')).join(' L') + ' Z');
   }
 
