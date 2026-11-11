@@ -1080,3 +1080,12 @@ body.settings-open #app { margin-right: 0 !important; }
 #asst-col[hidden] { display: none !important; }
 body.layout-bigcal.char-only #bottom { min-height: 190px; }
 body.layout-bigcal.char-only #assistant { min-height: 200px; display: flex !important; } body.layout-bigcal.char-only #bigcal { margin-bottom: 20px; }
+/* 앱: 조금 큰 글씨도 굵은 글씨체 */
+.quest .el-quest, .rq-head b, .rq-name, #asst-name, #asst-controls .chip, #asst-controls .switch em, #btn-open-notion, .ev-chip, #bc-tag, .prog, .ps2-name, .ps2-rank, .pname, .cut-note span {
+  font-family: "Gasoek One", "Noto Sans KR Variable", sans-serif !important; font-weight: 400 !important; letter-spacing: .02em;
+}
+body.layout-bigcal #right > #quests .quest .el-quest { font-size: 15px; }
+/* 아주 작은 글씨는 굵은 글씨체가 뭉개지니 원래대로 */
+#asst-controls .chip, #asst-controls .switch em, #btn-open-notion, .ev-chip, #bc-tag, body.layout-bigcal #record-count .prog {
+  font-family: "Nanum Gothic", "Noto Sans KR Variable", sans-serif !important; font-weight: 800 !important; letter-spacing: 0;
+}
