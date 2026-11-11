@@ -39,7 +39,9 @@
       it.append(h('div', 'cut-num', String(d.getDate())));
       const lab = h('div', 'cut-wd'); lab.append(h('span', null, WD_EN[d.getDay()]), h('b', null, WD_KO[d.getDay()]));
       it.append(lab);
+      it.style.setProperty('--i', String(off + 4));
       if (off === -1) it.append(h('i', 'cut-slash'));
+      if (off === 0) { it.prepend(h('i', 'cut-burst'), h('i', 'cut-shock')); }
       stage.append(it);
       items.push({ el: it, off });
     }
@@ -70,6 +72,8 @@
     lines.push(total ? `오늘 할 일 ${left}개` : '오늘 체크리스트 없음');
     if (evs) lines.push(`일정 ${evs}개`);
     if (soon) lines.push(`마감 임박 ${soon}건`);
+    const hr = new Date().getHours();
+    root.append(h('div', 'cut-time', hr < 5 ? 'LATE NIGHT' : hr < 12 ? 'MORNING' : hr < 18 ? 'AFTERNOON' : 'EVENING'));
     note.append(h('b', null, `${today.getMonth() + 1}/${today.getDate()} ${WD_KO[today.getDay()]}요일`), h('span', null, lines.join('  /  ')));
     root.append(note);
     root.append(h('div', 'cut-skip', '누르면 넘어가요'));
@@ -81,7 +85,7 @@
       const finish = () => {
         timers.forEach(clearTimeout);
         root.classList.add('out');
-        setTimeout(() => { root.remove(); playing = null; resolve(); }, 420);
+        setTimeout(() => { root.remove(); playing = null; resolve(); }, 460);
         window.removeEventListener('keydown', onKey);
       };
       const onKey = (e) => { if (['Escape', 'Enter', ' '].includes(e.key)) finish(); };
@@ -89,9 +93,11 @@
       window.addEventListener('keydown', onKey);
       requestAnimationFrame(() => root.classList.add('in'));
       timers.push(setTimeout(() => root.classList.add('slash'), 650)); // 어제를 사선으로 긋기
-      timers.push(setTimeout(() => { layout(0); root.classList.add('advance'); }, 1250)); // 오늘로 한 칸 이동
+      timers.push(setTimeout(() => { layout(0); root.classList.add('advance', 'moving'); }, 1250)); // 오늘로 한 칸 이동
+      timers.push(setTimeout(() => root.classList.remove('moving'), 1650));
       timers.push(setTimeout(() => root.classList.add('pop'), 1750)); // 오늘 숫자 튀어나오기
       timers.push(setTimeout(() => root.classList.add('note-in'), 2000));
+      timers.push(setTimeout(() => root.classList.add('time-in'), 2250));
       timers.push(setTimeout(finish, 4300));
     });
     return playing;
