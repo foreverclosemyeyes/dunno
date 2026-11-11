@@ -530,3 +530,58 @@ body.layout-bigcal .pnum { color: #fff; }
 body.layout-bigcal .prank { color: #111; text-shadow: none; font-size: 13px; }
 body.layout-bigcal .plabel { background: radial-gradient(ellipse, var(--card) 40%, transparent 72%); padding: 2px 10px; }
 body.layout-bigcal .plabel { background: none; }
+
+/* ---------- 인간 파라미터 v2 ---------- */
+.pwrap { width: min(100%, 440px); }
+.pwrap::before { content: ''; position: absolute; left: -12%; right: -12%; top: 14%; bottom: 8%; background: #121212; transform: rotate(-8deg) skewX(-6deg); z-index: 0; box-shadow: 8px 8px 0 var(--accent); }
+.pstar { z-index: 1; filter: drop-shadow(6px 8px 0 rgba(0,0,0,.35)); }
+.ps-big { fill: url(#psg); }
+.ps-facet { fill: rgba(255,255,255,.07); }
+.ps-big-edge { fill: none; stroke: #0b0b0b; stroke-width: 5; stroke-linejoin: miter; }
+.ps-ray { stroke: rgba(255,255,255,.22); stroke-width: 1.2; stroke-dasharray: 2 4; }
+.ps-ring { stroke: #0b0b0b; stroke-width: 7; stroke-linejoin: miter; }
+.ps-ring0 { fill: #2f2f2f; }
+.ps-ring1 { fill: #262626; }
+.ps-ring2 { fill: #1c1c1c; }
+.ps-dot { fill: rgba(255,255,255,.45); }
+.ps-pip { fill: var(--param); stroke: #0b0b0b; stroke-width: 1; }
+.ps-core-a { fill: var(--param); }
+.ps-core-b { fill: color-mix(in srgb, var(--param) 72%, #6b4a00); }
+.ps-core-edge { fill: none; stroke: #0b0b0b; stroke-width: 2.4; stroke-linejoin: miter; }
+.ps-core-a, .ps-core-b { transition: all .4s; }
+.plabel { z-index: 2; }
+.ptag { transform: rotate(-5deg); filter: drop-shadow(3px 3px 0 #0b0b0b); }
+.pname { box-shadow: none; border: 2.5px solid #0b0b0b; font-size: 18px; padding: 1px 9px 0; }
+.plv { border: 2.5px solid #0b0b0b; border-left: 0; background: #0b0b0b; color: var(--param); font-size: 15px; padding: 0 6px; margin-bottom: -6px; }
+.prank, body.layout-bigcal .prank { color: #fff; font-size: 13px; letter-spacing: .02em; text-shadow: 0 2px 0 #000, 1px 0 0 #000, -1px 0 0 #000, 0 -1px 0 #000; }
+
+/* POINT UP v2 */
+.pup-burst { width: 560px; height: 560px; background: #161616; filter: drop-shadow(10px 10px 0 var(--accent)); }
+.pup-burst::after { inset: 26%; background: conic-gradient(from 18deg, var(--param) 0 36deg, color-mix(in srgb, var(--param) 72%, #6b4a00) 36deg 72deg, var(--param) 72deg 108deg, color-mix(in srgb, var(--param) 72%, #6b4a00) 108deg 144deg, var(--param) 144deg 180deg, color-mix(in srgb, var(--param) 72%, #6b4a00) 180deg 216deg, var(--param) 216deg 252deg, color-mix(in srgb, var(--param) 72%, #6b4a00) 252deg 288deg, var(--param) 288deg 324deg, color-mix(in srgb, var(--param) 72%, #6b4a00) 324deg 360deg); }
+.pup-title { display: flex; align-items: center; -webkit-text-stroke: 0; filter: none; transform: rotate(-12deg) scale(.4); }
+.pup-title span { display: inline-block; color: var(--param); -webkit-text-stroke: 11px #0b0b0b; paint-order: stroke fill; filter: drop-shadow(5px 5px 0 #0b0b0b); transform: rotate(var(--r)) translateY(30px); opacity: 0; transition: transform .35s var(--d) cubic-bezier(.3,1.8,.4,1), opacity .2s var(--d); }
+.pup-title span.alt { font-size: 1.14em; color: #fff; }
+.pup-title span.sp { width: .25em; }
+.pup.in .pup-title span { transform: rotate(var(--r)); opacity: 1; }
+
+/* 일정 선은 숫자 아래, 체크리스트 점은 숫자 오른쪽 위 */
+body.layout-bigcal .bc-d { padding-bottom: 30px; }
+body.layout-bigcal .bc-d .dot { top: 6%; bottom: auto; left: auto; right: -2px; transform: none; width: 12px; height: 12px; }
+/* 파라미터 v2 다듬기 */
+body.layout-bigcal .nb-pane[data-pane="params"] #stats { justify-content: flex-start; }
+.pwrap { width: min(100%, 470px); margin: 18px auto 0; }
+.pwrap::before { left: -3%; right: -3%; top: 10%; bottom: 4%; background: #151515; }
+.pstar { inset: 3% 4% 0 4%; width: 92%; height: 97%; }
+.ps-big { fill: url(#psg); }
+.ps-ring0 { fill: #474747; }
+.ps-ring1 { fill: #3a3a3a; }
+.ps-ring2 { fill: #2d2d2d; }
+.ps-dot { fill: rgba(255,255,255,.6); }
+
+.pnext { margin: 14px 6px 0; display: flex; flex-direction: column; gap: 6px; }
+.pn-row { display: grid; grid-template-columns: 54px 128px 1fr 46px; align-items: center; gap: 8px; }
+.pn-row b { font-family: "Gasoek One", sans-serif; font-weight: 400; font-size: 15px; }
+.pn-rank { font-size: 12px; font-weight: 800; opacity: .75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pn-bar { height: 12px; border: 2.5px solid #111; background: transparent; transform: skewX(-18deg); position: relative; }
+.pn-bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--param); border-right: 2px solid #111; }
+.pn-num { font-size: 12px; font-weight: 900; text-align: right; }

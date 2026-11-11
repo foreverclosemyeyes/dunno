@@ -200,6 +200,7 @@
       info.left = Math.min(info.left, cell.offsetLeft);
       info.right = Math.max(info.right, cell.offsetLeft + cell.offsetWidth);
       info.top = Math.min(info.top, cell.offsetTop);
+      info.h = Math.max(info.h || 0, cell.offsetHeight);
       rowsInfo.set(row, info);
     }
     const center = (cell) => cell.offsetLeft + cell.offsetWidth / 2;
@@ -220,7 +221,7 @@
         const isStart = a.date === e.start, isEnd = b.date === e.end;
         const x1 = isStart ? center(a.cell) : info.left - 6;
         const x2 = isEnd ? center(b.cell) : info.right + 6;
-        const top = info.top - 8 + lane * 17;
+        const top = info.top + info.h - 20 + lane * 11; // 숫자 아래쪽에 (요일 줄과 겹치지 않게)
         const cls = isMeet(e) ? ' meet' : '';
         if (x2 > x1) { const ln = h('i', 'ev-line' + cls); Object.assign(ln.style, { left: `${x1}px`, width: `${x2 - x1}px`, top: `${top}px` }); layer.append(ln); }
         if (isStart) { const d = h('i', 'ev-dot' + cls); Object.assign(d.style, { left: `${x1}px`, top: `${top}px` }); layer.append(d); }
@@ -404,24 +405,41 @@
     const svg = document.createElementNS(NS, 'svg');
     svg.setAttribute('viewBox', '0 0 300 300');
     svg.classList.add('pstar');
-    const el = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); svg.append(e); return e; };
-    const C = 150, ratio = 0.42;
-    el('polygon', { points: starPoints(C, C + 6, 150, 150 * ratio), class: 'ps-big' });
-    [92, 74, 56].forEach((R, i) => el('polygon', { points: starPoints(C, C + 6, R, R * ratio), class: 'ps-ring ps-ring' + i }));
-    // 가운데 별: 다섯 레벨 평균만큼 커짐
-    const avg = STATS.reduce((n, s) => n + lvOf(totals[s]), 0) / STATS.length;
-    const R = 16 + (avg - 1) * 9;
-    el('polygon', { points: starPoints(C, C + 6, R, R * 0.45), class: 'ps-core' });
-    el('polygon', { points: starPoints(C, C + 6, R, R * 0.45), class: 'ps-core-shine' });
-    // 각 방향 레벨 눈금
+    const el = (tag, attrs, parent = svg) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.append(e); return e; };
+    const C = 150, CY = 158, ratio = 0.4;
+    const pt = (k, R, r) => { const a = -Math.PI / 2 + (k * Math.PI) / 5; const rad = k % 2 ? r : R; return [C + Math.cos(a) * rad, CY + Math.sin(a) * rad]; };
+    const poly = (R, r) => Array.from({ length: 10 }, (_, k) => pt(k, R, r).map((v) => v.toFixed(1)).join(',')).join(' ');
+    const defs = el('defs', {});
+    const g = el('radialGradient', { id: 'psg', cx: '50%', cy: '52%', r: '60%' }, defs);
+    el('stop', { offset: '0%', 'stop-color': '#6a6a6a' }, g);
+    el('stop', { offset: '100%', 'stop-color': '#2c2c2c' }, g);
+    // 큰 별 + 꼭짓점별 밝은 면(입체)
+    el('polygon', { points: poly(148, 148 * ratio), class: 'ps-big' });
+    for (let k = 0; k < 10; k += 2) {
+      const a = pt(k, 148, 148 * ratio), b = pt(k + 1, 148, 148 * ratio);
+      el('polygon', { points: `${C},${CY} ${a.join(',')} ${b.join(',')}`, class: 'ps-facet' });
+    }
+    el('polygon', { points: poly(148, 148 * ratio), class: 'ps-big-edge' });
+    // 가운데서 꼭짓점으로 점선
+    for (let k = 0; k < 10; k += 2) { const a = pt(k, 140, 0); el('line', { x1: C, y1: CY, x2: a[0], y2: a[1], class: 'ps-ray' }); }
+    // 겹 별 + 꼭짓점 점
+    [104, 82, 60].forEach((R, i) => {
+      el('polygon', { points: poly(R, R * ratio), class: 'ps-ring ps-ring' + i });
+      for (let k = 0; k < 10; k++) { const p = pt(k, R + (k % 2 ? 0 : 6), R * ratio + 4); el('circle', { cx: p[0], cy: p[1], r: 1.7, class: 'ps-dot' }); }
+    });
+    // 각 방향 레벨 표시 (켜진 것만)
     STATS.forEach((s, i) => {
       const lv = lvOf(totals[s]);
-      const a = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
-      for (let k = 1; k <= 5; k++) {
-        const rr = 40 + k * 15;
-        el('circle', { cx: C + Math.cos(a) * rr, cy: C + 6 + Math.sin(a) * rr, r: k <= lv ? 3.6 : 2, class: k <= lv ? 'ps-pip on' : 'ps-pip' });
-      }
+      for (let k = 1; k <= lv; k++) { const p = pt(i * 2, 44 + k * 14, 0); el('polygon', { points: `${p[0]},${p[1] - 4} ${p[0] + 4},${p[1]} ${p[0]},${p[1] + 4} ${p[0] - 4},${p[1]}`, class: 'ps-pip' }); }
     });
+    // 가운데 별: 평균 등급만큼 커짐, 면을 나눠 입체로
+    const avg = STATS.reduce((n, s) => n + lvOf(totals[s]), 0) / STATS.length;
+    const R = 20 + (avg - 1) * 8;
+    for (let k = 0; k < 10; k++) {
+      const a = pt(k, R, R * 0.42), b = pt(k + 1, R, R * 0.42);
+      el('polygon', { points: `${C},${CY} ${a.join(',')} ${b.join(',')}`, class: k % 2 ? 'ps-core-a' : 'ps-core-b' });
+    }
+    el('polygon', { points: poly(R, R * 0.42), class: 'ps-core-edge' });
     return svg;
   }
 
@@ -457,6 +475,20 @@
       wrap.append(box);
     });
     list.append(wrap);
+    // 다음 등급까지
+    const nx = h('div', 'pnext');
+    STATS.forEach((st) => {
+      const v = totals[st], lv = lvOf(v);
+      const lo = LV[lv - 1], hi = lv < 5 ? LV[lv] : null;
+      const row = h('div', 'pn-row');
+      row.append(h('b', null, st), h('span', 'pn-rank', `${lv} · ${RANKS[st][lv - 1]}`));
+      const bar = h('div', 'pn-bar'); const fill = h('i');
+      fill.style.width = hi ? `${((v - lo) / (hi - lo)) * 100}%` : '100%';
+      bar.append(fill);
+      row.append(bar, h('span', 'pn-num', hi ? `${v}/${hi}` : 'MAX'));
+      nx.append(row);
+    });
+    list.append(nx);
   }
 
   // POINT UP!! / RANK UP!! 알림
@@ -467,7 +499,15 @@
     const rankUps = ups.filter((c) => lvOf(before[c.stat]) > lvOf(before[c.stat] - 1) && LV.includes(before[c.stat]));
     const box = h('div', 'pup' + (rankUps.length ? ' rank' : ''));
     box.append(h('div', 'pup-burst'));
-    box.append(h('div', 'pup-title', rankUps.length ? 'RANK UP!!' : 'POINT UP!!'));
+    const title = h('div', 'pup-title');
+    const word = rankUps.length ? 'RANK UP!!' : 'POINT UP!!';
+    Array.from(word).forEach((ch, k) => {
+      const sp = h('span', ch === ' ' ? 'sp' : (k % 3 === 1 ? 'alt' : ''), ch);
+      sp.style.setProperty('--r', `${[-6, 4, -3, 7, -5, 3, -8, 5, -2, 6][k % 10]}deg`);
+      sp.style.setProperty('--d', `${k * 0.035}s`);
+      title.append(sp);
+    });
+    box.append(title);
     const lines = h('div', 'pup-lines');
     for (const c of ups.slice(-3)) {
       const lv = lvOf(before[c.stat]);
