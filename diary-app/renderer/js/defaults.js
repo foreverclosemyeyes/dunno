@@ -101,7 +101,7 @@
       body: T({ font: 'Nanum Gothic', size: 13, weight: 700, tracking: 0 }),
       calNum: T({ font: 'Gasoek One', size: 92, tracking: -4, lineHeight: 0.9 }),
       calHead: T({ font: 'Gasoek One', size: 30, tracking: -1, lineHeight: 1, upper: true }),
-      stamp: T({ font: 'Gasoek One', size: 64, tracking: -2, lineHeight: 0.9, rotate: -14, color: { c: '#E3170A', a: 1 } }),
+      stamp: T({ font: 'Permanent Marker', size: 72, tracking: -2, lineHeight: 0.9, rotate: -14, color: { c: '#E3170A', a: 1 } }),
     },
     background: {
       mode: 'single', // single | weekday | rotate

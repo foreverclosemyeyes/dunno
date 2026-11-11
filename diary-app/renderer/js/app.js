@@ -281,13 +281,19 @@
   function renderRecord() {
     const sel = parse(state.selected);
     const isToday = state.selected === state.today;
-    $('#record-title').replaceChildren(S('section', isToday ? '오늘의 기록' : `${sel.getMonth() + 1}/${sel.getDate()} (${WD[sel.getDay()]})의 기록`));
+    const titleEl = S('section', isToday ? '오늘의 기록' : `${sel.getMonth() + 1}/${sel.getDate()} (${WD[sel.getDay()]})의 기록`);
+    // 레퍼런스의 'Daily Log' 처럼 한 글자에 회색 블록
+    if (!state.theme.text.section.perChar) {
+      const t = titleEl.textContent, k = t.lastIndexOf('기');
+      if (k >= 0) { titleEl.textContent = t.slice(0, k); const b = h('span', 'tl-box', '기'); titleEl.append(b, document.createTextNode(t.slice(k + 1))); }
+    }
+    $('#record-title').replaceChildren(titleEl);
     const info = dayInfo(state.selected);
     $('#record-sub').replaceChildren(info ? '' : S('body', `${sel.getMonth() + 1}월 ${sel.getDate()}일 ${WD[sel.getDay()]}요일`));
     const c = count(info && info.items);
     const rc = $('#record-count'); rc.innerHTML = '';
     if (c.total) {
-      rc.append(h('span', 'big', String(c.done)), h('i', 'slash'), h('span', 'of', String(c.total)), h('span', 'lbl', c.done === c.total ? 'ALL CLEAR!!' : 'DONE'));
+      if (c.done < c.total) rc.append(h('span', 'prog', `${c.done}/${c.total}`));
     }
     const evBox = $('#record-events'); evBox.innerHTML = '';
     for (const e of eventsOn(state.selected)) {

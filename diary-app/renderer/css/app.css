@@ -985,3 +985,18 @@ body.layout-bigcal #record-count .big { font-size: 50px !important; text-shadow:
 body.layout-bigcal #record-count .of { font-size: 36px !important; opacity: 1 !important; text-shadow: 3px 3px 0 var(--accent) !important; margin-bottom: 2px !important; }
 body.layout-bigcal #record-count .slash { height: 34px !important; margin: 0 7px 3px 6px !important; box-shadow: 3px 3px 0 var(--accent); }
 body.layout-bigcal #record-count .lbl { justify-self: stretch; text-align: center; margin-top: 6px; }
+
+/* ---------- 노트 머리: 레퍼런스처럼 ---------- */
+.tl-box { display: inline-block; background: #8a8a8a; color: #fff; padding: 0 .08em; margin: 0 .04em; transform: rotate(-4deg) translateY(-.04em); -webkit-text-stroke: 0; }
+body.layout-bigcal #record-title .el-section { font-size: 30px; }
+/* 진행 숫자: 작은 검은 딱지 (다 끝나면 사라지고 DONE!! 도장) */
+body.layout-bigcal #record-count { display: block !important; transform: rotate(-3deg) !important; }
+body.layout-bigcal #record-count .prog { display: inline-block; background: #0b0b0b; color: #fff; font-family: "Gasoek One", sans-serif; font-size: 16px; padding: 3px 12px 2px; clip-path: polygon(6% 0, 100% 0, 94% 100%, 0 100%); }
+/* DONE!! 손글씨 도장: 제목 위에 크게 */
+body.layout-bigcal #record-stamp { left: auto !important; right: 70px !important; top: 2px !important; z-index: 5; }
+#record-stamp .el-stamp { font-family: "Permanent Marker", cursive !important; color: var(--accent) !important; transform: rotate(-12deg) !important; letter-spacing: 0 !important; text-shadow: none !important; -webkit-text-stroke: 0 !important; }
+/* 끝낸 일: 빨간 글씨 + 빨간 밑줄 */
+body.layout-bigcal .todo.done .txt { color: var(--accent); opacity: 1 !important; text-decoration: none !important; }
+body.layout-bigcal .todo.done .txt::after { top: auto !important; bottom: -2px; height: 3px !important; left: -6px; right: -10px; transform: rotate(-1deg) !important; border-radius: 2px; }
+body.layout-bigcal .todo.done .box { background: var(--accent) !important; border-color: var(--accent) !important; }
+body.layout-bigcal #record-count .prog { font-family: "Nanum Gothic", sans-serif; font-weight: 800; font-size: 15px; letter-spacing: .5px; }
