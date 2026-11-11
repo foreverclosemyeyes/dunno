@@ -1351,3 +1351,17 @@ body.layout-bigcal #bc-month-label .el-calHead { font-family: "Archivo Black", "
 .cut .cut-day.today .cut-wd { font-size: 5vh; }
 .cut .cut-wd-en i { margin: 0 .035em; }
 .cut .cut-wd b { -webkit-text-stroke: .9vh #0b0b0b; font-size: .68em; }
+
+/* ===== 스킨 그림을 불러왔을 때 ===== */
+@keyframes cutCloud { from { translate: -1.5vw 0; } to { translate: 1.5vw 0; } }
+.cut-cloud { position: absolute; z-index: 2; height: auto; pointer-events: none; animation: cutCloud 6s ease-in-out infinite alternate; }
+.cut .cut-wd.img { -webkit-text-stroke: 0; transform: rotate(-3deg); margin-top: -1.2vh;
+  filter: drop-shadow(.4vh 0 0 #fff) drop-shadow(-.4vh 0 0 #fff) drop-shadow(0 .4vh 0 #fff) drop-shadow(0 -.4vh 0 #fff)
+          drop-shadow(.2vh 0 0 #0b0b0b) drop-shadow(-.2vh 0 0 #0b0b0b) drop-shadow(0 .2vh 0 #0b0b0b) drop-shadow(0 -.2vh 0 #0b0b0b); }
+.cut .cut-wd.img img { height: 6.4vh; width: auto; display: block; }
+.cut .cut-day.today .cut-wd.img img { height: 7.4vh; }
+.pup-title.img { position: relative; width: min(560px, 70vw); aspect-ratio: 3.1; filter: drop-shadow(6px 6px 0 rgba(0,0,0,.5)); }
+.pup-title.img i { position: absolute; display: block; -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat; }
+.pup-title.img .pup-bg { inset: 30% -2% -34% -2%; background: #0b0b0b; }
+.pup-title.img .pup-fg { inset: 0; background: var(--param); }
+.pup-title.img .pup-bg { inset: -4% -3% -10% -3%; -webkit-mask-size: 100% 100%; mask-size: 100% 100%; transform: translate(6px, 8px); }

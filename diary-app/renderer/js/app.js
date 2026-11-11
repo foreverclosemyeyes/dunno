@@ -573,6 +573,13 @@
       sp.style.setProperty('--d', `${k * 0.035}s`);
       title.append(sp);
     });
+    // 스킨 그림이 있으면 글자 대신 그 모양을 씀 (흰 그림을 마스크로 써서 노랑/검정으로 칠함)
+    const sk = (state.theme.layout.skin || {}), key = rankUps.length ? 'rankup' : 'pointup';
+    if (sk[key]) {
+      title.replaceChildren(); title.classList.add('img');
+      if (sk[key + '-bg']) { const bg = h('i', 'pup-bg'); bg.style.setProperty('--m', `url("${sk[key + '-bg']}")`); title.append(bg); }
+      const fg = h('i', 'pup-fg'); fg.style.setProperty('--m', `url("${sk[key]}")`); title.append(fg);
+    }
     box.append(title);
     const lines = h('div', 'pup-lines');
     for (const c of ups.slice(-3)) {

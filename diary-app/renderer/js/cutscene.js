@@ -27,9 +27,17 @@
     root.style.setProperty('--cut-font', D.fonts.cssStack(state.theme.text.calNum.font));
     const city = h('div', 'cut-city'); const cv = h('canvas');
     // 내 그림을 올려 뒀으면(설정 > 색·배치) 평소 날 배경으로 그 그림을 씀. 타운홀 날은 동심원 배경 그대로
-    const own = state.theme.layout.cutImage && state.theme.layout.cutImage.url;
+    const skin = state.theme.layout.skin || {};
+    const own = skin['cut-city'] || (state.theme.layout.cutImage && state.theme.layout.cutImage.url);
     if (own && !hall) { const im = h('img'); im.src = own; city.append(im); } else city.append(cv);
     root.append(city);
+    // 구름 (스킨 그림이 있을 때, 평소 날만): 천천히 흘러감
+    if (!hall) [['cloud-1', 14, 9, 30], ['cloud-3', 70, 24, 22], ['cloud-2', 88, 6, 20]].forEach(([k, x, y, w], n) => {
+      if (!skin[k]) return;
+      const c = h('img', 'cut-cloud'); c.src = skin[k];
+      Object.assign(c.style, { left: x + '%', top: y + '%', width: w + 'vw', animationDelay: `${-n * 3}s` });
+      root.append(c);
+    });
     const head = h('div', 'cut-head');
     head.append(h('span', 'cut-year', String(today.getFullYear())), h('span', 'cut-month', `${today.getMonth() + 1}월`));
     root.append(head);
@@ -54,7 +62,8 @@
         c.style.setProperty('--y', ((f1 - 0.5) * 0.12).toFixed(2) + 'em');
         word.append(c);
       });
-      lab.append(word, h('b', null, WD_KO[d.getDay()]));
+      if (skin['wd-' + d.getDay()]) { const im = h('img'); im.src = skin['wd-' + d.getDay()]; lab.classList.add('img'); lab.append(im); }
+      else lab.append(word, h('b', null, WD_KO[d.getDay()]));
       it.append(lab);
       it.style.setProperty('--i', String(off + 4));
       stage.append(it);

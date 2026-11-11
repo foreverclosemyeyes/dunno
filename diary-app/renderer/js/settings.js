@@ -353,6 +353,18 @@
         C.toggle(ctx, 'layout.cutOn', '하루 시작 컷 (날짜 바뀐 뒤 처음 켤 때)'),
         C.toggle(ctx, 'layout.fxOn', '화려한 연출 (등장·넘김·체크 효과)'),
       );
+      // 스킨 그림 묶음: 파일 이름으로 자리를 찾음 (cut-city, cloud-1~3, wd-0~6, pointup, pointup-bg, rankup, rankup-bg, bubble)
+      const SKIN_KEYS = ['cut-city', 'cloud-1', 'cloud-2', 'cloud-3', 'wd-0', 'wd-1', 'wd-2', 'wd-3', 'wd-4', 'wd-5', 'wd-6', 'pointup', 'pointup-bg', 'rankup', 'rankup-bg', 'bubble'];
+      const skin = state.theme.layout.skin || {};
+      const nSkin = SKIN_KEYS.filter((k) => skin[k]).length;
+      mode.body.append(btn(nSkin ? `스킨 그림 ${nSkin}/${SKIN_KEYS.length}장 적용 중 (더 불러오기)` : '스킨 그림 불러오기 (여러 장 한꺼번에 고르기)', '', async () => {
+        const assets = await window.diary.pickAsset('image');
+        const next = { ...(state.theme.layout.skin || {}) }; let n = 0;
+        for (const a of assets) { const key = a.name.replace(/\.[a-z0-9]+$/i, '').toLowerCase(); if (SKIN_KEYS.includes(key)) { next[key] = a.url; n++; } }
+        if (!n) return D.toast('스킨 그림 이름이 아니에요. (cut-city.png, wd-0.png, pointup.png …)', 5000);
+        ctx.set('layout.skin', next); ctx.commit(); render(); D.toast(`스킨 그림 ${n}장을 넣었어요.`);
+      }));
+      if (nSkin) mode.body.append(btn('스킨 그림 전부 빼기', '', () => { ctx.set('layout.skin', {}); ctx.commit(); render(); }));
       // 하루 시작 컷 배경을 내 그림으로 (이 컴퓨터에만 저장됨)
       const ci = state.theme.layout.cutImage;
       mode.body.append(btn(ci ? `컷 배경 그림: ${ci.name} (바꾸기)` : '컷 배경을 내 그림으로 바꾸기', '', async () => {
