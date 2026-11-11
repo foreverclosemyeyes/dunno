@@ -164,3 +164,9 @@ body.mac .set-head { padding-top: 14px; }
 .stop { border-left-color: #ffffff33; }
 .file-name { color: #bbb; opacity: 1; }
 .set-body::-webkit-scrollbar-thumb { background: #ffffff44; }
+/* 설정 패널: 비스듬한 가장자리로 앱 위에 겹침 */
+#settings { width: 440px; background: transparent; border-left: 0; box-shadow: none; isolation: isolate; padding-left: 34px; filter: drop-shadow(-12px 0 0 rgba(0,0,0,.45)); }
+#settings::before { content: ''; position: absolute; inset: 0; z-index: -2; background: #fff; clip-path: polygon(34px 0, 100% 0, 100% 100%, 0 100%); }
+#settings::after { content: ''; position: absolute; inset: 0; z-index: -1; background: #101010; clip-path: polygon(41px 0, 100% 0, 100% 100%, 7px 100%); }
+body.settings-open #settings { transform: none; }
+.set-head { padding-left: 14px; }

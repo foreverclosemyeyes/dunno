@@ -248,7 +248,7 @@
     const rw = iw * Math.cos(rad) + ih * Math.sin(rad), rh = iw * Math.sin(rad) + ih * Math.cos(rad);
     // 가로는 폭에 맞추고, 세로는 남는 높이만큼 최대 35%까지 길쭉하게 늘려서 왼쪽을 꽉 채움
     const fx = Math.min((bw * 1.04) / rw, bh / rh * 1.6);
-    const fy = Math.min(bh / rh, fx * 1.9); // 왼쪽 높이를 꽉 채움
+    const fy = Math.min(bh / rh, fx * 1.3); // 세로로 너무 늘어나지 않게
     inner.style.transformOrigin = '50% 50%';
     const ty = (rh * fy - ih) / 2 + 2;
     inner.style.transform = `translate(${(bw - iw) / 2}px, ${ty}px) scale(${(fx * 0.99).toFixed(4)}, ${(fy * 0.99).toFixed(4)}) rotate(${t}deg)`;
@@ -555,6 +555,69 @@
   }
   D.pointUp = pointUp;
 
+  // ---------- 인간 파라미터 전체 화면 (레퍼런스 구성) ----------
+  function bigStarSvg(totals) {
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '-20 -20 640 620');
+    svg.classList.add('ps2-star');
+    const el = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); svg.append(e); return e; };
+    const C = 300, CY = 318, ratio = 0.42;
+    const pt = (k, R, r) => { const a = -Math.PI / 2 + (k * Math.PI) / 5; const rad = k % 2 ? r : R; return [C + Math.cos(a) * rad, CY + Math.sin(a) * rad]; };
+    const poly = (R, r) => Array.from({ length: 10 }, (_, k) => pt(k, R, r).map((v) => v.toFixed(1)).join(',')).join(' ');
+    el('polygon', { points: poly(300, 300 * ratio), class: 's-big' });
+    // 겹 별: 회색 띠 + 검은 틈 (바깥 → 안)
+    [[150, 'ring'], [132, 'gap'], [118, 'ring'], [100, 'gap'], [86, 'ring'], [68, 'gap']].forEach(([R, c]) => el('polygon', { points: poly(R, R * ratio), class: 's-' + c }));
+    // 가운데 노란 별: 면을 나눠 입체
+    const avg = STATS.reduce((n, s) => n + lvOf(totals[s]), 0) / STATS.length;
+    const R = 46 + (avg - 1) * 4;
+    for (let k = 0; k < 10; k++) {
+      const a = pt(k, R, R * 0.45), b = pt(k + 1, R, R * 0.45);
+      el('polygon', { points: `${C},${CY} ${a.join(',')} ${b.join(',')}`, class: k % 2 ? 's-core-a' : 's-core-b' });
+    }
+    return svg;
+  }
+
+  function openParams() {
+    const old = document.querySelector('.ps2'); if (old) old.remove();
+    const totals = monthTotals(state.today);
+    const today = state.stats[state.today] || {};
+    const scr = h('div', 'ps2');
+    scr.append(h('div', 'ps2-band'));
+    const stage = h('div', 'ps2-stage');
+    stage.append(bigStarSvg(totals));
+    // 꼭짓점 위치 (%): 위, 오른쪽, 오른쪽 아래, 왼쪽 아래, 왼쪽 — 레퍼런스처럼 꼭짓점 안쪽에
+    const POS = [[50, 15], [79, 40], [68, 80], [32, 80], [21, 40]];
+    STATS.forEach((st, i) => {
+      const lv = lvOf(totals[st]);
+      const box = h('div', 'ps2-label');
+      box.style.left = POS[i][0] + '%'; box.style.top = POS[i][1] + '%';
+      const tag = h('div', 'ps2-tag');
+      tag.append(h('span', 'ps2-name', st), h('b', 'ps2-lv', String(lv)));
+      box.append(tag, h('div', 'ps2-rank', RANKS[st][lv - 1]));
+      const ctl = h('div', 'ps2-ctl');
+      const minus = h('button', null, '−'), plus = h('button', 'plus', '+');
+      minus.title = `${st} 하나 빼기`; plus.title = `${st} +1`;
+      minus.onclick = (e) => { e.stopPropagation(); bump(st, -1); openParams(); };
+      plus.onclick = (e) => { e.stopPropagation(); bump(st, 1); openParams(); };
+      ctl.append(minus, h('span', null, `${totals[st]}${today[st] ? ` (+${today[st]})` : ''}`), plus);
+      box.append(ctl);
+      stage.append(box);
+    });
+    scr.append(stage);
+    const head = h('div', 'ps2-head');
+    head.append(h('b', null, '인간 파라미터'), h('span', null, `${parse(state.today).getMonth() + 1}월 누적`));
+    scr.append(head);
+    const close = h('button', 'ps2-close', '닫기');
+    close.onclick = () => scr.remove();
+    scr.append(close);
+    scr.addEventListener('keydown', (e) => { if (e.key === 'Escape') scr.remove(); });
+    window.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { scr.remove(); window.removeEventListener('keydown', esc); } });
+    document.body.append(scr);
+    requestAnimationFrame(() => scr.classList.add('in'));
+  }
+  D.openParams = openParams;
+
   function bump(stat, delta) {
     const d = (state.stats[state.selected] = state.stats[state.selected] || {});
     d[stat] = Math.max(0, (d[stat] || 0) + delta);
@@ -667,7 +730,7 @@
     $('#btn-today').onclick = goToday;
     $('#mc-prev').onclick = () => shiftMonth(-1);
     $('#mc-next').onclick = () => shiftMonth(1);
-    document.querySelectorAll('.nb-tabs button').forEach((b) => { b.onclick = () => { $('#record').dataset.tab = b.dataset.tab; }; });
+    document.querySelectorAll('.nb-tabs button').forEach((b) => { b.onclick = () => { if (b.dataset.tab === 'params' && state.theme.layout.mode === 'bigcal') { openParams(); return; } $('#record').dataset.tab = b.dataset.tab; }; });
     $('#bc-prev').onclick = () => shiftMonth(-1);
     $('#bc-next').onclick = () => shiftMonth(1);
     document.fonts.ready.then(fitBigCal);
