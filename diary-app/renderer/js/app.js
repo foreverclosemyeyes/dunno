@@ -259,6 +259,7 @@
     const row = h('div', 'todo' + (item.checked ? ' done' : ''));
     row.append(h('span', 'box', item.checked ? '✓' : ''));
     row.append(S('checklist', item.text, 'txt'));
+    row.querySelector('.txt').title = item.text;
     row.title = item.checked ? '눌러서 체크 풀기 (노션에도 반영)' : '눌러서 완료 체크 (노션에도 반영)';
     row.onclick = async () => {
       row.classList.add('busy');

@@ -739,3 +739,21 @@ body.layout-bigcal #right > #quests #quest-list { flex: 1; min-height: 0; overfl
 body.layout-bigcal #right > #quests .panel-head { border-bottom: 4px solid #0b0b0b; padding-bottom: 6px; margin-bottom: 4px; }
 body.layout-bigcal #right > #quests .quest { padding: 7px 2px; }
 body.layout-bigcal #right > #quests #quest-list { scrollbar-width: thin; scrollbar-color: #0b0b0b55 transparent; }
+
+/* ---------- 줄 노트: 줄과 글씨를 맞추고 간격 좁게 ---------- */
+body.layout-bigcal #record-list {
+  --rule: 30px; padding: 0 4px 0 0;
+  background-image: repeating-linear-gradient(to bottom, transparent 0 calc(var(--rule) - 1.5px), color-mix(in srgb, var(--card-text-solid) 22%, transparent) calc(var(--rule) - 1.5px) var(--rule));
+  background-attachment: local;
+}
+body.layout-bigcal .todo, body.layout-bigcal .todo-children .todo {
+  height: var(--rule); min-height: 0; box-sizing: border-box; padding: 0 4px 4px; margin: 0 -4px; align-items: flex-end;
+}
+body.layout-bigcal .todo .box { margin: 0 0 1px; }
+body.layout-bigcal .todo .txt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; line-height: 1.2; }
+body.layout-bigcal .todo-children { margin-left: 28px; }
+body.layout-bigcal .todo-children .el-checklist { font-size: .9em; }
+body.layout-bigcal .empty { padding: 14px 0; }
+/* 진행 중 업무 종이도 촘촘하게 */
+body.layout-bigcal #right > #quests .quest { padding: 4px 2px; gap: 0 10px; }
+body.layout-bigcal #right > #quests .quest .meta { font-size: 10.5px; }
