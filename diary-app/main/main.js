@@ -698,7 +698,14 @@ function registerIpc() {
   ipcMain.handle('stats:save', (_e, stats) => { store.set('stats', stats); return true; });
   ipcMain.handle('stats:reset', () => { store.set('stats', {}); store.set('statAwards', {}); store.set('statsStart', state.today); return {}; });
   ipcMain.handle('open', (_e, url) => {
-    if (/^https:\/\/(www\.|app\.)?notion\.(so|com)\//.test(url) || /^https:\/\/(console\.anthropic\.com|www\.notion\.so|platform\.claude\.com|claude\.ai|github\.com)\//.test(url)) shell.openExternal(url);
+    url = String(url || '');
+    // 노션 페이지 주소는 어디서나 열리는 www.notion.so/<id> 로 통일 (app.notion.com/<id> 는 '페이지 없음'이 뜸)
+    if (/^https:\/\/([a-z0-9-]+\.)?notion\.(so|com|site)\//.test(url)) {
+      const m = url.replace(/[?#].*$/, '').replace(/-/g, '').match(/([0-9a-f]{32})\/?$/i);
+      if (m) url = `https://www.notion.so/${m[1]}`;
+      return shell.openExternal(url);
+    }
+    if (/^https:\/\/(console\.anthropic\.com|platform\.claude\.com|claude\.ai|github\.com)\//.test(url)) shell.openExternal(url);
   });
 
   ipcMain.handle('asset:pick', async (_e, kind) => {
