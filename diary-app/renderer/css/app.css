@@ -766,3 +766,22 @@ body.layout-bigcal .todo-children { margin-left: 1.9em; }
 body.layout-bigcal #record-title .el-section,
 body.layout-bigcal #quests .panel-head .el-section,
 body.layout-bigcal #stats .panel-head .el-section { transform: rotate(-2deg) scale(1.2); transform-origin: left center; }
+/* 뒤에 겹친 종이: 같은 크기 한 장을 반대로 기울여서 */
+body.layout-bigcal .nb-back { display: none !important; }
+body.layout-bigcal #record::before {
+  display: block; content: ''; position: absolute; inset: -6px; z-index: -1;
+  background: color-mix(in srgb, var(--card-solid) 90%, #000); border: 6px solid #0b0b0b;
+  transform: rotate(5deg) translate(6px, 4px); transform-origin: 50% 50%;
+}
+/* 노트 제목: 같은 굵은 글씨체를 살짝만 얇게 (종이색 테두리로 가장자리를 깎음) */
+body.layout-bigcal #record-title .el-section,
+body.layout-bigcal #quests .panel-head .el-section,
+body.layout-bigcal #stats .panel-head .el-section { -webkit-text-stroke: 1.3px var(--card); paint-order: normal; }
+
+/* 앞장·뒷장을 따로 그려서 뒷장이 앞장 뒤에 오게 */
+.nb-sheet { display: none; }
+body.layout-bigcal #record::before { display: none !important; }
+body.layout-bigcal #record { background: transparent; border-color: transparent; }
+body.layout-bigcal .nb-sheet { display: block; position: absolute; inset: -6px; border: 6px solid #0b0b0b; pointer-events: none; }
+body.layout-bigcal .nb-sheet-back { z-index: -2; background: color-mix(in srgb, var(--card-solid) 88%, #000); transform: rotate(5deg) translate(8px, 6px); }
+body.layout-bigcal .nb-sheet-front { z-index: -1; background: var(--card); }
