@@ -270,7 +270,23 @@
 
   // ---------- 색 · 배치 ----------
   function renderLook(body) {
-    const c = C.section('색 5가지', true);
+    const pal = C.section('색 조합 (누르면 한 번에 바뀌어요)', true);
+    const pg = h('div', 'pal-grid');
+    D.PALETTES.forEach(([name, p], i) => {
+      const b = h('button', 'pal');
+      const sw = h('div', 'pal-sw');
+      ['bg', 'panel', 'card', 'accent', 'param', 'sat'].forEach((k) => { const d = h('i'); d.style.background = p[k]; sw.append(d); });
+      b.append(sw, h('span', null, name));
+      b.onclick = () => {
+        state.theme.colors = { ...state.theme.colors, ...D.paletteColors(i) };
+        state.theme.text.stamp.color = { c: p.accent, a: 1 };
+        applyAll(); commit(); render();
+      };
+      pg.append(b);
+    });
+    pal.body.append(pg, note('바꾼 뒤에 아래에서 색을 하나씩 더 고칠 수 있고, 실행 취소(↶)로 되돌릴 수 있어요.'));
+    body.append(pal.el);
+    const c = C.section('색 하나씩', true);
     c.body.append(
       C.colorA(ctx, 'colors.bg', '배경'), C.colorA(ctx, 'colors.main', '메인 (글씨/선)'), C.colorA(ctx, 'colors.accent', '포인트'),
       C.colorA(ctx, 'colors.card', '카드'), C.colorA(ctx, 'colors.cardText', '카드 글씨'),

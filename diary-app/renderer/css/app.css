@@ -615,3 +615,30 @@ body.layout-bigcal #quests .el-section, body.layout-bigcal #stats .el-section { 
 body.layout-bigcal .nb-tabs { right: -44px; }
 /* 큰 달력에는 체크리스트 점·+숫자 없음 */
 body.layout-bigcal .bc-d .dot, body.layout-bigcal .bc-more { display: none !important; }
+
+/* ---------- 정리: 노트 여백 ---------- */
+body.layout-bigcal #record { padding: 26px 40px 16px 38px; }
+body.layout-bigcal #record-title .el-section,
+body.layout-bigcal #quests .el-section,
+body.layout-bigcal #stats .el-section { transform: rotate(-1.5deg); }
+body.layout-bigcal #record .card-head { padding-right: 4px; }
+body.layout-bigcal #record-events { margin-left: 2px; }
+body.layout-bigcal #record-stamp { right: 30px; top: -24px; }
+body.layout-bigcal .nb-tabs { right: -46px; }
+
+/* ---------- 비서 대화창: 검은 판 + 흰 테두리 + 이어진 지그재그 꼬리 ---------- */
+.dlg-shadow { display: none; }
+.dlg-fill { fill: #121212; stroke: #fff; stroke-width: 4.5; stroke-linejoin: miter; vector-effect: non-scaling-stroke; }
+.dlg-inner { display: block; fill: none; stroke: #fff; stroke-width: 1.4; opacity: .9; vector-effect: non-scaling-stroke; }
+body.dialog-angular #asst-bubble { transform: rotate(-1.2deg); padding: 32px 44px 18px 40px; }
+body.dialog-angular .dlg-tail { left: calc(2.4% - 84px); top: 40%; width: 92px; height: 72px; z-index: 0; }
+.dlg-tail .t-fill { fill: #121212; }
+.dlg-tail .t-line { fill: none; stroke: #fff; stroke-width: 4.5; stroke-linejoin: miter; stroke-linecap: square; }
+body.dialog-angular #asst-name { background: #fff; color: #111; font-size: 14px; font-weight: 900; padding: 4px 22px 5px 14px; left: 30px; top: -2px; transform: rotate(-7deg);
+  clip-path: polygon(0 12%, 100% 0, 94% 100%, 4% 86%); filter: none; letter-spacing: .04em; }
+body.dialog-angular #asst-text { font-weight: 700; color: #fff; }
+body.dialog-angular #asst-bubble .chip { clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%); transform: none; border-radius: 0; border: 0; background: #2a2a2a; color: #fff; padding: 5px 16px; }
+body.dialog-angular #asst-bubble .chip.accent { background: var(--accent); color: #fff; }
+body.dialog-angular #asst-bubble .chip.dark-on-main { background: #fff; color: #111; }
+body.dialog-angular #chat-input { transform: none; color: #fff; border-bottom: 2px solid #ffffff55; }
+#asst-figure img { filter: var(--asst-outline); }

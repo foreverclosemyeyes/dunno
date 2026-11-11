@@ -1,5 +1,17 @@
 // 기본 꾸밈값. "기본값으로" 버튼은 모두 여기 값으로 돌아감.
 (function () {
+  // 색 조합 (설정 > 색·배치 > 색 조합에서 한 번에 바꾸기)
+  const P = (bg, main, accent, card, cardText, sun, sat, panel, param, event) => ({ bg, main, accent, card, cardText, sun, sat, panel, param, event: event || main });
+  const PALETTES = [
+    ['블랙 레드', P('#0D0D0F', '#EDEDED', '#E3241B', '#FAFAF7', '#111111', '#E3241B', '#2F9BD6', '#C7C7C9', '#F5C518')],
+    ['모노크롬', P('#111111', '#F2F2F2', '#FF3B30', '#FFFFFF', '#0A0A0A', '#FF3B30', '#8E8E93', '#E5E5E5', '#FF3B30')],
+    ['미드나잇 옐로', P('#0E1726', '#E8EDF5', '#FFC629', '#FFFFFF', '#0E1726', '#FF6B5B', '#5FB3FF', '#C9D3E0', '#FFC629')],
+    ['버건디 골드', P('#240A10', '#F1E6D8', '#D9A441', '#FBF6EE', '#2A1016', '#E25C4B', '#7FB7C9', '#D9CBB8', '#D9A441')],
+    ['포레스트', P('#0F1D17', '#E7EFE9', '#F28C38', '#FAFBF7', '#13241D', '#F05D4F', '#4FB3A9', '#C5D4CB', '#F2C14E')],
+    ['네온 퍼플', P('#140E24', '#EDE8FA', '#FF3D8B', '#FFFFFF', '#140E24', '#FF3D8B', '#3DD6E8', '#CFC6E8', '#FFD23F')],
+  ];
+  const toColors = (p) => Object.fromEntries(Object.entries(p).map(([k, c]) => [k, { c, a: 1 }]));
+
   const textBase = {
     font: 'Noto Sans KR',
     size: 14,
@@ -57,19 +69,8 @@
   });
 
   const DEFAULT_THEME = {
-    version: 2,
-    colors: {
-      bg: { c: '#1E0B0B', a: 1 },
-      main: { c: '#E4E4E4', a: 1 },
-      accent: { c: '#D8231B', a: 1 },
-      card: { c: '#F8F8F5', a: 1 },
-      cardText: { c: '#111111', a: 1 },
-      sun: { c: '#C81E17', a: 1 },
-      sat: { c: '#1C8BA5', a: 1 },
-      panel: { c: '#C9C9C9', a: 1 },
-      param: { c: '#F2C230', a: 1 },
-      event: { c: '#E4E4E4', a: 1 },
-    },
+    version: 3,
+    colors: toColors(PALETTES[0][1]),
     layout: {
       mode: 'bigcal', // bigcal = 큰 달력 + 노트 카드, classic = 큰 날짜 숫자 + 이번 주 띠
       calJitter: 4, // 큰 달력 숫자 흔들림(°)
@@ -99,7 +100,7 @@
       body: T({ size: 13, weight: 400 }),
       calNum: T({ font: 'Gasoek One', size: 92, tracking: -4, lineHeight: 0.9 }),
       calHead: T({ font: 'Gasoek One', size: 30, tracking: -1, lineHeight: 1, upper: true }),
-      stamp: T({ font: 'Gasoek One', size: 64, tracking: -2, lineHeight: 0.9, rotate: -14, color: { c: '#D8231B', a: 1 } }),
+      stamp: T({ font: 'Gasoek One', size: 64, tracking: -2, lineHeight: 0.9, rotate: -14, color: { c: '#E3241B', a: 1 } }),
     },
     background: {
       mode: 'single', // single | weekday | rotate
@@ -139,16 +140,27 @@
   D.DEFAULT_THEME = DEFAULT_THEME;
   D.makeBg = bg;
   D.ELEMENTS = ELEMENTS;
+  D.PALETTES = PALETTES;
+  D.paletteColors = (i) => toColors(PALETTES[i][1]);
   // 예전(1판) 기본값을 그대로 쓰던 항목만 새 기본값으로 바꿔 줌. 직접 바꾼 값은 그대로 둠.
   const OLD = { bg: '#141414', main: '#F3EEE3', accent: '#FF4A1C', card: '#F3EEE3', cardText: '#151515', sun: '#FF4A1C', sat: '#2FA4C7', panel: '#F3EEE3', event: '#F3EEE3' };
+  const V2 = { bg: '#1E0B0B', main: '#E4E4E4', accent: '#D8231B', card: '#F8F8F5', cardText: '#111111', sun: '#C81E17', sat: '#1C8BA5', panel: '#C9C9C9', param: '#F2C230', event: '#E4E4E4' };
+  const migrate3 = (t) => {
+    if ((t.version || 1) >= 3) return false;
+    for (const k in V2) if (t.colors[k] && t.colors[k].c && t.colors[k].c.toUpperCase() === V2[k].toUpperCase()) t.colors[k] = { ...DEFAULT_THEME.colors[k] };
+    if (t.text.stamp && t.text.stamp.color && t.text.stamp.color.c === '#D8231B') t.text.stamp.color.c = DEFAULT_THEME.colors.accent.c;
+    t.version = 3;
+    return true;
+  };
   D.migrateTheme = (t) => {
-    if ((t.version || 1) >= 2) return false;
+    if ((t.version || 1) >= 2) return migrate3(t);
     for (const k in OLD) if (t.colors[k] && t.colors[k].c && t.colors[k].c.toUpperCase() === OLD[k].toUpperCase()) t.colors[k] = { ...DEFAULT_THEME.colors[k] };
     if (t.layout.panelOpacity === 12) t.layout.panelOpacity = 100;
     if (t.layout.stripeOn === true && t.layout.stripeAngle === -24) t.layout.stripeOn = false;
     if (t.text.stamp && t.text.stamp.color && t.text.stamp.color.c === '#FF4A1C') t.text.stamp.color.c = '#D8231B';
     if (t.background && t.background.base && t.background.base.type === 'gradient' && t.background.base.grad.stops[0].c === '#1a1a1a') t.background.base.type = 'theme';
     t.version = 2;
+    migrate3(t);
     return true;
   };
   D.clone = (o) => JSON.parse(JSON.stringify(o));
