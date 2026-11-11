@@ -365,9 +365,14 @@
   // ---------- 아래 ----------
   function renderAssistant() {
     const a = state.theme.assistant;
-    $('#assistant').hidden = !state.hasKeys.anthropic; // Claude 키가 있을 때만 비서 칸을 보여 줌
-    if (!state.hasKeys.anthropic) return;
+    // 렌(캐릭터)은 키가 없어도 보이고, 말풍선·답하는 칸은 Claude 키가 있을 때만
+    const fc = a.faces || {};
+    const hasFace = !!(a.image || Object.values(fc).some(Boolean));
+    $('#assistant').hidden = !state.hasKeys.anthropic && !hasFace;
+    $('#asst-col').hidden = !state.hasKeys.anthropic;
+    document.body.classList.toggle('char-only', !state.hasKeys.anthropic && hasFace);
     D.face.mount();
+    if (!state.hasKeys.anthropic) { $('#btn-hidechar').classList.toggle('on', !!state.settings.hideChar); return; }
     $('#btn-hidechar').classList.toggle('on', !!state.settings.hideChar);
 
     $('#asst-name').textContent = a.name;
@@ -659,6 +664,7 @@
   function renderAll() {
     arrange();
     renderLeft(); renderBigCal(); renderRecord(); renderQuests(); renderAssistant(); renderStats(); renderSync();
+    requestAnimationFrame(fitBigCal); // 아래 줄 높이가 바뀐 뒤 달력 크기 다시 맞춤
     D.bubble && D.bubble.update();
   }
   D.renderAll = renderAll;

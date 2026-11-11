@@ -1077,3 +1077,6 @@ body.layout-bigcal .bc-d .el-calNum, body.layout-bigcal .bc-d.today .el-calNum, 
 /* 설정을 열어도 앱 레이아웃은 그대로 (패널이 위에 겹침) */
 body.settings-open #app { margin-right: 0 !important; }
 .tb-btn[hidden], .chip[hidden] { display: none !important; }
+#asst-col[hidden] { display: none !important; }
+body.layout-bigcal.char-only #bottom { min-height: 190px; }
+body.layout-bigcal.char-only #assistant { min-height: 200px; display: flex !important; } body.layout-bigcal.char-only #bigcal { margin-bottom: 20px; }
