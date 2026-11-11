@@ -44,6 +44,9 @@
       `--stripe-op:${L.stripeOpacity / 100}`, `--texture:${L.texture / 100}`,
       `--asst-size:${theme.assistant.size}px`, `--asst-x:${theme.assistant.x}px`, `--asst-y:${theme.assistant.y}px`,
       `--asst-flip:${theme.assistant.flip ? -1 : 1}`,
+      (() => { const o = theme.assistant.outline || 0, col = D.rgba(theme.assistant.outlineColor || { c: '#0B0B0B', a: 1 }) || '#0B0B0B';
+        const ring = o > 0 ? [[o, 0], [-o, 0], [0, o], [0, -o], [o * .7, o * .7], [-o * .7, o * .7], [o * .7, -o * .7], [-o * .7, -o * .7]].map(([x, y]) => `drop-shadow(${x.toFixed(1)}px ${y.toFixed(1)}px 0 ${col})`).join(' ') : '';
+        return `--asst-outline:${ring || 'none'}`; })(),
       `--sun:${D.rgba(c.sun)}`, `--sat:${D.rgba(c.sat)}`, `--panel:${D.rgba(c.panel)}`, `--param:${D.rgba(c.param)}`, `--event:${D.rgba(c.event)}`, `--panel-op:${L.panelOpacity / 100}`, `--panel-angle:${L.panelAngle}`,
     ];
     let css = `:root{${vars.join(';')}}\n`;

@@ -375,12 +375,12 @@
   // 인간 파라미터: 큰 별 + 다섯 꼭짓점 이름표 + 등급 이름
   const LV = [0, 3, 8, 15, 25]; // Lv1~Lv5 기준 (달 누적)
   const lvOf = (v) => (v >= LV[4] ? 5 : v >= LV[3] ? 4 : v >= LV[2] ? 3 : v >= LV[1] ? 2 : 1);
-  const RANKS = {
-    지식: ['평범한', '박식한', '해박한', '통달한', '걸어다니는 사전'],
-    배짱: ['무난한', '당찬', '대담한', '강철 멘탈', '사자의 심장'],
-    손재주: ['서툰', '쓸만한', '능숙한', '장인', '신의 손'],
-    친절: ['조심스러운', '배려 깊은', '다정한', '천사 같은', '모두의 은인'],
-    매력: ['수수한', '호감형', '눈에 띄는', '빛나는', '카리스마'],
+  const RANKS = { // 페르소나 5 로열의 등급 이름
+    지식: ['Oblivious', 'Learned', 'Scholarly', 'Encyclopedic', 'Erudite'],
+    배짱: ['Milquetoast', 'Bold', 'Staunch', 'Dauntless', 'Lionhearted'],
+    손재주: ['Bumbling', 'Decent', 'Skilled', 'Masterful', 'Transcendent'],
+    친절: ['Inoffensive', 'Considerate', 'Empathetic', 'Selfless', 'Angelic'],
+    매력: ['Existent', 'Head-turning', 'Suave', 'Charismatic', 'Debonair'],
   };
   D.paramRank = (s, lv) => RANKS[s][lv - 1];
   function monthTotals(dateISO) {

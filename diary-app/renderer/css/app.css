@@ -591,3 +591,13 @@ body.layout-bigcal .nb-pane[data-pane="params"] #stats { justify-content: flex-s
 #asst-figure img { filter: drop-shadow(6px 6px 0 rgba(0,0,0,.45)); user-select: none; }
 body.layout-bigcal #assistant { align-items: flex-end; }
 #btn-hidechar.on { background: #111; color: #fff; border-color: #111; }
+
+#asst-figure img { filter: var(--asst-outline) drop-shadow(8px 8px 0 var(--accent)); }
+
+/* 큰 달력: 체크리스트 점은 빼고, 일정 선·원은 굵은 검은 테두리로 */
+body.layout-bigcal .bc-d .dot { display: none; }
+body.layout-bigcal .ev-line { height: 7px; margin-top: -3.5px; border-radius: 0; background: var(--event); box-shadow: 0 0 0 2.5px #0b0b0b; }
+body.layout-bigcal .ev-dot { width: 20px; height: 20px; margin: -10px 0 0 -10px; background: #0b0b0b; box-shadow: inset 0 0 0 5px var(--event), 0 0 0 2.5px #0b0b0b; z-index: 1; }
+body.layout-bigcal .ev-line.meet { background: var(--accent); }
+body.layout-bigcal .ev-dot.meet { box-shadow: inset 0 0 0 5px var(--accent), 0 0 0 2.5px #0b0b0b; }
+body.layout-bigcal .bc-line { display: none; }

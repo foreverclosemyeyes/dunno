@@ -483,6 +483,8 @@
       C.slider(ctx, 'assistant.size', '그림 크기', 40, 600, 1, 'px'),
       C.slider(ctx, 'assistant.x', '가로 위치', -400, 400, 1, 'px'),
       C.slider(ctx, 'assistant.y', '세로 위치', -400, 400, 1, 'px'),
+      C.slider(ctx, 'assistant.outline', '외곽선 두께', 0, 12, 0.5, 'px'),
+      C.colorA(ctx, 'assistant.outlineColor', '외곽선 색'),
       C.toggle(ctx, 'assistant.flip', '좌우 뒤집기'),
     );
     img.body.append(note('투명 배경 PNG를 추천해요. 말할 때는 기본↔말하기가 번갈아 나오고, 가끔 눈감음으로 깜빡여요. Claude가 대답에 맞춰 웃음·윙크·진지 표정을 골라요. 그림은 이 컴퓨터에만 저장돼요.'));
