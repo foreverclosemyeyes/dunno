@@ -55,6 +55,8 @@
       const digs = [...String(d.getDate())].map((c) => skin[`digit-${c}${suf}`]);
       if (digs.every(Boolean)) { num.textContent = ''; num.classList.add('img'); digs.forEach((u) => { const im = h('img'); im.src = u; num.append(im); }); }
       it.append(num);
+      if (off < 0 && skin.xmark) { const x = h('img', 'cut-x'); x.src = skin.xmark; it.append(x); }
+      if (off === 0 && skin.dagger) { const dg = h('img', 'cut-dagger'); dg.src = skin.dagger; it.append(dg); }
       const lab = h('div', 'cut-wd');
       // 레퍼런스처럼 글자마다 크기·높이·기울기가 조금씩 다른 스티커 글씨
       const word = h('span', 'cut-wd-en');

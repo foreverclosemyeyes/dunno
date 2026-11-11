@@ -342,6 +342,8 @@
       const msg = state.data.needsSetup ? '노션 키를 넣으면 체크리스트가 여기 떠요.\n오른쪽 위 ⚙ 설정 > 연결'
         : (sel.getDay() === 0 || sel.getDay() === 6) ? '주말이에요. 푹 쉬어요!' : '이 날짜의 체크리스트가 없어요.';
       const e = h('div', 'empty'); e.append(S('body', msg)); e.style.whiteSpace = 'pre-line';
+      const skE = (state.theme.layout.skin || {}).empty;
+      if (skE && !state.data.needsSetup) { const im = h('img', 'empty-tag'); im.src = skE; e.prepend(im); }
       list.append(e);
     }
     const btn = $('#btn-open-notion');
@@ -378,6 +380,9 @@
       meta.append(h('span', 'st', q.status || ''), h('span', null, q.end ? `마감 ${q.end.slice(5).replace('-', '/')}` : '마감일 없음'));
       row.append(meta);
       row.append(h('div', 'dd', d === null ? '—' : d === 0 ? 'D-DAY' : d > 0 ? `D-${d}` : `D+${-d}`));
+      // 스킨 딱지: 마감 지남 = CRITICAL, 오늘 마감 = WEAK, 3일 이내 = TECHNICAL
+      const skq = state.theme.layout.skin || {}, tag = d === null ? null : d < 0 ? 'tag-critical' : d === 0 ? 'tag-weak' : d <= 3 ? 'tag-technical' : null;
+      if (tag && skq[tag]) { const im = h('img', 'q-tag'); im.src = skq[tag]; row.classList.add('has-tag'); row.append(im); }
       row.title = '노션에서 열기';
       row.onclick = () => window.diary.open(q.url);
       const x = h('button', 'q-hide', '×'); x.title = '이 업무 숨기기 (휴지통에 있는 업무 등)';

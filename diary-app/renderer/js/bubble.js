@@ -100,6 +100,10 @@
     const sk = (D.state && D.state.theme && D.state.theme.layout.skin) || {};
     document.body.classList.toggle('skin-bubble', !!sk.bubble);
     document.body.classList.toggle('skin-reply', !!sk.reply);
+    for (const k of ['change', 'mask']) {
+      document.body.classList.toggle('skin-has-' + k, !!sk[k]);
+      document.body.style.setProperty('--skin-' + k, sk[k] ? `url("${sk[k]}")` : 'none');
+    }
     const bub = $('#asst-bubble'), f = document.getElementById('chat-form');
     if (bub) bub.style.setProperty('--skin-bubble', sk.bubble ? `url("${sk.bubble}")` : 'none');
     if (f) f.style.setProperty('--skin-reply', sk.reply ? `url("${sk.reply}")` : 'none');
