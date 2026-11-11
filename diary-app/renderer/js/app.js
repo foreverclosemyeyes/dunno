@@ -172,7 +172,6 @@
         cellOf.set(di, { cell, row: r, col: c });
         const evs = eventsOn(di);
         const hidden = evs.filter((e) => lanes.get(e.id) >= MAX_LANES).length;
-        if (hidden) cell.append(h('b', 'bc-more', `+${hidden}`));
         if (evs.length) cell.title = evs.map((e) => `• ${e.name}`).join('\n');
         const cnt = count(dayInfo(di) && dayInfo(di).items);
         if (cnt.total) { cell.append(h('i', 'dot' + (cnt.done < cnt.total ? ' part' : ''))); cell.title = `${cnt.done}/${cnt.total} 완료` + (cell.title ? '\n' + cell.title : ''); }
@@ -205,30 +204,38 @@
     }
     const center = (cell) => cell.offsetLeft + cell.offsetWidth / 2;
     const first = iso(new Date(y, m - 1, 1)), last = iso(new Date(y, m, 0));
-    for (const e of evs) {
-      const lane = lanes.get(e.id);
-      if (lane >= maxLanes) continue;
+    const days = (a, b) => Math.round((parse(b) - parse(a)) / 86400000) + 1;
+    // 7일보다 긴 업무 기간은 선으로 그리지 않음 (날짜를 누르면 일정 버튼에는 나옴)
+    const candidates = evs.filter((e) => days(e.start, e.end) <= 7);
+    // 주(줄)마다 하나만: 미팅·세미나 먼저, 그다음 오늘 이후 가장 먼저 끝나는 것
+    const segs = new Map();
+    for (const e of candidates) {
       const s0 = e.start < first ? first : e.start, e0 = e.end > last ? last : e.end;
-      // 이 일정이 걸친 날짜를 주(줄)별로 나눔
       const byRow = new Map();
       for (let d = parse(s0); iso(d) <= e0; d.setDate(d.getDate() + 1)) {
         const c = cellOf.get(iso(d)); if (!c) continue;
         const list = byRow.get(c.row) || []; list.push({ ...c, date: iso(d) }); byRow.set(c.row, list);
       }
       for (const [row, list] of byRow) {
-        const info = rowsInfo.get(row);
-        const a = list[0], b = list[list.length - 1];
-        const isStart = a.date === e.start, isEnd = b.date === e.end;
-        const x1 = isStart ? center(a.cell) : info.left - 6;
-        const x2 = isEnd ? center(b.cell) : info.right + 6;
-        const top = info.top + info.h - 20 + lane * 11; // 숫자 아래쪽에 (요일 줄과 겹치지 않게)
-        const cls = isMeet(e) ? ' meet' : '';
-        if (x2 > x1) { const ln = h('i', 'ev-line' + cls); Object.assign(ln.style, { left: `${x1}px`, width: `${x2 - x1}px`, top: `${top}px` }); layer.append(ln); }
-        if (isStart) { const d = h('i', 'ev-dot' + cls); Object.assign(d.style, { left: `${x1}px`, top: `${top}px` }); layer.append(d); }
-        if (isEnd && e.end !== e.start) { const d = h('i', 'ev-dot' + cls); Object.assign(d.style, { left: `${x2}px`, top: `${top}px` }); layer.append(d); }
+        const score = (isMeet(e) ? 0 : 10) + (e.end >= state.today ? 0 : 5) + days(e.start, e.end) / 10;
+        const cur = segs.get(row);
+        if (!cur || score < cur.score) segs.set(row, { e, list, score });
       }
     }
+    for (const [row, { e, list }] of segs) {
+      const info = rowsInfo.get(row);
+      const a = list[0], b = list[list.length - 1];
+      const isStart = a.date === e.start, isEnd = b.date === e.end;
+      const x1 = isStart ? center(a.cell) : info.left - 6;
+      const x2 = isEnd ? center(b.cell) : info.right + 6;
+      const top = info.top + info.h - 20;
+      const cls = isMeet(e) ? ' meet' : '';
+      if (x2 > x1) { const ln = h('i', 'ev-line' + cls); Object.assign(ln.style, { left: `${x1}px`, width: `${x2 - x1}px`, top: `${top}px` }); layer.append(ln); }
+      if (isStart) { const d = h('i', 'ev-dot' + cls); Object.assign(d.style, { left: `${x1}px`, top: `${top}px` }); layer.append(d); }
+      if (isEnd && e.end !== e.start) { const d = h('i', 'ev-dot' + cls); Object.assign(d.style, { left: `${x2}px`, top: `${top}px` }); layer.append(d); }
+    }
   }
+
   function fitBigCal() {
     const box = $('#bigcal'), inner = $('#bc-inner');
     if (!box || state.theme.layout.mode !== 'bigcal') return;

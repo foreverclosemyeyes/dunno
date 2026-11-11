@@ -601,3 +601,17 @@ body.layout-bigcal .ev-dot { width: 20px; height: 20px; margin: -10px 0 0 -10px;
 body.layout-bigcal .ev-line.meet { background: var(--accent); }
 body.layout-bigcal .ev-dot.meet { box-shadow: inset 0 0 0 5px var(--accent), 0 0 0 2.5px #0b0b0b; }
 body.layout-bigcal .bc-line { display: none; }
+
+/* ---------- 노트 정리: 덜 비틀고, 덜 꾸미기 ---------- */
+body.layout-bigcal #record {
+  transform: rotate(-2.5deg); transform-origin: 50% 50%;
+  margin: 22px 46px 18px 22px; padding: 20px 26px 14px 24px; border-width: 6px;
+}
+body.layout-bigcal #record::before { inset: -6px; border-width: 6px; transform: translate(12px, 8px) rotate(2deg); background: color-mix(in srgb, var(--card-solid) 82%, #777); }
+body.layout-bigcal #record::after { width: 40%; height: 32%; opacity: .55; }
+body.layout-bigcal #record-list { background-image: repeating-linear-gradient(to bottom, transparent 0 37px, color-mix(in srgb, var(--card-text-solid) 14%, transparent) 37px 38.5px); }
+body.layout-bigcal #record-title .el-section { transform: rotate(-2deg) scale(1.25); }
+body.layout-bigcal #quests .el-section, body.layout-bigcal #stats .el-section { transform: rotate(-2deg) scale(1.2); }
+body.layout-bigcal .nb-tabs { right: -44px; }
+/* 큰 달력에는 체크리스트 점·+숫자 없음 */
+body.layout-bigcal .bc-d .dot, body.layout-bigcal .bc-more { display: none !important; }
