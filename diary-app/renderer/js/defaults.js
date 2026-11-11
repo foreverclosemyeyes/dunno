@@ -70,7 +70,7 @@
   });
 
   const DEFAULT_THEME = {
-    version: 8,
+    version: 9,
     colors: toColors(PALETTES[0][1]),
     layout: {
       mode: 'bigcal', // bigcal = 큰 달력 + 노트 카드, classic = 큰 날짜 숫자 + 이번 주 띠
@@ -114,7 +114,7 @@
       tone: '차분하고 간결한 존댓말. 과한 감탄·칭찬·이모지 없이 핵심만 짧게.',
       image: null,
       faces: { base: null, talk: null, smile: null, wink: null, serious: null, closed: null },
-      size: 230,
+      size: 300,
       outline: 4, // 캐릭터 검은 외곽선 두께(px)
       outlineColor: { c: '#0B0B0B', a: 1 },
       x: 0,
@@ -162,6 +162,13 @@
     t.version = 4;
     return true;
   };
+  // 9판: 캐릭터 크게
+  const migrate9 = (t) => {
+    if ((t.version || 1) >= 9) return false;
+    if (t.assistant && (t.assistant.size === 230 || t.assistant.size === 120)) t.assistant.size = 300;
+    t.version = 9;
+    return true;
+  };
   // 8판: 한글 자간 살짝 좁게
   const migrate8 = (t) => {
     if ((t.version || 1) >= 8) return false;
@@ -193,12 +200,13 @@
     return true;
   };
   D.migrateTheme = (t) => {
-    if ((t.version || 1) >= 7) return migrate8(t);
-    if ((t.version || 1) >= 6) { migrate7(t); migrate8(t); return true; }
-    if ((t.version || 1) >= 5) { migrate6(t); migrate7(t); migrate8(t); return true; }
-    if ((t.version || 1) >= 4) { migrate5(t); migrate6(t); migrate7(t); migrate8(t); return true; }
-    if ((t.version || 1) >= 3) { migrate4(t); migrate5(t); migrate6(t); migrate7(t); migrate8(t); return true; }
-    if ((t.version || 1) >= 2) { migrate3(t); migrate4(t); migrate5(t); migrate6(t); migrate7(t); migrate8(t); return true; }
+    if ((t.version || 1) >= 8) return migrate9(t);
+    if ((t.version || 1) >= 7) { migrate8(t); migrate9(t); return true; }
+    if ((t.version || 1) >= 6) { migrate7(t); migrate8(t); migrate9(t); return true; }
+    if ((t.version || 1) >= 5) { migrate6(t); migrate7(t); migrate8(t); migrate9(t); return true; }
+    if ((t.version || 1) >= 4) { migrate5(t); migrate6(t); migrate7(t); migrate8(t); migrate9(t); return true; }
+    if ((t.version || 1) >= 3) { migrate4(t); migrate5(t); migrate6(t); migrate7(t); migrate8(t); migrate9(t); return true; }
+    if ((t.version || 1) >= 2) { migrate3(t); migrate4(t); migrate5(t); migrate6(t); migrate7(t); migrate8(t); migrate9(t); return true; }
     for (const k in OLD) if (t.colors[k] && t.colors[k].c && t.colors[k].c.toUpperCase() === OLD[k].toUpperCase()) t.colors[k] = { ...DEFAULT_THEME.colors[k] };
     if (t.layout.panelOpacity === 12) t.layout.panelOpacity = 100;
     if (t.layout.stripeOn === true && t.layout.stripeAngle === -24) t.layout.stripeOn = false;
@@ -211,6 +219,7 @@
     migrate6(t);
     migrate7(t);
     migrate8(t);
+    migrate9(t);
     return true;
   };
   D.clone = (o) => JSON.parse(JSON.stringify(o));

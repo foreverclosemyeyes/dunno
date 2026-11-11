@@ -829,3 +829,19 @@ body.layout-bigcal #right > #quests { margin: 0 6px 6px 18px; }
 body.layout-bigcal #bottom { margin-top: -10px; }
 body.layout-bigcal #assistant { min-height: 0; }
 body.layout-bigcal #asst-bubble { margin-bottom: 0; }
+
+/* 캐릭터 크게: 대화창 왼쪽에서 위로 솟아오르게 (아래 줄 높이는 그대로) */
+body.layout-bigcal #assistant { position: relative; }
+body.layout-bigcal #asst-figure {
+  position: absolute; left: -14px; bottom: -12px; width: var(--asst-size); height: var(--asst-size);
+  margin: 0; transform: translate(var(--asst-x), var(--asst-y)); z-index: 4; pointer-events: none;
+}
+body.layout-bigcal #asst-figure:not([hidden]) ~ #asst-bubble { margin-left: calc(var(--asst-size) * .6); }
+body.layout-bigcal #asst-figure img { width: 100%; height: 100%; object-fit: contain; object-position: bottom left; }
+
+body.layout-bigcal #asst-figure { z-index: 1; left: -6px; }
+body.layout-bigcal #asst-bubble { position: relative; z-index: 3; }
+body.layout-bigcal #asst-figure:not([hidden]) ~ #asst-bubble { margin-left: calc(var(--asst-size) * .7); }
+body.layout-bigcal #bigcal { margin-bottom: 40px; }
+body.layout-bigcal #bigcal { margin-bottom: 62px; }
+body.layout-bigcal #asst-figure { bottom: -34px; }
