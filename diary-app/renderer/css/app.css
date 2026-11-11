@@ -1365,3 +1365,20 @@ body.layout-bigcal #bc-month-label .el-calHead { font-family: "Archivo Black", "
 .pup-title.img .pup-bg { inset: 30% -2% -34% -2%; background: #0b0b0b; }
 .pup-title.img .pup-fg { inset: 0; background: var(--param); }
 .pup-title.img .pup-bg { inset: -4% -3% -10% -3%; -webkit-mask-size: 100% 100%; mask-size: 100% 100%; transform: translate(6px, 8px); }
+
+/* 스킨 말풍선: 그림의 검은 몸통이 글 상자에 딱 맞게 깔리도록 바깥으로 넓혀서 배치 */
+body.skin-bubble #asst-bubble svg.dlg-shape { display: none; }
+body.skin-bubble #asst-bubble { background: none !important; box-shadow: none !important; border: 0 !important; clip-path: none !important; position: relative; }
+body.skin-bubble #asst-bubble::before { content: ''; position: absolute; inset: -50% -20.4% -16.7% -24.6%; z-index: 0; pointer-events: none;
+  background: var(--skin-bubble) center / 100% 100% no-repeat; }
+body.skin-bubble #asst-bubble > * { position: relative; z-index: 1; }
+body.skin-bubble #asst-name { position: absolute !important; left: -3%; top: -34%; transform: rotate(-13deg); background: none !important; color: #0b0b0b !important;
+  box-shadow: none !important; clip-path: none !important; padding: 0 !important; }
+body.skin-bubble #asst-name * { color: #0b0b0b !important; }
+body.skin-reply #chat-form svg.reply-shape { display: none; }
+body.skin-reply #chat-form { background: var(--skin-reply) center / 100% 100% no-repeat !important; padding-left: 16% !important; padding-right: 15% !important; }
+body.skin-bubble #asst-name, body.skin-bubble #asst-name * { color: #0b0b0b !important; -webkit-text-stroke: 0 !important; text-shadow: none !important; filter: none !important; background: none !important; }
+body.skin-bubble #asst-name { left: 2%; top: -36%; font-size: 15px; z-index: 2 !important; }
+body.skin-bubble #asst-name::before, body.skin-bubble #asst-name::after { display: none !important; }
+body.skin-bubble #asst-name { left: 5%; top: -16%; }
+body.skin-bubble #asst-name { left: 4%; top: -26%; }

@@ -95,7 +95,18 @@
     svg.firstChild.setAttribute('d', 'M' + pts.map((p) => p.map((v) => v.toFixed(1)).join(',')).join(' L') + ' Z');
   }
 
+  // 스킨 그림(말풍선·답하는 칸)을 불러왔으면 직접 그린 모양 대신 그 그림을 깔아 줌
+  function skin() {
+    const sk = (D.state && D.state.theme && D.state.theme.layout.skin) || {};
+    document.body.classList.toggle('skin-bubble', !!sk.bubble);
+    document.body.classList.toggle('skin-reply', !!sk.reply);
+    const bub = $('#asst-bubble'), f = document.getElementById('chat-form');
+    if (bub) bub.style.setProperty('--skin-bubble', sk.bubble ? `url("${sk.bubble}")` : 'none');
+    if (f) f.style.setProperty('--skin-reply', sk.reply ? `url("${sk.reply}")` : 'none');
+  }
+
   function update() {
+    skin();
     requestAnimationFrame(() => { place(); requestAnimationFrame(() => { draw(); drawReply(); }); });
   }
   window.addEventListener('resize', update);
