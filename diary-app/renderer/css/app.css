@@ -585,3 +585,9 @@ body.layout-bigcal .nb-pane[data-pane="params"] #stats { justify-content: flex-s
 .pn-bar { height: 12px; border: 2.5px solid #111; background: transparent; transform: skewX(-18deg); position: relative; }
 .pn-bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--param); border-right: 2px solid #111; }
 .pn-num { font-size: 12px; font-weight: 900; text-align: right; }
+
+/* 캐릭터 */
+#asst-figure { position: relative; z-index: 2; margin-right: -40px; align-self: flex-end; }
+#asst-figure img { filter: drop-shadow(6px 6px 0 rgba(0,0,0,.45)); user-select: none; }
+body.layout-bigcal #assistant { align-items: flex-end; }
+#btn-hidechar.on { background: #111; color: #fff; border-color: #111; }

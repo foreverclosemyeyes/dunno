@@ -6,7 +6,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const { pathToFileURL } = require('url');
 const {
-  app, BrowserWindow, Tray, Menu, ipcMain, Notification, shell, dialog,
+  app, BrowserWindow, Tray, Menu, ipcMain, Notification, shell, dialog, globalShortcut,
   nativeImage, protocol, net, session, powerMonitor,
 } = require('electron');
 
@@ -420,9 +420,27 @@ function setSettings(partial) {
   if ('autoLaunch' in partial) applyAutoLaunch(!!partial.autoLaunch);
   if ('alwaysOnTop' in partial && win) win.setAlwaysOnTop(!!partial.alwaysOnTop);
   if ('eventMode' in partial) sync(true);
+  if ('bossKey' in partial) applyBossKey(partial.bossKey);
   if (tray && tray.refreshMenu) tray.refreshMenu();
   push('settings', s);
   return s;
+}
+
+// 회사용 숨기기 단축키: 어디서든 누르면 창을 숨기고, 다시 누르면 보여 줌
+let bossKey = null;
+function applyBossKey(key) {
+  try { if (bossKey) globalShortcut.unregister(bossKey); } catch { /* 없음 */ }
+  bossKey = null;
+  if (!key) return;
+  try {
+    const ok = globalShortcut.register(key, () => {
+      if (win && !win.isDestroyed() && win.isVisible() && !win.isMinimized()) {
+        win.hide();
+        if (process.platform === 'darwin' && app.dock) app.dock.hide();
+      } else showWindow();
+    });
+    if (ok) bossKey = key; else log('bossKey register failed', key);
+  } catch (e) { log('bossKey', e); }
 }
 
 function applyAutoLaunch(on) {
@@ -548,6 +566,7 @@ function registerIpc() {
 
 // ---------- 시작 ----------
 app.on('second-instance', showWindow);
+app.on('will-quit', () => { try { globalShortcut.unregisterAll(); } catch { /* 없음 */ } });
 app.on('before-quit', () => { quitting = true; store && store.saveNow(); cache && cache.saveNow(); });
 app.on('activate', showWindow);
 app.on('window-all-closed', () => { /* 트레이에 남아 있음 */ });
@@ -589,6 +608,7 @@ app.whenReady().then(() => {
   if (!settings) setSettings({ autoLaunch: true, hourly: true, alwaysOnTop: false });
   else if (app.isPackaged) applyAutoLaunch(!!settings.autoLaunch);
 
+  applyBossKey(store.get('settings', {}).bossKey ?? 'CommandOrControl+Shift+X');
   const startHidden = process.argv.includes('--hidden');
   createWindow(!startHidden);
   if (startHidden && process.platform === 'darwin' && app.dock) app.dock.hide();

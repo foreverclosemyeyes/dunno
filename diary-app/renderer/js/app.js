@@ -332,15 +332,19 @@
     const a = state.theme.assistant;
     $('#assistant').hidden = !state.hasKeys.anthropic; // Claude 키가 있을 때만 비서 칸을 보여 줌
     if (!state.hasKeys.anthropic) return;
-    const fig = $('#asst-figure'); fig.innerHTML = '';
-    fig.hidden = !a.image;
-    if (a.image) { const img = h('img'); img.src = a.image.url; img.alt = a.name; fig.append(img); }
+    D.face.mount();
+    $('#btn-hidechar').classList.toggle('on', !!state.settings.hideChar);
 
     $('#asst-name').textContent = a.name;
     const msg = state.lastAssistant;
     const text = $('#asst-text');
     text.classList.toggle('thinking', !!(msg && msg.thinking));
-    text.replaceChildren(S('bubble', msg && msg.thinking ? '생각하는 중…' : msg ? msg.text : '오늘 업무를 같이 확인해 드릴게요. "지금 확인해줘"를 누르거나 아래에 물어보세요.'));
+    let span = text.querySelector('.el-bubble');
+    if (!span) { span = S('bubble', ''); text.replaceChildren(span); }
+    if (msg && msg.thinking) { span.textContent = '생각하는 중…'; D.face.setMood('closed'); }
+    else if (!D.face.onMessage(msg, span) && !D.face.isTyping()) {
+      text.replaceChildren(S('bubble', msg ? msg.text : '오늘 업무를 같이 확인해 드릴게요. "지금 확인해줘"를 누르거나 아래에 물어보세요.'));
+    }
     const meta = $('#asst-meta');
     if (msg && msg.at && !msg.thinking) {
       const t = new Date(msg.at);
@@ -661,6 +665,9 @@
     $('#btn-claude').onclick = () => state.settings.claudeUrl && window.diary.open(state.settings.claudeUrl);
     $('#chk-hourly').onchange = (e) => window.diary.setSettings({ hourly: e.target.checked });
     $('#btn-pin').onclick = () => window.diary.setSettings({ alwaysOnTop: !state.settings.alwaysOnTop });
+    const toggleChar = () => window.diary.setSettings({ hideChar: !state.settings.hideChar });
+    $('#btn-hidechar').onclick = toggleChar;
+    window.addEventListener('keydown', (e) => { if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'h') { e.preventDefault(); toggleChar(); } });
 
     // 자정 대비 2중 장치 + 배경 시간표(요일별/일정 시간마다)
     let lastBgKey = '';

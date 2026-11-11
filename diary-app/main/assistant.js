@@ -62,6 +62,7 @@ function systemPrompt(persona, ctx) {
     '사용자는 데스크탑 업무 다이어리 앱 안에서 너와 이야기해. 아래는 노션에서 방금 읽어 온 오늘 업무 상황이야. 업무 질문에는 이걸 근거로 답해.',
     `[오늘 업무 상황]\n${contextText(ctx)}`,
     '대화할 때는 짧고 자연스럽게, 보통 2~5문장으로 답해. 표나 긴 목록은 꼭 필요할 때만.',
+    '답변 맨 앞에 지금 표정 하나를 [표정:기본] 처럼 붙인다. 고를 수 있는 표정: 기본, 웃음, 윙크, 진지, 눈감음. (끝낸 일을 인정하거나 좋은 소식이면 웃음, 가벼운 농담·격려면 윙크, 마감 임박·지난 일 경고면 진지, 다 끝나서 마무리할 때는 눈감음, 그 외 기본)',
   ].filter(Boolean).join('\n');
 }
 
@@ -87,6 +88,12 @@ function toMessages(history) {
   return out;
 }
 
+// 답변 앞의 [표정:…] 을 떼어 냄
+function splitMood(text) {
+  const m = String(text || '').match(/^\s*\[\s*표정\s*[:：]\s*([^\]]+?)\s*\]\s*/);
+  return m ? { text: text.slice(m[0].length).trim(), mood: m[1].trim() } : { text: String(text || '').trim(), mood: null };
+}
+
 async function ask(apiKey, persona, ctx, history, userText) {
   const client = new Anthropic({ apiKey, maxRetries: 2, timeout: 60_000 });
   const messages = toMessages([...history, { role: 'user', text: userText }]);
@@ -104,8 +111,10 @@ async function ask(apiKey, persona, ctx, history, userText) {
 // 정시 체크 / "지금 확인해줘"
 async function generate(apiKey, persona, ctx, history = []) {
   if (!apiKey) return fallbackMessage(ctx, persona);
-  const text = await ask(apiKey, persona, ctx, history, CHECK_PROMPT);
-  return text ? { text, source: 'claude', name: persona.name } : fallbackMessage(ctx, persona);
+  const raw = await ask(apiKey, persona, ctx, history, CHECK_PROMPT);
+  if (!raw) return fallbackMessage(ctx, persona);
+  const { text, mood } = splitMood(raw);
+  return { text, mood, source: 'claude', name: persona.name };
 }
 
 // 사용자가 직접 말 걸기
@@ -113,8 +122,9 @@ async function chat(apiKey, persona, ctx, history, userText) {
   if (!apiKey) {
     return { text: '대화하려면 ⚙ 설정 > 연결에서 Anthropic API 키를 넣어 줘. 키가 없을 땐 정시 체크만 기본 문장으로 해 줄 수 있어.', source: 'local', name: persona.name };
   }
-  const text = await ask(apiKey, persona, ctx, history, userText);
-  return { text: text || '음, 그건 답하기 어려워. 다른 걸 물어봐 줄래?', source: 'claude', name: persona.name };
+  const raw = await ask(apiKey, persona, ctx, history, userText);
+  const { text, mood } = splitMood(raw);
+  return { text: text || '그 질문에는 답하기 어렵습니다. 다른 걸 물어봐 주세요.', mood, source: 'claude', name: persona.name };
 }
 
 function friendlyError(e) {
@@ -125,4 +135,4 @@ function friendlyError(e) {
   return '비서가 잠깐 자리를 비웠어요. (연결 오류)';
 }
 
-module.exports = { generate, chat, buildContext, fallbackMessage, friendlyError, toMessages, CHECK_PROMPT, MODEL };
+module.exports = { splitMood, generate, chat, buildContext, fallbackMessage, friendlyError, toMessages, CHECK_PROMPT, MODEL };

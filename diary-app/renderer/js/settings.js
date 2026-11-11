@@ -456,21 +456,46 @@
       C.text(ctx, 'assistant.tone', '말투 · 성격', { multiline: true, placeholder: '예: 시크하지만 챙겨주는 존댓말, 짧게' }),
     );
     a.body.append(C.select(ctx, 'layout.dialog', '대화창 모양', [['angular', '각진 대화창'], ['flat', '네모 칸']]));
-    const img = C.section('캐릭터 그림', true);
-    const r = h('div', 'row-inline');
-    const cur = state.theme.assistant.image;
-    r.append(h('span', 'file-name', cur ? cur.name : '아직 없음'),
-      btn('그림 올리기 (PNG 투명배경)', 'primary', async () => {
+    const img = C.section('캐릭터 그림 (표정 6가지)', true);
+    const grid = h('div', 'face-grid');
+    const faces = state.theme.assistant.faces || {};
+    if (!faces.base && state.theme.assistant.image) faces.base = state.theme.assistant.image;
+    for (const [key, ko] of D.face.MOODS) {
+      const cell = h('div', 'face-cell');
+      const pic = h('div', 'face-pic');
+      if (faces[key]) { const im = h('img'); im.src = faces[key].url; pic.append(im); } else pic.append(h('span', null, '+'));
+      pic.title = `${ko} 표정 올리기`;
+      pic.onclick = async () => {
         const [asset] = await window.diary.pickAsset('image');
-        if (asset) { ctx.set('assistant.image', { url: asset.url, name: asset.name }); commit(); render(); }
-      }));
-    if (cur) r.append(btn('빼기', '', () => { ctx.set('assistant.image', null); commit(); render(); }));
-    img.body.append(r,
-      C.slider(ctx, 'assistant.size', '그림 크기', 40, 500, 1, 'px'),
+        if (asset) { ctx.set(`assistant.faces.${key}`, { url: asset.url, name: asset.name }); commit(); render(); }
+      };
+      cell.append(pic, h('div', 'face-ko', ko));
+      if (faces[key]) { const x = h('button', 'face-x', '×'); x.title = '빼기'; x.onclick = () => { ctx.set(`assistant.faces.${key}`, null); if (key === 'base') ctx.set('assistant.image', null); commit(); render(); }; cell.append(x); }
+      grid.append(cell);
+    }
+    const r = h('div', 'row-inline');
+    r.append(btn('여러 장 한 번에 올리기 (기본→말하기→웃음→윙크→진지→눈감음 순서)', '', async () => {
+      const assets = await window.diary.pickAsset('image');
+      assets.slice(0, 6).forEach((a, k) => ctx.set(`assistant.faces.${D.face.MOODS[k][0]}`, { url: a.url, name: a.name }));
+      if (assets.length) { commit(); render(); }
+    }));
+    img.body.append(grid, r,
+      C.slider(ctx, 'assistant.size', '그림 크기', 40, 600, 1, 'px'),
       C.slider(ctx, 'assistant.x', '가로 위치', -400, 400, 1, 'px'),
       C.slider(ctx, 'assistant.y', '세로 위치', -400, 400, 1, 'px'),
       C.toggle(ctx, 'assistant.flip', '좌우 뒤집기'),
     );
+    img.body.append(note('투명 배경 PNG를 추천해요. 말할 때는 기본↔말하기가 번갈아 나오고, 가끔 눈감음으로 깜빡여요. Claude가 대답에 맞춰 웃음·윙크·진지 표정을 골라요. 그림은 이 컴퓨터에만 저장돼요.'));
+    const hide = C.section('회사에서 숨기기', true);
+    const bk = h('select');
+    [['CommandOrControl+Shift+X', '⌘/Ctrl + Shift + X'], ['CommandOrControl+Shift+Space', '⌘/Ctrl + Shift + Space'], ['CommandOrControl+Alt+Space', '⌘/Ctrl + Option(Alt) + Space'], ['', '쓰지 않음']].forEach(([v, t]) => { const o = h('option', null, t); o.value = v; bk.append(o); });
+    bk.value = state.settings.bossKey ?? 'CommandOrControl+Shift+X';
+    bk.onchange = async () => { state.settings = await window.diary.setSettings({ bossKey: bk.value }); D.toast(bk.value ? '단축키를 바꿨어요.' : '단축키를 껐어요.'); };
+    const bkr = h('div', 'ctl'); bkr.append(h('label', 'ctl-label', '앱 창 바로 숨기기'), bk, h('span'));
+    const hc = h('div', 'ctl'); const hl = h('label', 'switch'); const hcb = h('input'); hcb.type = 'checkbox'; hcb.checked = !!state.settings.hideChar;
+    hcb.onchange = async () => { state.settings = await window.diary.setSettings({ hideChar: hcb.checked }); D.renderAll(); };
+    hl.append(hcb, h('span')); hc.append(h('label', 'ctl-label', '캐릭터 숨기기'), hl, h('span'));
+    hide.body.append(hc, bkr, note('• 위쪽 🙈 버튼이나 ⌘/Ctrl+Shift+H: 캐릭터만 숨기기/보이기<br>• 위 단축키: 어떤 프로그램을 쓰고 있든 업무다이어리 창 전체를 바로 숨기고, 한 번 더 누르면 다시 보여요.'));
     img.body.append(note('말풍선 글씨는 "글씨" 탭 > 비서 말풍선에서 꾸밀 수 있어요. AI 키는 "연결" 탭에서 넣어요.'));
 
     const cl = C.section('업무비서 지침 · Claude 채팅 연결', true);
@@ -492,7 +517,7 @@
       btn('Claude 채팅 열기 ↗', '', () => url.value.trim() && window.diary.open(url.value.trim())),
     );
     cl.body.append(note('앱 안의 비서는 Claude(Haiku 5.5)가 이 지침과 오늘 노션 업무를 보고 대답해요. claude.ai 채팅방 자체와 대화 기록이 직접 이어지지는 않아요(Claude가 그걸 외부 앱에 열어 주지 않아요). 대신 지침을 똑같이 맞추고, "Claude에서 열기" 버튼으로 그 채팅방을 바로 열 수 있어요.'));
-    body.append(a.el, img.el, cl.el);
+    body.append(a.el, img.el, hide.el, cl.el);
   }
 
   // ---------- 테마 ----------
