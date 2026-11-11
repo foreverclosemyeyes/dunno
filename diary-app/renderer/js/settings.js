@@ -277,6 +277,7 @@
       C.colorA(ctx, 'colors.sun', '일요일'),
       C.colorA(ctx, 'colors.sat', '토요일'),
       C.colorA(ctx, 'colors.panel', '사선 면'),
+      C.colorA(ctx, 'colors.param', '인간 파라미터 별'),
       C.colorA(ctx, 'colors.event', '일정 점·선'),
     );
     const mode = C.section('레이아웃', true);

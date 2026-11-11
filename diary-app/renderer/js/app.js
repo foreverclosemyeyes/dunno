@@ -367,32 +367,60 @@
     if (on) renderChat();
   }
 
-  // 인간 파라미터: 이번 달 누적을 다섯 꼭짓점 별(레이더) 모양으로
+  // 인간 파라미터: 큰 별 + 다섯 꼭짓점 이름표 + 등급 이름
   const LV = [0, 3, 8, 15, 25]; // Lv1~Lv5 기준 (달 누적)
   const lvOf = (v) => (v >= LV[4] ? 5 : v >= LV[3] ? 4 : v >= LV[2] ? 3 : v >= LV[1] ? 2 : 1);
-  function radarSvg(totals, today) {
-    const NS = 'http://www.w3.org/2000/svg';
-    const R = 54, C = 70;
-    const pt = (i, r) => { const a = -Math.PI / 2 + (i * 2 * Math.PI) / 5; return [C + Math.cos(a) * r, C + Math.sin(a) * r]; };
-    const svg = document.createElementNS(NS, 'svg');
-    svg.setAttribute('viewBox', '0 0 140 140');
-    svg.classList.add('radar');
-    const el = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); svg.append(e); return e; };
-    for (let ring = 5; ring >= 1; ring--) {
-      el('polygon', { points: [0, 1, 2, 3, 4].map((i) => pt(i, (R * ring) / 5).join(',')).join(' '), class: 'r-ring' + (ring === 5 ? ' outer' : '') });
+  const RANKS = {
+    지식: ['평범한', '박식한', '해박한', '통달한', '걸어다니는 사전'],
+    배짱: ['무난한', '당찬', '대담한', '강철 멘탈', '사자의 심장'],
+    손재주: ['서툰', '쓸만한', '능숙한', '장인', '신의 손'],
+    친절: ['조심스러운', '배려 깊은', '다정한', '천사 같은', '모두의 은인'],
+    매력: ['수수한', '호감형', '눈에 띄는', '빛나는', '카리스마'],
+  };
+  D.paramRank = (s, lv) => RANKS[s][lv - 1];
+  function monthTotals(dateISO) {
+    const month = dateISO.slice(0, 7);
+    const totals = Object.fromEntries(STATS.map((s) => [s, 0]));
+    for (const [date, v] of Object.entries(state.stats)) {
+      if (!date.startsWith(month)) continue;
+      STATS.forEach((s) => { totals[s] += v[s] || 0; });
     }
-    [0, 1, 2, 3, 4].forEach((i) => { const [x, y] = pt(i, R); el('line', { x1: C, y1: C, x2: x, y2: y, class: 'r-axis' }); });
-    const top = Math.max(6, ...Object.values(totals)) * 1.15; // 이번 달 가장 높은 값에 맞춰 크게
-    const val = (v) => R * Math.max(0.08, Math.min(1, v / top));
-    const before = STATS.map((s, i) => pt(i, val(totals[s] - (today[s] || 0))).join(',')).join(' ');
-    const now = STATS.map((s, i) => pt(i, val(totals[s])).join(',')).join(' ');
-    el('polygon', { points: now, class: 'r-now' });
-    el('polygon', { points: before, class: 'r-before' });
-    STATS.forEach((s, i) => { const [x, y] = pt(i, val(totals[s])); el('circle', { cx: x, cy: y, r: 3.2, class: 'r-dot' }); });
+    return totals;
+  }
+  D.monthTotals = monthTotals;
+  D.lvOf = lvOf;
+
+  function starPoints(cx, cy, R, r, rot = 0) {
+    const pts = [];
+    for (let k = 0; k < 10; k++) {
+      const a = -Math.PI / 2 + rot + (k * Math.PI) / 5;
+      const rad = k % 2 ? r : R;
+      pts.push(`${(cx + Math.cos(a) * rad).toFixed(1)},${(cy + Math.sin(a) * rad).toFixed(1)}`);
+    }
+    return pts.join(' ');
+  }
+  function starSvg(totals) {
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 300 300');
+    svg.classList.add('pstar');
+    const el = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); svg.append(e); return e; };
+    const C = 150, ratio = 0.42;
+    el('polygon', { points: starPoints(C, C + 6, 150, 150 * ratio), class: 'ps-big' });
+    [92, 74, 56].forEach((R, i) => el('polygon', { points: starPoints(C, C + 6, R, R * ratio), class: 'ps-ring ps-ring' + i }));
+    // 가운데 별: 다섯 레벨 평균만큼 커짐
+    const avg = STATS.reduce((n, s) => n + lvOf(totals[s]), 0) / STATS.length;
+    const R = 16 + (avg - 1) * 9;
+    el('polygon', { points: starPoints(C, C + 6, R, R * 0.45), class: 'ps-core' });
+    el('polygon', { points: starPoints(C, C + 6, R, R * 0.45), class: 'ps-core-shine' });
+    // 각 방향 레벨 눈금
     STATS.forEach((s, i) => {
-      const [x, y] = pt(i, R + 11);
-      const t = el('text', { x, y: y + 3.5, class: 'r-label', 'text-anchor': 'middle' });
-      t.textContent = s;
+      const lv = lvOf(totals[s]);
+      const a = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
+      for (let k = 1; k <= 5; k++) {
+        const rr = 40 + k * 15;
+        el('circle', { cx: C + Math.cos(a) * rr, cy: C + 6 + Math.sin(a) * rr, r: k <= lv ? 3.6 : 2, class: k <= lv ? 'ps-pip on' : 'ps-pip' });
+      }
     });
     return svg;
   }
@@ -403,42 +431,64 @@
     const lg = h('small', 'stats-legend');
     lg.textContent = `${sel.getMonth() + 1}월 누적${state.settings.autoStats === false ? '' : ' · 업무 완료하면 자동 UP'}`;
     head.append(S('section', '인간 파라미터'), lg);
-    const month = state.selected.slice(0, 7);
-    const totals = Object.fromEntries(STATS.map((s) => [s, 0]));
-    for (const [date, v] of Object.entries(state.stats)) {
-      if (!date.startsWith(month)) continue;
-      STATS.forEach((s) => { totals[s] += v[s] || 0; });
-    }
+    const totals = monthTotals(state.selected);
     const today = state.stats[state.selected] || {};
     const list = $('#stats-list'); list.innerHTML = '';
-    const wrap = h('div', 'param');
-    wrap.append(radarSvg(totals, today));
-    const rows = h('div', 'param-rows');
-    for (const s of STATS) {
-      const row = h('div', 'stat');
+    const wrap = h('div', 'pwrap');
+    wrap.append(starSvg(totals));
+    // 꼭짓점 위치 (%): 위, 오른쪽, 오른쪽 아래, 왼쪽 아래, 왼쪽
+    const POS = [[50, 4], [94, 37], [77, 92], [23, 92], [6, 37]];
+    STATS.forEach((s, i) => {
       const lv = lvOf(totals[s]);
-      row.append(S('body', s, 'nm'));
-      const stars = h('span', 'stars');
-      for (let k = 1; k <= 5; k++) stars.append(h('i', k <= lv ? 'on' : '', '★'));
-      row.append(stars);
+      const box = h('div', 'plabel');
+      box.style.left = POS[i][0] + '%'; box.style.top = POS[i][1] + '%';
+      const tag = h('div', 'ptag');
+      tag.append(h('span', 'pname', s), h('b', 'plv', String(lv)));
+      box.append(tag, h('div', 'prank', RANKS[s][lv - 1]));
       const t = today[s] || 0;
-      row.append(h('span', 'num', lv === 5 ? 'MAX' : `${totals[s]}`), h('span', 'today', t ? `+${t}` : ''));
+      const ctl = h('div', 'pctl');
       const minus = h('button', 'minus', '−'); minus.title = `${s} 하나 빼기 (고른 날)`;
+      const num = h('span', 'pnum', `${totals[s]}${t ? ` (+${t})` : ''}`);
       const plus = h('button', 'plus', '+'); plus.title = `${s} +1 (고른 날)`;
       minus.onclick = () => bump(s, -1);
       plus.onclick = () => bump(s, 1);
-      row.append(minus, plus);
-      rows.append(row);
-    }
-    wrap.append(rows);
+      ctl.append(minus, num, plus);
+      box.append(ctl);
+      wrap.append(box);
+    });
     list.append(wrap);
   }
+
+  // POINT UP!! / RANK UP!! 알림
+  function pointUp(ups) {
+    if (!ups.length) return;
+    const before = monthTotals(state.today);
+    const old = $('.pup'); if (old) old.remove();
+    const rankUps = ups.filter((c) => lvOf(before[c.stat]) > lvOf(before[c.stat] - 1) && LV.includes(before[c.stat]));
+    const box = h('div', 'pup' + (rankUps.length ? ' rank' : ''));
+    box.append(h('div', 'pup-burst'));
+    box.append(h('div', 'pup-title', rankUps.length ? 'RANK UP!!' : 'POINT UP!!'));
+    const lines = h('div', 'pup-lines');
+    for (const c of ups.slice(-3)) {
+      const lv = lvOf(before[c.stat]);
+      const line = h('div', 'pup-line');
+      line.append(h('b', null, `${c.stat} ${lv}`), h('span', null, rankUps.includes(c) ? `→ ${RANKS[c.stat][lv - 1]}` : c.text ? `· ${c.text}` : '+1'));
+      lines.append(line);
+    }
+    box.append(lines);
+    box.onclick = () => box.remove();
+    document.body.append(box);
+    requestAnimationFrame(() => box.classList.add('in'));
+    setTimeout(() => { box.classList.add('out'); setTimeout(() => box.remove(), 400); }, rankUps.length ? 2600 : 1800);
+  }
+  D.pointUp = pointUp;
 
   function bump(stat, delta) {
     const d = (state.stats[state.selected] = state.stats[state.selected] || {});
     d[stat] = Math.max(0, (d[stat] || 0) + delta);
     window.diary.saveStats(state.stats);
     renderStats();
+    if (delta > 0 && state.selected.slice(0, 7) === state.today.slice(0, 7)) pointUp([{ stat, delta: 1, text: '' }]);
   }
 
   function renderSync() {
@@ -550,8 +600,8 @@
     window.diary.onStats(({ stats, changes }) => {
       state.stats = stats;
       renderStats();
-      const ups = changes.filter((c) => c.delta > 0);
-      if (ups.length) toast(ups.map((c) => `${c.stat} UP! · ${c.text}`).slice(-3).join('\n'), 3500);
+      const ups = changes.filter((c) => c.delta > 0 && c.date && c.date.slice(0, 7) === state.today.slice(0, 7));
+      if (ups.length && ups.length <= 5) pointUp(ups);
     });
     window.diary.onChat((list) => { state.chat = list; if (!$('#chat-log').hidden) renderChat(); });
     $('#chat-form').onsubmit = async (e) => {

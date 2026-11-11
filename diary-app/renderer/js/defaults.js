@@ -67,6 +67,7 @@
       sun: { c: '#C81E17', a: 1 },
       sat: { c: '#1C8BA5', a: 1 },
       panel: { c: '#C9C9C9', a: 1 },
+      param: { c: '#F2C230', a: 1 },
       event: { c: '#E4E4E4', a: 1 },
     },
     layout: {
