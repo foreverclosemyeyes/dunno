@@ -8,9 +8,9 @@
 
   // 자리(slot) → 화면 위치. 가운데가 가장 크고 아래, 양옆은 작고 위로 휘어짐
   function place(slot) {
-    const x = 48 + slot * 21 - Math.sign(slot) * slot * slot * 1.2;
-    const y = 52 - Math.abs(slot) * 7 - slot * slot * 2.2;
-    const scale = Math.max(0.28, 1 - Math.abs(slot) * 0.27);
+    // 레퍼런스 배치: 지난 날은 왼쪽 아래로 크게, 다가올 날은 오른쪽 위로 작게 멀어짐
+    const T = { '-4': [-8, 36, 0.3], '-3': [-6, 40, 0.36], '-2': [10, 44, 0.56], '-1': [30, 54, 0.78], 0: [52, 56, 1.05], 1: [67, 45, 0.6], 2: [77, 34, 0.5], 3: [90, 36, 0.52], 4: [104, 34, 0.4] };
+    const [x, y, scale] = T[Math.max(-4, Math.min(4, Math.round(slot)))];
     return { x, y, scale };
   }
 
@@ -27,8 +27,8 @@
     root.style.setProperty('--cut-font', D.fonts.cssStack(state.theme.text.calNum.font));
     const city = h('div', 'cut-city'); const cv = h('canvas');
     // 내 그림을 올려 뒀으면(설정 > 색·배치) 평소 날 배경으로 그 그림을 씀. 타운홀 날은 동심원 배경 그대로
-    const own = !hall && state.theme.layout.cutImage && state.theme.layout.cutImage.url;
-    if (own) { const im = h('img'); im.src = own; city.append(im); } else city.append(cv);
+    const own = state.theme.layout.cutImage && state.theme.layout.cutImage.url;
+    if (own && !hall) { const im = h('img'); im.src = own; city.append(im); } else city.append(cv);
     root.append(city);
     const head = h('div', 'cut-head');
     head.append(h('span', 'cut-year', String(today.getFullYear())), h('span', 'cut-month', `${today.getMonth() + 1}월`));
@@ -41,15 +41,7 @@
     for (let off = -4; off <= 3; off++) {
       const d = new Date(today); d.setDate(today.getDate() + off);
       const it = h('div', 'cut-day' + (d.getDay() === 0 ? ' sun' : d.getDay() === 6 ? ' sat' : '') + (off < 0 ? ' past' : '') + (off === 0 ? ' today' : ''));
-      // 숫자 뒤 흰 종이 조각 (가위로 대충 오린 모양, 날짜마다 조금씩 다름)
-      const blob = h('i', 'cut-blob'), paper = h('b');
-      const rr = (k) => { const v = Math.sin((d.getDate() * 13 + k * 7) * 12.9898) * 43758.5453; return v - Math.floor(v); };
-      const P = [[4, 10], [30, 3], [62, 6], [96, 2], [99, 34], [95, 66], [98, 95], [66, 99], [36, 95], [5, 98], [2, 64], [6, 36]];
-      paper.style.clipPath = 'polygon(' + P.map(([x, y], k) => `${(x + (rr(k) - 0.5) * 7).toFixed(1)}% ${(y + (rr(k + 20) - 0.5) * 7).toFixed(1)}%`).join(',') + ')';
-      blob.append(paper);
-      const num = h('div', 'cut-num', String(d.getDate()));
-      const box = h('div', 'cut-numbox'); box.append(blob, num);
-      it.append(box);
+      it.append(h('div', 'cut-num', String(d.getDate())));
       const lab = h('div', 'cut-wd');
       // 레퍼런스처럼 글자마다 크기·높이·기울기가 조금씩 다른 스티커 글씨
       const word = h('span', 'cut-wd-en');
@@ -62,7 +54,7 @@
         c.style.setProperty('--y', ((f1 - 0.5) * 0.12).toFixed(2) + 'em');
         word.append(c);
       });
-      lab.append(word);
+      lab.append(word, h('b', null, WD_KO[d.getDay()]));
       it.append(lab);
       it.style.setProperty('--i', String(off + 4));
       stage.append(it);
@@ -75,7 +67,7 @@
         el.style.top = `${p.y}%`;
         el.style.transform = `translate(-50%, -50%) scale(${p.scale})`;
         el.style.zIndex = String(100 - Math.abs(off - focus) * 10);
-        el.style.opacity = Math.abs(off - focus) > 3.5 ? '0' : '1';
+        el.style.opacity = (off - focus) < -2.5 || (off - focus) > 3.5 ? '0' : '1';
       }
     };
     layout(-1); // 어제가 가운데에서 시작
@@ -101,7 +93,9 @@
     root.append(h('div', 'cut-skip', '누르면 넘어가요'));
 
     document.body.append(root);
-    if (!own) try { D.city.draw(cv, hall ? 'rings' : 'sky', Number(state.today.replace(/-/g, '')) % 9973); } catch (e) { console.error(e); }
+    const fallback = () => { try { D.city.draw(cv, hall ? 'rings' : 'sky', Number(state.today.replace(/-/g, '')) % 9973); } catch (e) { console.error(e); } };
+    if (own && hall) D.city.drawOwnRings(cv, own).catch(fallback);
+    else if (!own) try { D.city.draw(cv, hall ? 'rings' : 'sky', Number(state.today.replace(/-/g, '')) % 9973); } catch (e) { console.error(e); }
 
     playing = new Promise((resolve) => {
       const timers = [];

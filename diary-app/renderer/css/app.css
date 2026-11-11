@@ -1322,17 +1322,32 @@ body { overflow: clip; }
 #bc-grid .el-calNum { -webkit-text-stroke: .022em currentColor; }
 body.layout-bigcal #bc-month-label .el-calHead { font-family: "Archivo Black", "Gasoek One", sans-serif !important; letter-spacing: -.08em !important; }
 
-/* 하루 시작 컷: 내 그림 배경 + 숫자 뒤 흰 종이 조각 */
-.cut-city img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; display: block; image-rendering: auto; }
-.cut-numbox { position: relative; display: inline-block; padding: 1.2vh 2.2vh .6vh; }
-.cut-blob { position: absolute; inset: 0; z-index: 0;
-  filter: drop-shadow(.45vh 0 0 #111) drop-shadow(-.45vh 0 0 #111) drop-shadow(0 .45vh 0 #111) drop-shadow(0 -.45vh 0 #111) drop-shadow(.8vh .8vh 0 rgba(0,0,0,.35)); }
-.cut-blob b { position: absolute; inset: 0; background: #fff; }
-.cut .cut-numbox .cut-num { position: relative; z-index: 1; -webkit-text-stroke: 0 !important; filter: none !important; line-height: .95; }
-.cut.in .cut-day > .cut-numbox { animation: cutDrop .55s calc(var(--i, 0) * 55ms + 80ms) cubic-bezier(.3,.9,.35,1) both; }
-.cut-day.today .cut-numbox { transition: transform .45s cubic-bezier(.3,1.8,.4,1); }
-.cut.pop .cut-day.today .cut-numbox { transform: scale(1.12) rotate(-3deg); }
-.cut.pop .cut-day.today .cut-num { transform: scaleY(1.04) skewX(-4deg) !important; }
-.cut .cut-wd { margin-top: -.6vh; position: relative; z-index: 3; }
-.cut-numbox { display: block; width: fit-content; margin: 0 auto; }
-.cut .cut-wd { display: flex; width: fit-content; margin-left: auto; margin-right: auto; white-space: nowrap; }
+/* ===== 하루 시작 컷: 레퍼런스 그대로 =====
+   숫자 = 굵은 고딕, 검은 속(주말·일요일은 색) + 두꺼운 흰 테두리 + 검은 바깥선
+   요일 = 흰 글씨 + 두꺼운 검은 바탕 + 흰 테두리 + 가는 검은 선, 글자마다 들쭉날쭉 */
+.cut-city img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; display: block; }
+.cut .cut-num { font-family: "Archivo Black", sans-serif !important; font-size: 19vh; letter-spacing: -.06em; line-height: .9; transform: none;
+  color: #0b0b0b; -webkit-text-stroke: 2.6vh #fff; paint-order: stroke fill;
+  filter: drop-shadow(.55vh 0 0 #0b0b0b) drop-shadow(-.55vh 0 0 #0b0b0b) drop-shadow(0 .55vh 0 #0b0b0b) drop-shadow(0 -.55vh 0 #0b0b0b); }
+.cut .cut-day.sun .cut-num { color: #e8141c; }
+.cut .cut-day.sat .cut-num { color: #35a7e6; }
+.cut .cut-wd { display: flex; align-items: baseline; width: fit-content; margin: -1.4vh auto 0; white-space: nowrap; position: relative; z-index: 3;
+  font-family: "Archivo Black", sans-serif !important; font-size: 3.6vh; letter-spacing: -.02em; color: #fff; transform: rotate(-5deg);
+  -webkit-text-stroke: 1.5vh #0b0b0b; paint-order: stroke fill;
+  filter: drop-shadow(.4vh 0 0 #fff) drop-shadow(-.4vh 0 0 #fff) drop-shadow(0 .4vh 0 #fff) drop-shadow(0 -.4vh 0 #fff)
+          drop-shadow(.2vh 0 0 #0b0b0b) drop-shadow(-.2vh 0 0 #0b0b0b) drop-shadow(0 .2vh 0 #0b0b0b) drop-shadow(0 -.2vh 0 #0b0b0b); }
+.cut .cut-day.today .cut-wd { font-size: 4.6vh; }
+.cut .cut-wd-en i { margin: 0 .02em; }
+.cut .cut-wd-en i:nth-child(3n+2) { font-family: "Anton", sans-serif; font-size: 1.12em; }
+.cut .cut-wd b { font-family: "Nanum Gothic", sans-serif !important; font-weight: 800; font-size: .72em; margin-left: .25em; color: #fff;
+  -webkit-text-stroke: 1.1vh #0b0b0b; paint-order: stroke fill; text-shadow: none; }
+.cut.pop .cut-day.today .cut-num { transform: scale(1.12) rotate(-3deg); }
+.cut-head { font-family: "Archivo Black", "Black Han Sans", sans-serif !important; letter-spacing: -.05em; color: #0b0b0b; -webkit-text-stroke: 1.8vh #fff;
+  filter: drop-shadow(.45vh 0 0 #0b0b0b) drop-shadow(-.45vh 0 0 #0b0b0b) drop-shadow(0 .45vh 0 #0b0b0b) drop-shadow(0 -.45vh 0 #0b0b0b); }
+.cut-head .cut-year { font-size: 7vh; } .cut-head .cut-month { font-size: 8.5vh; color: #0b0b0b; font-family: "Archivo Black", "Black Han Sans", sans-serif !important; }
+.cut .cut-num { transform: scale(.8, 1.12); font-size: 20vh; }
+.cut.pop .cut-day.today .cut-num { transform: scale(.9, 1.25) rotate(-3deg); }
+.cut .cut-wd { font-size: 4.6vh; -webkit-text-stroke: 1.15vh #0b0b0b; margin-top: -.4vh; letter-spacing: 0; }
+.cut .cut-day.today .cut-wd { font-size: 5vh; }
+.cut .cut-wd-en i { margin: 0 .035em; }
+.cut .cut-wd b { -webkit-text-stroke: .9vh #0b0b0b; font-size: .68em; }

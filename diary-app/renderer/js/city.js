@@ -235,5 +235,38 @@
     return (n >= 8 && n <= 14) || n + 7 > last;
   }
 
-  D.city = { draw, isTownHall };
+  // 내 그림(파란 하늘 + 도시)을 타운홀 날에도 쓰기: 파란 하늘 부분만 걷어 내고 빨강·검정 동심원을 깔아 줌
+  async function drawOwnRings(canvas, url) {
+    const id = url.split('/').pop();
+    const b64 = await window.diary.readAsset(id);
+    if (!b64) throw new Error('no asset');
+    const img = new Image();
+    await new Promise((ok, no) => { img.onload = ok; img.onerror = no; img.src = 'data:image/png;base64,' + b64; });
+    const W = canvas.clientWidth || innerWidth, H = canvas.clientHeight || innerHeight;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // 동심원: 가운데가 화면 아래쪽 한참 밑
+    ctx.fillStyle = '#0b0b0b'; ctx.fillRect(0, 0, W, H);
+    const ox = W / 2, oy = H * 1.25, band = H * 0.1;
+    for (let r = Math.hypot(W, H) * 1.3; r > band; r -= band * 2) {
+      ctx.beginPath(); ctx.arc(ox, oy, r, 0, Math.PI * 2); ctx.fillStyle = '#e0191c'; ctx.fill();
+      ctx.beginPath(); ctx.arc(ox, oy, r - band, 0, Math.PI * 2); ctx.fillStyle = '#0b0b0b'; ctx.fill();
+    }
+    // 그림에서 파란 하늘 지우기
+    const off = document.createElement('canvas'); off.width = img.naturalWidth; off.height = img.naturalHeight;
+    const o = off.getContext('2d'); o.drawImage(img, 0, 0);
+    const d = o.getImageData(0, 0, off.width, off.height), p = d.data;
+    for (let i = 0; i < p.length; i += 4) {
+      const k = p[i + 2] - p[i]; // 파랑 - 빨강
+      if (k > 22) p[i + 3] = k > 44 ? 0 : Math.round(255 * (44 - k) / 22);
+    }
+    o.putImageData(d, 0, 0);
+    // object-fit: cover, 위쪽 30% 기준
+    const s = Math.max(W / off.width, H / off.height), w = off.width * s, h = off.height * s;
+    ctx.drawImage(off, (W - w) / 2, (H - h) * 0.3, w, h);
+  }
+
+  D.city = { draw, drawOwnRings, isTownHall };
 })();
