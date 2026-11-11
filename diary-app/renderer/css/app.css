@@ -955,3 +955,19 @@ body.layout-bigcal #record-count { right: 36px; }
 body.layout-bigcal .bc-d .el-calNum { -webkit-text-stroke: 3px var(--bg); paint-order: normal; }
 body.layout-bigcal .bc-d.today .el-calNum, body.layout-bigcal .bc-d.sel .el-calNum { -webkit-text-stroke: 3px var(--accent); }
 body.layout-bigcal .bc-d.sel:not(.today) .el-calNum { -webkit-text-stroke: 3px var(--main); }
+
+/* 매시간 체크: 둥근 토글 대신 각진 체크 딱지 */
+#asst-controls .switch span { display: none; }
+#asst-controls .switch em { display: inline-block; padding: 4px 14px; background: #2a2a2a; color: #ffffff99; font-family: "Gasoek One", sans-serif; font-size: 11px; letter-spacing: .04em;
+  clip-path: polygon(6% 0, 100% 0, 94% 100%, 0 100%); }
+#asst-controls .switch input:checked ~ em { background: #fff; color: #0b0b0b; }
+#asst-controls .switch em::before { content: '□ '; }
+#asst-controls .switch input:checked ~ em::before { content: '■ '; }
+#asst-controls .chip { font-family: "Gasoek One", sans-serif; font-size: 11px; letter-spacing: .04em; }
+#asst-meta { display: none; }
+/* 0/5: 그림자가 0 구멍으로 비치지 않게 */
+body.layout-bigcal #record-count .big { text-shadow: none; filter: drop-shadow(5px 5px 0 var(--accent)); -webkit-text-stroke: 0; }
+#asst-controls .chip, #asst-controls .switch em { font-family: "Nanum Gothic", sans-serif; font-weight: 800; font-size: 12px; letter-spacing: 0; }
+body.layout-bigcal #record-count .big { filter: none; position: relative; z-index: 1; }
+body.layout-bigcal #record-count::before { content: ''; position: absolute; left: -10px; top: 8px; width: 64px; height: 62px; background: var(--accent); transform: rotate(10deg) skewX(-8deg); z-index: 0; }
+body.layout-bigcal #record-count .slash, body.layout-bigcal #record-count .of { position: relative; z-index: 1; }
