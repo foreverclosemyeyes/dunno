@@ -1230,16 +1230,13 @@ body.layout-bigcal #bg-panel {
 .shard { display: none !important; }
 
 /* ===== 글씨체: 메뉴바는 Black Han Sans, 하루 시작 컷은 Dela Gothic One ===== */
-.tb-btn, .nb-tabs button { font-family: "Black Han Sans", "Gasoek One", sans-serif !important; letter-spacing: .04em; font-size: 14px; }
+.tb-btn { font-family: "Black Han Sans", "Gasoek One", sans-serif !important; letter-spacing: .04em; font-size: 14px; }
 .cut { --cut-font: "Lilita One", "Black Han Sans", sans-serif !important; }
 .cut .cut-num, .cut .cut-wd, .cut-head, .cut-note b { font-family: "Lilita One", "Black Han Sans", sans-serif; }
 .cut .cut-wd b, .cut-head .cut-month { font-family: "Black Han Sans", sans-serif; }
 .cut .cut-num { letter-spacing: -.03em; font-size: 26vh; }
 .cut .cut-wd { letter-spacing: -.01em; }
 .cut .cut-wd b { font-size: .85em; -webkit-text-stroke: .32vh #111; margin-left: .2em; }
-
-/* 오른쪽 위 날짜표: 레퍼런스처럼 명조 */
-#bc-tag, #bc-tag * { font-family: "Nanum Myeongjo", serif !important; font-weight: 800 !important; letter-spacing: .02em; }
 .cut .cut-wd b { font-family: "Black Han Sans", sans-serif !important; font-size: 1em; -webkit-text-stroke: 0; color: #fff;
   text-shadow: .12vh .12vh 0 #111, -.12vh -.12vh 0 #111, .12vh -.12vh 0 #111, -.12vh .12vh 0 #111, .3vh .3vh 0 #111; font-size: 1.05em; }
 

@@ -137,10 +137,9 @@
     const head = $('#bc-head'); head.innerHTML = '';
     const grid = $('#bc-grid'); grid.innerHTML = '';
     const J = state.theme.layout.calJitter;
-    const mixed = state.theme.text.calHead.upper ? ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'] : ['SuN', 'MoN', 'TuE', 'WeD', 'THu', 'FRi', 'SaT']; // 레퍼런스처럼 대소문자 섞기
-    mixed.forEach((w, i) => {
+    ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].forEach((w, i) => {
       const cell = h('div', 'bc-h' + (i === 0 ? ' sun' : i === 6 ? ' sat' : ''));
-      const j = jitter('h' + w.toUpperCase(), J);
+      const j = jitter('h' + w, J);
       cell.style.transform = `translateY(${j.dy.toFixed(1)}px) rotate(${j.rot.toFixed(1)}deg)`;
       cell.append(S('calHead', w));
       grid.append(cell); // 요일도 숫자와 같은 칸에 → 열이 딱 맞음
