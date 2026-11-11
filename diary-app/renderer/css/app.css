@@ -1092,3 +1092,6 @@ body.layout-bigcal #right > #quests .quest .el-quest { font-size: 15px; }
 /* 진행 중 업무 목록의 업무 이름은 본문 글씨(나눔고딕) */
 .quest .el-quest, .rq-name { font-family: "Nanum Gothic", "Noto Sans KR Variable", sans-serif !important; font-weight: 700 !important; letter-spacing: 0; }
 body.layout-bigcal #right > #quests .quest .el-quest { font-size: 14px; }
+/* D-day: 굵은 글씨체로 */
+.quest .dd, .rq-dd { font-family: "Gasoek One", sans-serif !important; font-weight: 400 !important; letter-spacing: .02em; }
+body.layout-bigcal .quest .dd { font-size: 17px; padding: 1px 8px; }
