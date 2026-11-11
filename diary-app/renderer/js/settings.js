@@ -272,7 +272,20 @@
     c.body.append(
       C.colorA(ctx, 'colors.bg', '배경'), C.colorA(ctx, 'colors.main', '메인 (글씨/선)'), C.colorA(ctx, 'colors.accent', '포인트'),
       C.colorA(ctx, 'colors.card', '카드'), C.colorA(ctx, 'colors.cardText', '카드 글씨'),
+      C.colorA(ctx, 'colors.sat', '토요일 (큰 달력)'),
     );
+    const mode = C.section('레이아웃', true);
+    mode.body.append(C.select(ctx, 'layout.mode', '화면 구성', [['bigcal', '큰 달력 + 노트 카드'], ['classic', '큰 날짜 숫자 + 이번 주 띠']], () => render()));
+    if (state.theme.layout.mode === 'bigcal') {
+      mode.body.append(
+        C.slider(ctx, 'layout.calJitter', '달력 숫자 흔들림', 0, 15, 0.5, '°'),
+        C.toggle(ctx, 'layout.panelOn', '오른쪽 사선 면'),
+        C.slider(ctx, 'layout.panelOpacity', '사선 면 진하기', 0, 100, 1, '%'),
+        C.slider(ctx, 'layout.panelAngle', '사선 면 기울기', -60, 60, 1),
+        C.text(ctx, 'layout.stampText', '다 끝냈을 때 도장 글씨'),
+      );
+      mode.body.append(note('큰 달력 숫자·요일·도장 글씨는 "글씨" 탭에서 꾸밀 수 있어요.'));
+    }
     const l = C.section('배치 · 기울기', true);
     l.body.append(
       C.slider(ctx, 'layout.calTilt', '달력 영역 기울기', -20, 20, 0.5, '°'),
@@ -288,7 +301,7 @@
       C.toggle(ctx, 'layout.textureOn', '질감 보이기'),
       C.slider(ctx, 'layout.texture', '질감 세기', 0, 100, 1, '%'),
     );
-    body.append(c.el, l.el, s.el);
+    body.append(mode.el, c.el, l.el, s.el);
   }
 
   // ---------- 배경 ----------

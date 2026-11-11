@@ -16,6 +16,7 @@
     <div id="bg-media"></div>
     <div id="bg-overlay"></div>
     <div id="bg-stripe"></div>
+    <div id="bg-panel"></div>
     <div id="bg-texture"></div>
   </div>
   <div id="bg-drag" hidden></div>
@@ -35,6 +36,12 @@
     <main id="layout">
       <!-- 왼쪽: 달력 덩어리 (통째로 기울어짐) -->
       <section id="left">
+        <div id="bigcal">
+          <div id="bc-inner">
+            <div id="bc-head"></div>
+            <div id="bc-grid"></div>
+          </div>
+        </div>
         <div id="cal-block">
           <div class="today-head">
             <div id="big-date"></div>
@@ -58,7 +65,12 @@
 
       <!-- 오른쪽: 오늘의 기록 + 퀘스트 -->
       <section id="right">
+        <div id="bc-bar">
+          <div id="bc-month"><button class="mc-nav" id="bc-prev">‹</button><span id="bc-month-label"></span><button class="mc-nav" id="bc-next">›</button></div>
+          <div id="bc-tag"></div>
+        </div>
         <article id="record" class="card">
+          <div id="record-stamp" hidden></div>
           <div class="card-head">
             <div>
               <div id="record-title"></div>

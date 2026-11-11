@@ -64,8 +64,15 @@
       accent: { c: '#FF4A1C', a: 1 },
       card: { c: '#F3EEE3', a: 1 },
       cardText: { c: '#151515', a: 1 },
+      sat: { c: '#2FA4C7', a: 1 },
     },
     layout: {
+      mode: 'bigcal', // bigcal = 큰 달력 + 노트 카드, classic = 큰 날짜 숫자 + 이번 주 띠
+      calJitter: 4, // 큰 달력 숫자 흔들림(°)
+      panelOn: true, // 오른쪽 사선 면
+      panelOpacity: 12,
+      panelAngle: 18,
+      stampText: 'DONE!!',
       calTilt: -4,
       cardTilt: 1.2,
       stripeOn: true,
@@ -84,6 +91,9 @@
       quest: T({ size: 14, weight: 500, lineHeight: 1.35 }),
       bubble: T({ size: 15, weight: 500, lineHeight: 1.55 }),
       body: T({ size: 13, weight: 400 }),
+      calNum: T({ font: 'Gasoek One', size: 92, tracking: -4, lineHeight: 0.9 }),
+      calHead: T({ font: 'Gasoek One', size: 30, tracking: -1, lineHeight: 1, upper: true }),
+      stamp: T({ font: 'Gasoek One', size: 64, tracking: -2, lineHeight: 0.9, rotate: -14, color: { c: '#FF4A1C', a: 1 } }),
     },
     background: {
       mode: 'single', // single | weekday | rotate
@@ -111,6 +121,9 @@
     ['quest', '퀘스트'],
     ['bubble', '비서 말풍선'],
     ['body', '본문'],
+    ['calNum', '큰 달력 숫자'],
+    ['calHead', '큰 달력 요일'],
+    ['stamp', '완료 도장'],
   ];
 
   window.D = window.D || {};

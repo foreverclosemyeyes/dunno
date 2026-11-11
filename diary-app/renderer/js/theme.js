@@ -44,6 +44,7 @@
       `--stripe-op:${L.stripeOpacity / 100}`, `--texture:${L.texture / 100}`,
       `--asst-size:${theme.assistant.size}px`, `--asst-x:${theme.assistant.x}px`, `--asst-y:${theme.assistant.y}px`,
       `--asst-flip:${theme.assistant.flip ? -1 : 1}`,
+      `--sat:${D.rgba(c.sat)}`, `--panel-op:${L.panelOpacity / 100}`, `--panel-angle:${L.panelAngle}`,
     ];
     let css = `:root{${vars.join(';')}}\n`;
     for (const [key] of D.ELEMENTS) {
@@ -59,6 +60,8 @@
     styleEl.textContent = css;
     document.body.classList.toggle('no-stripe', !L.stripeOn);
     document.body.classList.toggle('no-texture', !L.textureOn);
+    document.body.classList.toggle('layout-bigcal', L.mode === 'bigcal');
+    document.body.classList.toggle('no-panel', !L.panelOn);
     (theme.fonts || []).forEach(D.fonts.registerUploaded);
     renderBackground(theme);
   }

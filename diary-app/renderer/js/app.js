@@ -104,6 +104,78 @@
     }
   }
 
+  // ---------- 큰 달력 ----------
+  const MON_EN = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  function jitter(seedStr, range) {
+    let h = 0; for (const ch of seedStr) h = (h * 31 + ch.charCodeAt(0)) | 0;
+    const r1 = ((h >>> 0) % 1000) / 1000, r2 = ((((h >>> 0) / 1000) | 0) % 1000) / 1000;
+    return { rot: (r1 * 2 - 1) * range, dy: (r2 * 2 - 1) * range * 1.6 };
+  }
+  function renderBigCal() {
+    if (state.theme.layout.mode !== 'bigcal') return;
+    const [y, m] = state.viewMonth.split('-').map(Number);
+    const sel = parse(state.selected);
+    $('#bc-month-label').replaceChildren(S('calHead', MON_EN[m - 1]), S('body', ` ${y}`, 'bc-year'));
+    $('#bc-tag').replaceChildren(S('body', `${sel.getMonth() + 1}/${sel.getDate()} (${WD[sel.getDay()]})${state.selected === state.today ? ' · 오늘' : ''}`));
+
+    const head = $('#bc-head'); head.innerHTML = '';
+    const grid = $('#bc-grid'); grid.innerHTML = '';
+    const J = state.theme.layout.calJitter;
+    ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].forEach((w, i) => {
+      const cell = h('div', 'bc-h' + (i === 0 ? ' sun' : i === 6 ? ' sat' : ''));
+      const j = jitter('h' + w, J);
+      cell.style.transform = `translateY(${j.dy.toFixed(1)}px) rotate(${j.rot.toFixed(1)}deg)`;
+      cell.append(S('calHead', w));
+      head.append(cell);
+    });
+    const first = new Date(y, m - 1, 1);
+    const last = new Date(y, m, 0);
+    const lead = first.getDay();
+    const rows = Math.ceil((lead + last.getDate()) / 7);
+    for (let r = 0; r < rows; r++) {
+      let todayCol = -1;
+      for (let c = 0; c < 7; c++) {
+        const dayNum = r * 7 + c - lead + 1;
+        const cell = h('div', 'bc-d');
+        if (dayNum < 1 || dayNum > last.getDate()) { cell.classList.add('out'); cell.append(S('calNum', '00')); grid.append(cell); continue; }
+        const d = new Date(y, m - 1, dayNum);
+        const di = iso(d);
+        if (c === 0) cell.classList.add('sun');
+        if (c === 6) cell.classList.add('sat');
+        if (di === state.today) { cell.classList.add('today'); todayCol = c; }
+        if (di === state.selected) cell.classList.add('sel');
+        const j = jitter(di, J);
+        cell.style.transform = `translateY(${j.dy.toFixed(1)}px) rotate(${j.rot.toFixed(1)}deg)`;
+        cell.append(S('calNum', String(dayNum)));
+        const cnt = count(dayInfo(di) && dayInfo(di).items);
+        if (cnt.total) { cell.append(h('i', 'dot' + (cnt.done < cnt.total ? ' part' : ''))); cell.title = `${cnt.done}/${cnt.total} 완료`; }
+        cell.onclick = () => select(di);
+        grid.append(cell);
+      }
+      if (todayCol >= 0) {
+        const line = h('div', 'bc-line');
+        line.style.setProperty('--x', `${((todayCol + 0.5) / 7) * 100}%`);
+        grid.append(line);
+      }
+    }
+    fitBigCal();
+  }
+  function fitBigCal() {
+    const box = $('#bigcal'), inner = $('#bc-inner');
+    if (!box || state.theme.layout.mode !== 'bigcal') return;
+    inner.style.transform = 'none';
+    const bw = box.clientWidth, bh = box.clientHeight;
+    const iw = inner.scrollWidth, ih = inner.scrollHeight;
+    if (!iw || !ih) return;
+    const t = state.theme.layout.calTilt;
+    const rad = Math.abs(t) * Math.PI / 180; // 기울인 만큼 커지는 크기도 계산
+    const rw = iw * Math.cos(rad) + ih * Math.sin(rad), rh = iw * Math.sin(rad) + ih * Math.cos(rad);
+    const f = Math.min(bw / rw, bh / rh) * 0.98;
+    inner.style.transformOrigin = '50% 50%';
+    inner.style.transform = `translate(${(bw - iw) / 2}px, ${(bh - ih) / 2}px) scale(${f}) rotate(${t}deg)`;
+  }
+  window.addEventListener('resize', () => fitBigCal());
+
   // ---------- 오른쪽 ----------
   function todoNode(item) {
     const wrap = document.createDocumentFragment();
@@ -137,6 +209,11 @@
     if (c.total) {
       rc.append(h('span', 'big', String(c.done)), h('span', 'of', ` / ${c.total}`), h('span', 'lbl', c.done === c.total ? 'ALL CLEAR!' : 'DONE'));
     }
+    const stamp = $('#record-stamp');
+    const allDone = c.total > 0 && c.done === c.total;
+    if (allDone && stamp.hidden) { stamp.replaceChildren(S('stamp', state.theme.layout.stampText || 'DONE!!')); stamp.hidden = false; }
+    else if (allDone) stamp.replaceChildren(S('stamp', state.theme.layout.stampText || 'DONE!!'));
+    else stamp.hidden = true;
     const list = $('#record-list'); list.innerHTML = '';
     if (info && info.items.length) info.items.forEach((i) => list.append(todoNode(i)));
     else {
@@ -267,7 +344,7 @@
   }
 
   function renderAll() {
-    renderLeft(); renderRecord(); renderQuests(); renderAssistant(); renderStats(); renderSync();
+    renderLeft(); renderBigCal(); renderRecord(); renderQuests(); renderAssistant(); renderStats(); renderSync();
   }
   D.renderAll = renderAll;
   D.onFontsChanged = () => renderAll();
@@ -286,7 +363,7 @@
     const d = new Date(y, m - 1 + delta, 1);
     state.viewMonth = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
     window.diary.setView({ month: state.viewMonth });
-    renderLeft(); renderRecord();
+    renderLeft(); renderBigCal(); renderRecord();
   }
 
   function dayChanged(newToday) {
@@ -329,6 +406,9 @@
     $('#btn-today').onclick = goToday;
     $('#mc-prev').onclick = () => shiftMonth(-1);
     $('#mc-next').onclick = () => shiftMonth(1);
+    $('#bc-prev').onclick = () => shiftMonth(-1);
+    $('#bc-next').onclick = () => shiftMonth(1);
+    document.fonts.ready.then(fitBigCal);
     $('#btn-ask').onclick = () => window.diary.askAssistant();
     window.diary.onChat((list) => { state.chat = list; if (!$('#chat-log').hidden) renderChat(); });
     $('#chat-form').onsubmit = async (e) => {
