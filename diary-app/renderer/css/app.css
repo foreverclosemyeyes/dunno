@@ -921,7 +921,8 @@ body.layout-bigcal #asst-controls { margin-left: 120px; }
 .msg.user { background: #0b0b0b; color: #fff; border: 3px solid #fff; border-radius: 0; clip-path: none; transform: rotate(-1deg); font-family: "Nanum Gothic", sans-serif; font-weight: 700; box-shadow: 4px 4px 0 rgba(0,0,0,.35); }
 .msg.assistant { font-family: "Nanum Gothic", sans-serif; font-weight: 700; border-radius: 0; }
 /* 한글은 단어 단위로 줄바꿈 */
-body, .msg, #asst-text { word-break: keep-all; overflow-wrap: anywhere; }
+#asst-text, .msg, .todo .txt, .quest .el-quest, .rq-name, #record-events, .cut-note { word-break: keep-all; overflow-wrap: break-word; }
+.bc-d, .bc-h, .el-calNum, .el-calHead { white-space: nowrap; word-break: normal; overflow-wrap: normal; }
 #asst-controls #chat-form, #chat-form { min-height: 56px; }
 /* 0/5: 노트 오른쪽 위에 걸친 큰 도장 */
 body.layout-bigcal #record .card-head { position: static; min-height: 54px; }
@@ -936,3 +937,10 @@ body.layout-bigcal #record-count .big { font-size: 66px; letter-spacing: -3px; t
 body.layout-bigcal #record-count .slash { height: 34px; width: 7px; margin: 0 4px 10px 3px; }
 body.layout-bigcal #record-count .of { font-size: 30px; margin-bottom: 8px; }
 body.layout-bigcal #record-count .lbl { font-size: 13px; bottom: -2px; }
+/* 대사 글씨 아주 살짝 얇게 (배경색 외곽선으로 가장자리만 깎음) */
+body.dialog-angular #asst-text .el-bubble { -webkit-text-stroke: .45px #101010; }
+#chat-input { -webkit-text-stroke: .45px #0b0b0b; }
+.msg.user { -webkit-text-stroke: .45px #0b0b0b; }
+/* 말풍선 높이 줄이기 */
+body.dialog-angular #asst-bubble { min-height: 96px; padding: 28px 38px 20px 32px; }
+body.layout-bigcal #record-count { right: 36px; }
