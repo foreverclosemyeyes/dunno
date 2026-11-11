@@ -1276,3 +1276,44 @@ body.layout-bigcal #bg-panel {
 
 /* 요일 머리글: 대소문자 섞은 그대로 (SuN MoN …) */
 #bc-grid .bc-h, #bc-grid .bc-h * { text-transform: none !important; }
+
+/* ===== 노트: 레퍼런스(Daily Log)처럼 =====
+   - 종이가 왼쪽으로 크게 기울고, 손으로 자른 듯 테두리 굵기가 제각각
+   - 구멍 = 종이 오른쪽 가장자리를 따라 난 굵고 네모난 검은 칸 (하나하나 조금씩 삐뚤)
+   - 뒤에 회색 뒷장이 오른쪽 아래로 비껴 있고, 뒷장에도 구멍 줄
+   - 탭(기록/파라미터) = 뒷장 뒤에서 화면 끝까지 뻗은 검은 띠 */
+body.layout-bigcal #record { transform: rotate(-6.5deg) !important; transform-origin: 40% 50%; margin: 34px 92px 34px 20px !important; padding: 26px 76px 18px 34px !important; }
+body.layout-bigcal .nb-sheet { inset: -10px; border: solid #0b0b0b; border-width: 10px 11px 12px 15px; }
+body.layout-bigcal .nb-sheet-front { clip-path: polygon(0 1.4%, 99% 0, 100% 99.2%, 1.2% 100%); }
+body.layout-bigcal .nb-sheet-back {
+  transform: translate(46px, 30px) rotate(3.2deg) !important; clip-path: polygon(0 0, 100% 1%, 99.2% 100%, .6% 99%);
+  background:
+    radial-gradient(circle, rgba(0,0,0,.16) 1.3px, transparent 1.5px) 0 0 / 7px 7px,
+    #d2d2d2;
+}
+/* 구멍 무늬 (30 x 560 한 벌, 아래로 반복) */
+body.layout-bigcal .nb-holes, body.layout-bigcal .nb-sheet-back::after, body.layout-bigcal #right > #quests::before {
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='30' height='560' viewBox='0 0 30 560'><g fill='%230b0b0b'><polygon points='6,0 27,0 28,46 8,50'/><polygon points='7,72 29,68 30,120 10,124'/><polygon points='5,146 26,144 29,190 9,196'/><polygon points='8,216 29,214 30,270 11,268'/><polygon points='6,292 27,288 30,336 10,342'/><polygon points='9,362 30,360 29,414 12,418'/><polygon points='6,438 27,436 30,482 10,488'/><polygon points='8,508 29,504 30,548 11,552'/></g></svg>") center top / 30px 560px repeat-y !important;
+  width: 30px !important; transform: none !important;
+}
+body.layout-bigcal .nb-holes { right: 20px !important; top: -10px !important; bottom: 6px !important; z-index: 2; }
+body.layout-bigcal .nb-sheet-back::after { content: ''; position: absolute; right: 8px; top: 0; bottom: 10px; }
+body.layout-bigcal #right > #quests::before { right: 14px !important; top: 0 !important; bottom: 8px !important; }
+/* 탭 = 검은 띠 */
+body.layout-bigcal .nb-tabs { right: -190px !important; top: 15% !important; gap: 96px !important; z-index: -3 !important; transform: rotate(6.5deg); transform-origin: left center; }
+body.layout-bigcal .nb-tabs button {
+  width: 210px !important; height: 36px !important; padding: 0 0 0 96px !important; clip-path: none !important; text-align: left !important;
+  background: #0b0b0b; color: #fff; font-size: 13px !important;
+}
+body.layout-bigcal #record[data-tab="log"] .nb-tabs button[data-tab="log"],
+body.layout-bigcal #record[data-tab="params"] .nb-tabs button[data-tab="params"] { background: var(--accent); }
+body.layout-bigcal #record { margin: 34px 74px 34px 6px !important; padding: 26px 68px 18px 28px !important; }
+body.layout-bigcal #record-title .el-section { transform: rotate(-2deg) scale(1.12) !important; }
+body.layout-bigcal #record .card-head { gap: 6px; }
+body.layout-bigcal #record-count .prog { font-size: 13px !important; padding: 2px 9px 1px !important; }
+body.layout-bigcal .nb-tabs { right: -200px !important; }
+body.layout-bigcal #record-title .el-section { font-size: clamp(22px, 2.5vw, 44px) !important; transform: rotate(-2deg) !important; }
+body.layout-bigcal #bc-month .mc-nav { box-shadow: 0 0 0 2px var(--panel); }
+/* 검은 띠가 창 밖으로 뻗어도 화면이 옆으로 밀리지 않게 */
+body { overflow: clip; }
+#app { overflow: clip; }
