@@ -1160,11 +1160,8 @@ body.fx-intro #asst-col { animation: fxIn .45s .5s cubic-bezier(.2,.9,.25,1.15) 
 
 @keyframes fxSwap { 0% { opacity: .15; translate: calc(var(--fx-dir, 1) * 46px) 0; } 70% { opacity: 1; translate: calc(var(--fx-dir, 1) * -3px) 0; } 100% { translate: 0 0; } }
 .fx-swap { animation: fxSwap .36s cubic-bezier(.2,.9,.3,1.1); }
-@keyframes fxSlash { from { translate: calc(var(--fx-dir, 1) * 130%) 0; } to { translate: calc(var(--fx-dir, 1) * -130%) 0; } }
-.fx-slash { position: fixed; z-index: 50; pointer-events: none; overflow: hidden; }
-.fx-slash i { position: absolute; top: -10%; bottom: -10%; left: 38%; width: 16%; transform: skewX(-24deg);
-  background: linear-gradient(90deg, var(--accent, #E5191C) 0 72%, #0b0b0b 72% 100%); opacity: .9;
-  animation: fxSlash .4s cubic-bezier(.55,0,.35,1) forwards; }
+@keyframes fxPop { 0% { scale: 1; } 35% { scale: 1.35; rotate: -8deg; } 70% { scale: .95; rotate: 2deg; } 100% { scale: 1; rotate: 0deg; } }
+.fx-pop { display: inline-block; animation: fxPop .38s cubic-bezier(.2,.9,.3,1.2); }
 
 .fx-burst { position: fixed; z-index: 60; width: 0; height: 0; pointer-events: none; }
 .fx-burst i { position: absolute; left: 0; top: 0; display: block; }
@@ -1180,11 +1177,6 @@ body.fx-intro #asst-col { animation: fxIn .45s .5s cubic-bezier(.2,.9,.25,1.15) 
 @keyframes fxThud { 0% { scale: 1; } 25% { scale: 1.018; translate: -2px 1px; } 50% { scale: .993; translate: 2px -1px; } 100% { scale: 1; translate: 0 0; } }
 .fx-thud { animation: fxThud .34s ease-out; }
 
-@keyframes fxWipe { from { translate: -120vw 0; } to { translate: 120vw 0; } }
-.fx-wipe { position: fixed; inset: 0; z-index: 9999; pointer-events: none; overflow: hidden; }
-.fx-wipe i { position: absolute; top: -20%; bottom: -20%; left: 0; width: 46vw; transform: skewX(-22deg); background: var(--accent, #E5191C); animation: fxWipe .48s cubic-bezier(.6,0,.35,1) forwards; }
-.fx-wipe i + i { width: 30vw; background: #0b0b0b; animation-delay: .06s; translate: -120vw 0; }
-
 /* 버튼: 올라오며 빨간 그림자가 툭 */
 .tb-btn { transition: translate .1s ease-out, box-shadow .1s ease-out, background .12s; }
 .tb-btn:hover { translate: 0 -2px; box-shadow: 3px 3px 0 var(--accent, #E5191C); }
@@ -1192,5 +1184,6 @@ body.fx-intro #asst-col { animation: fxIn .45s .5s cubic-bezier(.2,.9,.25,1.15) 
 
 @media (prefers-reduced-motion: reduce) {
   body.fx-intro *, .fx-swap, .fx-thud { animation: none !important; }
-  .fx-slash, .fx-burst, .fx-wipe { display: none; }
+  .fx-burst { display: none; }
+  .fx-pop { animation: none !important; }
 }

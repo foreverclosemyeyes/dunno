@@ -20,21 +20,16 @@
     replay(document.body, 'fx-intro', 1300);
   }
 
-  // 날짜를 바꿀 때: 기록 카드가 휙 넘어오고 빨간 사선이 한 번 긋고 지나감
+  // 날짜를 바꿀 때: 기록 카드가 휙 넘어오고 제목 상자가 톡 튐
   function swap(sel, dir = 1) {
     if (!on()) return;
     const el = typeof sel === 'string' ? document.querySelector(sel) : sel;
     if (!el) return;
     el.style.setProperty('--fx-dir', dir < 0 ? -1 : 1);
     replay(el, 'fx-swap', 450);
-    const slash = document.createElement('div');
-    slash.className = 'fx-slash';
-    const r = el.getBoundingClientRect();
-    Object.assign(slash.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
-    slash.style.setProperty('--fx-dir', dir < 0 ? -1 : 1);
-    slash.append(document.createElement('i'));
-    document.body.append(slash);
-    setTimeout(() => slash.remove(), 460);
+    // 제목의 회색 '기' 상자가 톡 튀어나옴 (기록 카드일 때)
+    const box = el.querySelector('.tl-box');
+    if (box) replay(box, 'fx-pop', 420);
   }
 
   // 체크할 때: 상자에서 빨간 별이 '팡' 하고 조각이 튐
@@ -67,15 +62,8 @@
     replay(typeof el === 'string' ? document.querySelector(el) : el, 'fx-thud', 400);
   }
 
-  // 큰 화면(설정·인간 파라미터)을 열 때: 빨강·검정 사선 띠가 훑고 지나감
-  function wipe() {
-    if (!on()) return;
-    const w = document.createElement('div');
-    w.className = 'fx-wipe';
-    w.append(document.createElement('i'), document.createElement('i'));
-    document.body.append(w);
-    setTimeout(() => w.remove(), 560);
-  }
+  // 설정·파라미터를 열 때 쓰던 사선 띠는 뺐음 (호출은 남겨 둠)
+  function wipe() {}
 
   D.fx = { on, intro, swap, burst, thud, wipe };
 })();
