@@ -81,6 +81,7 @@
       stampText: 'DONE!!',
       cutOn: true, // 하루 시작 컷
       fxOn: true, // 연출 효과
+      cutImage: null, // 하루 시작 컷 배경으로 쓸 내 그림 { url, name }
       dialog: 'angular', // angular = 각진 대화창, flat = 네모 칸
       calTilt: -4,
       cardTilt: 1.2,

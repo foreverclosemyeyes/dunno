@@ -1321,3 +1321,18 @@ body { overflow: clip; }
 /* 달력 숫자: 레퍼런스처럼 획을 조금 더 두껍게 / 달 이름은 숫자와 같은 굵은 고딕 */
 #bc-grid .el-calNum { -webkit-text-stroke: .022em currentColor; }
 body.layout-bigcal #bc-month-label .el-calHead { font-family: "Archivo Black", "Gasoek One", sans-serif !important; letter-spacing: -.08em !important; }
+
+/* 하루 시작 컷: 내 그림 배경 + 숫자 뒤 흰 종이 조각 */
+.cut-city img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; display: block; image-rendering: auto; }
+.cut-numbox { position: relative; display: inline-block; padding: 1.2vh 2.2vh .6vh; }
+.cut-blob { position: absolute; inset: 0; z-index: 0;
+  filter: drop-shadow(.45vh 0 0 #111) drop-shadow(-.45vh 0 0 #111) drop-shadow(0 .45vh 0 #111) drop-shadow(0 -.45vh 0 #111) drop-shadow(.8vh .8vh 0 rgba(0,0,0,.35)); }
+.cut-blob b { position: absolute; inset: 0; background: #fff; }
+.cut .cut-numbox .cut-num { position: relative; z-index: 1; -webkit-text-stroke: 0 !important; filter: none !important; line-height: .95; }
+.cut.in .cut-day > .cut-numbox { animation: cutDrop .55s calc(var(--i, 0) * 55ms + 80ms) cubic-bezier(.3,.9,.35,1) both; }
+.cut-day.today .cut-numbox { transition: transform .45s cubic-bezier(.3,1.8,.4,1); }
+.cut.pop .cut-day.today .cut-numbox { transform: scale(1.12) rotate(-3deg); }
+.cut.pop .cut-day.today .cut-num { transform: scaleY(1.04) skewX(-4deg) !important; }
+.cut .cut-wd { margin-top: -.6vh; position: relative; z-index: 3; }
+.cut-numbox { display: block; width: fit-content; margin: 0 auto; }
+.cut .cut-wd { display: flex; width: fit-content; margin-left: auto; margin-right: auto; white-space: nowrap; }

@@ -353,6 +353,13 @@
         C.toggle(ctx, 'layout.cutOn', '하루 시작 컷 (날짜 바뀐 뒤 처음 켤 때)'),
         C.toggle(ctx, 'layout.fxOn', '화려한 연출 (등장·넘김·체크 효과)'),
       );
+      // 하루 시작 컷 배경을 내 그림으로 (이 컴퓨터에만 저장됨)
+      const ci = state.theme.layout.cutImage;
+      mode.body.append(btn(ci ? `컷 배경 그림: ${ci.name} (바꾸기)` : '컷 배경을 내 그림으로 바꾸기', '', async () => {
+        const [asset] = await window.diary.pickAsset('image');
+        if (asset) { ctx.set('layout.cutImage', { url: asset.url, name: asset.name }); ctx.commit(); render(); }
+      }));
+      if (ci) mode.body.append(btn('컷 배경 그림 빼기 (기본 도시로)', '', () => { ctx.set('layout.cutImage', null); ctx.commit(); render(); }));
       const er = h('div', 'ctl');
       const sel = h('select');
       [['all', '내 업무 중 기간이 있는 것 전부'], ['tags', 'Tags가 meeting·seminar 인 것만']].forEach(([v, t]) => { const o = h('option', null, t); o.value = v; sel.append(o); });

@@ -25,7 +25,10 @@
     const hall = D.city.isTownHall(today);
     const root = h('div', 'cut ' + (hall ? 'hall' : 'sky'));
     root.style.setProperty('--cut-font', D.fonts.cssStack(state.theme.text.calNum.font));
-    const city = h('div', 'cut-city'); const cv = h('canvas'); city.append(cv);
+    const city = h('div', 'cut-city'); const cv = h('canvas');
+    // 내 그림을 올려 뒀으면(설정 > 색·배치) 평소 날 배경으로 그 그림을 씀. 타운홀 날은 동심원 배경 그대로
+    const own = !hall && state.theme.layout.cutImage && state.theme.layout.cutImage.url;
+    if (own) { const im = h('img'); im.src = own; city.append(im); } else city.append(cv);
     root.append(city);
     const head = h('div', 'cut-head');
     head.append(h('span', 'cut-year', String(today.getFullYear())), h('span', 'cut-month', `${today.getMonth() + 1}월`));
@@ -38,7 +41,15 @@
     for (let off = -4; off <= 3; off++) {
       const d = new Date(today); d.setDate(today.getDate() + off);
       const it = h('div', 'cut-day' + (d.getDay() === 0 ? ' sun' : d.getDay() === 6 ? ' sat' : '') + (off < 0 ? ' past' : '') + (off === 0 ? ' today' : ''));
-      it.append(h('div', 'cut-num', String(d.getDate())));
+      // 숫자 뒤 흰 종이 조각 (가위로 대충 오린 모양, 날짜마다 조금씩 다름)
+      const blob = h('i', 'cut-blob'), paper = h('b');
+      const rr = (k) => { const v = Math.sin((d.getDate() * 13 + k * 7) * 12.9898) * 43758.5453; return v - Math.floor(v); };
+      const P = [[4, 10], [30, 3], [62, 6], [96, 2], [99, 34], [95, 66], [98, 95], [66, 99], [36, 95], [5, 98], [2, 64], [6, 36]];
+      paper.style.clipPath = 'polygon(' + P.map(([x, y], k) => `${(x + (rr(k) - 0.5) * 7).toFixed(1)}% ${(y + (rr(k + 20) - 0.5) * 7).toFixed(1)}%`).join(',') + ')';
+      blob.append(paper);
+      const num = h('div', 'cut-num', String(d.getDate()));
+      const box = h('div', 'cut-numbox'); box.append(blob, num);
+      it.append(box);
       const lab = h('div', 'cut-wd');
       // 레퍼런스처럼 글자마다 크기·높이·기울기가 조금씩 다른 스티커 글씨
       const word = h('span', 'cut-wd-en');
@@ -90,7 +101,7 @@
     root.append(h('div', 'cut-skip', '누르면 넘어가요'));
 
     document.body.append(root);
-    try { D.city.draw(cv, hall ? 'rings' : 'sky', Number(state.today.replace(/-/g, '')) % 9973); } catch (e) { console.error(e); }
+    if (!own) try { D.city.draw(cv, hall ? 'rings' : 'sky', Number(state.today.replace(/-/g, '')) % 9973); } catch (e) { console.error(e); }
 
     playing = new Promise((resolve) => {
       const timers = [];
