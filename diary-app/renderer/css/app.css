@@ -1382,3 +1382,11 @@ body.skin-bubble #asst-name { left: 2%; top: -36%; font-size: 15px; z-index: 2 !
 body.skin-bubble #asst-name::before, body.skin-bubble #asst-name::after { display: none !important; }
 body.skin-bubble #asst-name { left: 5%; top: -16%; }
 body.skin-bubble #asst-name { left: 4%; top: -26%; }
+
+/* 컷 숫자를 스킨 그림으로 */
+.cut .cut-num.img { display: flex; justify-content: center; align-items: flex-end; -webkit-text-stroke: 0; transform: none; letter-spacing: 0; line-height: 0;
+  filter: drop-shadow(.7vh 0 0 #fff) drop-shadow(-.7vh 0 0 #fff) drop-shadow(0 .7vh 0 #fff) drop-shadow(0 -.7vh 0 #fff)
+          drop-shadow(.4vh 0 0 #0b0b0b) drop-shadow(-.4vh 0 0 #0b0b0b) drop-shadow(0 .4vh 0 #0b0b0b) drop-shadow(0 -.4vh 0 #0b0b0b); }
+.cut .cut-num.img img { height: 21vh; width: auto; display: block; margin: 0 -.5vh; }
+.cut .cut-num.img img:nth-child(2) { margin-top: 1vh; transform: rotate(2deg); }
+.cut.pop .cut-day.today .cut-num.img { transform: scale(1.12) rotate(-3deg); }

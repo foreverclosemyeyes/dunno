@@ -354,7 +354,8 @@
         C.toggle(ctx, 'layout.fxOn', '화려한 연출 (등장·넘김·체크 효과)'),
       );
       // 스킨 그림 묶음: 파일 이름으로 자리를 찾음 (cut-city, cloud-1~3, wd-0~6, pointup, pointup-bg, rankup, rankup-bg, bubble, reply)
-      const SKIN_KEYS = ['cut-city', 'cloud-1', 'cloud-2', 'cloud-3', 'wd-0', 'wd-1', 'wd-2', 'wd-3', 'wd-4', 'wd-5', 'wd-6', 'pointup', 'pointup-bg', 'rankup', 'rankup-bg', 'bubble', 'reply'];
+      const SKIN_KEYS = ['cut-city', 'cloud-1', 'cloud-2', 'cloud-3', 'wd-0', 'wd-1', 'wd-2', 'wd-3', 'wd-4', 'wd-5', 'wd-6', 'pointup', 'pointup-bg', 'rankup', 'rankup-bg', 'bubble', 'reply',
+        ...Array.from({ length: 10 }, (_, n) => [`digit-${n}`, `digit-${n}-red`, `digit-${n}-blue`]).flat()];
       const skin = state.theme.layout.skin || {};
       const nSkin = SKIN_KEYS.filter((k) => skin[k]).length;
       mode.body.append(btn(nSkin ? `스킨 그림 ${nSkin}/${SKIN_KEYS.length}장 적용 중 (더 불러오기)` : '스킨 그림 불러오기 (여러 장 한꺼번에 고르기)', '', async () => {

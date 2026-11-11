@@ -23,11 +23,11 @@
     const today = new Date(state.today + 'T00:00:00');
 
     const hall = D.city.isTownHall(today);
+    const skin = state.theme.layout.skin || {};
     const root = h('div', 'cut ' + (hall ? 'hall' : 'sky'));
     root.style.setProperty('--cut-font', D.fonts.cssStack(state.theme.text.calNum.font));
     const city = h('div', 'cut-city'); const cv = h('canvas');
     // 내 그림을 올려 뒀으면(설정 > 색·배치) 평소 날 배경으로 그 그림을 씀. 타운홀 날은 동심원 배경 그대로
-    const skin = state.theme.layout.skin || {};
     const own = skin['cut-city'] || (state.theme.layout.cutImage && state.theme.layout.cutImage.url);
     if (own && !hall) { const im = h('img'); im.src = own; city.append(im); } else city.append(cv);
     root.append(city);
@@ -49,7 +49,12 @@
     for (let off = -4; off <= 3; off++) {
       const d = new Date(today); d.setDate(today.getDate() + off);
       const it = h('div', 'cut-day' + (d.getDay() === 0 ? ' sun' : d.getDay() === 6 ? ' sat' : '') + (off < 0 ? ' past' : '') + (off === 0 ? ' today' : ''));
-      it.append(h('div', 'cut-num', String(d.getDate())));
+      // 숫자: 스킨 그림(digit-0~9, 빨강·파랑)이 다 있으면 그림으로, 없으면 글씨로
+      const num = h('div', 'cut-num', String(d.getDate()));
+      const suf = d.getDay() === 0 ? '-red' : d.getDay() === 6 ? '-blue' : '';
+      const digs = [...String(d.getDate())].map((c) => skin[`digit-${c}${suf}`]);
+      if (digs.every(Boolean)) { num.textContent = ''; num.classList.add('img'); digs.forEach((u) => { const im = h('img'); im.src = u; num.append(im); }); }
+      it.append(num);
       const lab = h('div', 'cut-wd');
       // 레퍼런스처럼 글자마다 크기·높이·기울기가 조금씩 다른 스티커 글씨
       const word = h('span', 'cut-wd-en');
