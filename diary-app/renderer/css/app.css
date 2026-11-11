@@ -142,8 +142,8 @@ body.mac #topbar { padding-left: 86px; }
 #asst-figure { flex: none; width: var(--asst-size); height: var(--asst-size); transform: translate(var(--asst-x), var(--asst-y)); display: flex; align-items: flex-end; justify-content: center; }
 #asst-figure img { max-width: 100%; max-height: 100%; object-fit: contain; transform: scaleX(var(--asst-flip)); filter: drop-shadow(0 6px 14px rgba(0,0,0,.35)); }
 #asst-figure .placeholder { width: 82%; height: 82%; border: 2.5px dashed currentColor; border-radius: 50% 50% 10px 10px; display: grid; place-items: center; text-align: center; font-size: 11px; opacity: .55; padding: 10px; }
-#asst-bubble { position: relative; flex: 1; background: var(--main); color: var(--bg); padding: 12px 16px 10px; border-radius: 4px 18px 18px 18px; margin-bottom: 6px; min-width: 0; }
-#asst-bubble::before { content: ''; position: absolute; left: -12px; bottom: 18px; border: 8px solid transparent; border-right: 12px solid var(--main); border-left: 0; }
+#asst-bubble { position: relative; flex: 1; background: color-mix(in srgb, var(--bg) 55%, transparent); backdrop-filter: blur(6px); color: var(--main); border: 2px solid var(--main); padding: 10px 14px 9px; margin-bottom: 6px; min-width: 0; }
+#assistant[hidden], #asst-figure[hidden] { display: none; }
 #asst-name { font-size: 11px; font-weight: 900; letter-spacing: .12em; color: var(--accent); margin-bottom: 3px; }
 #asst-text { min-height: 2.6em; max-height: 4.8em; overflow-y: auto; user-select: text; }
 #asst-text.thinking { opacity: .5; }
@@ -158,17 +158,27 @@ body.mac #topbar { padding-left: 86px; }
 .switch em { font-style: normal; }
 
 #stats { border: 2px solid var(--main); padding: 8px 14px 8px; margin-bottom: 6px; background: color-mix(in srgb, var(--bg) 55%, transparent); backdrop-filter: blur(6px); }
-.stat { display: grid; grid-template-columns: 52px 1fr 30px 20px 20px; align-items: center; gap: 8px; padding: 1px 0; }
+.param { display: grid; grid-template-columns: 140px 1fr; gap: 10px; align-items: center; }
+.radar { width: 140px; height: 140px; overflow: visible; }
+.r-ring { fill: none; stroke: color-mix(in srgb, var(--main-solid) 22%, transparent); stroke-width: 1; }
+.r-ring.outer { stroke: var(--main); stroke-width: 1.6; }
+.r-axis { stroke: color-mix(in srgb, var(--main-solid) 22%, transparent); stroke-width: 1; }
+.r-now { fill: color-mix(in srgb, var(--accent-solid) 55%, transparent); stroke: var(--accent); stroke-width: 2.2; stroke-linejoin: round; transition: all .3s; }
+.r-before { fill: none; stroke: var(--main); stroke-width: 1; stroke-dasharray: 3 3; opacity: .6; }
+.r-dot { fill: var(--main); }
+.r-label { fill: var(--main); font-size: 9.5px; font-weight: 800; }
+.param-rows { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stat { display: grid; grid-template-columns: 48px auto 1fr 24px 20px 20px; align-items: center; gap: 6px; padding: 1px 0; }
 .stat .nm { font-size: 12px; font-weight: 800; }
-.stat .track { height: 10px; border: 1.5px solid var(--main); position: relative; }
-.stat .track i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--main); }
-.stat .track b { position: absolute; top: 0; bottom: 0; background: var(--accent); }
+.stats .stars, .stat .stars { font-size: 13px; letter-spacing: -1px; white-space: nowrap; }
+.stat .stars i { font-style: normal; opacity: .22; }
+.stat .stars i.on { opacity: 1; color: var(--accent); }
 .stat .num { font-size: 12px; font-weight: 800; text-align: right; }
+.stat .today { font-size: 10px; font-weight: 800; color: var(--accent); }
 .stat button { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--main); background: transparent; font-weight: 900; font-size: 13px; line-height: 1; padding: 0; }
 .stat button.plus { background: var(--main); color: var(--bg); }
 .stat button.plus:active { background: var(--accent); border-color: var(--accent); }
-.stats-legend { font-size: 10px; opacity: .6; display: inline-flex; gap: 10px; margin-left: 10px; font-weight: 600; }
-.stats-legend i { display: inline-block; width: 9px; height: 9px; margin-right: 4px; vertical-align: -1px; }
+.stats-legend { font-size: 10px; opacity: .6; font-weight: 600; }
 
 #toast { white-space: pre-line; position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 30px); opacity: 0; background: #111; color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 13px; z-index: 100; pointer-events: none; transition: .2s; max-width: 80vw; }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
@@ -179,10 +189,10 @@ body.mac #topbar { padding-left: 86px; }
 
 /* 비서 대화 */
 #chat-form { display: flex; gap: 6px; margin-top: 8px; }
-#chat-input { flex: 1; min-width: 0; border: 1.5px solid color-mix(in srgb, var(--bg) 35%, transparent); background: color-mix(in srgb, var(--bg) 6%, transparent); color: inherit; border-radius: 99px; padding: 5px 12px; font: inherit; font-size: 13px; outline: none; user-select: text; }
+#chat-input { flex: 1; min-width: 0; border: 1.5px solid color-mix(in srgb, var(--main-solid) 40%, transparent); background: color-mix(in srgb, var(--main-solid) 6%, transparent); color: inherit; border-radius: 99px; padding: 5px 12px; font: inherit; font-size: 13px; outline: none; user-select: text; }
 #chat-input:focus { border-color: var(--accent); }
-.chip.dark-on-main { background: var(--bg); color: var(--main); border-color: var(--bg); }
-#asst-bubble .chip:not(.accent):not(.dark-on-main) { border-color: color-mix(in srgb, var(--bg) 45%, transparent); }
+.chip.dark-on-main { background: var(--main); color: var(--bg); border-color: var(--main); }
+
 #chat-log { position: absolute; left: 0; right: 0; bottom: calc(100% + 8px); height: min(380px, 55vh); z-index: 5; background: var(--main); color: var(--bg); border-radius: 14px; box-shadow: 0 18px 40px rgba(0,0,0,.45); display: flex; flex-direction: column; padding: 10px 12px; }
 #chat-log[hidden] { display: none; }
 .chat-head { display: flex; justify-content: space-between; align-items: center; padding-bottom: 6px; border-bottom: 1.5px solid color-mix(in srgb, var(--bg) 25%, transparent); }

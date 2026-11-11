@@ -141,10 +141,11 @@
       if (!input.value.trim()) return D.toast('키를 붙여 넣어 주세요.');
       state.hasKeys = await window.diary.setSecret(name, input.value);
       input.value = '';
+      D.renderAll();
       D.toast('저장했어요.');
       render();
     });
-    const del = btn('지우기', '', async () => { state.hasKeys = await window.diary.setSecret(name, ''); render(); });
+    const del = btn('지우기', '', async () => { state.hasKeys = await window.diary.setSecret(name, ''); D.renderAll(); render(); });
     const line = h('div', 'row-inline'); line.append(input, save, del);
     wrap.append(h('div', 'ctl-label', label), status, line);
     return wrap;
@@ -180,7 +181,7 @@
     a.body.append(keyField('anthropic', 'Anthropic API 키', 'sk-ant- 로 시작하는 키 붙여넣기'));
     a.body.append(h('div', 'row-inline'));
     a.body.lastChild.append(linkBtn('키 발급 페이지 ↗', 'https://console.anthropic.com/settings/keys'), btn('지금 확인해줘', '', () => window.diary.askAssistant()));
-    a.body.append(note('쓴 만큼 요금이 나가요(선불 크레딧). 가볍고 빠른 <b>Claude Haiku 5.5</b>를 쓰고, 매시간 체크를 켜도 한 달에 보통 <b>몇십 원~몇백 원</b> 수준이에요. 키가 없으면 비서는 기본 문장으로 말해요.'));
+    a.body.append(note('쓴 만큼 요금이 나가요(선불 크레딧). 가볍고 빠른 <b>Claude Haiku 5.5</b>를 쓰고, 매시간 체크를 켜도 한 달에 보통 <b>몇십 원~몇백 원</b> 수준이에요. 키를 넣으면 아래쪽에 비서 칸(대화창)이 나타나고, 키가 없으면 비서 칸과 매시간 알림이 꺼져 있어요.'));
 
     const g = C.section('일반', true);
     const sw = (key, label, desc) => {
@@ -197,7 +198,7 @@
       sw('autoLaunch', '컴퓨터 켜면 자동 실행', '로그인할 때 트레이에 조용히 켜져요'),
       sw('hourly', '매시간 체크 (평일 9~19시 정시)'),
       sw('alwaysOnTop', '항상 다른 창 위에 띄우기'),
-      sw('autoStats', '능력치 자동으로 올리기', '체크리스트를 완료하면 일의 성격을 보고 능력치 +1'),
+      sw('autoStats', '인간 파라미터 자동으로 올리기', '체크리스트를 완료하면 일의 성격을 보고 파라미터 +1'),
     );
     g.body.append(note('창을 닫아도(✕) 앱은 메뉴 막대/트레이에 남아 정시 알림을 보내요. 완전히 끄려면 트레이 아이콘 → "완전히 종료".'));
     if (!state.settings.isPackaged) { /* 개발 실행에서는 자동 실행이 등록되지 않음 */ }

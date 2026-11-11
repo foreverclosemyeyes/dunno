@@ -40,24 +40,24 @@ function contextText(ctx) {
     `오늘 끝낸 일: ${ctx.done.length ? ctx.done.join(' / ') : '없음'}`,
     `오늘 남은 일: ${ctx.left.length ? ctx.left.join(' / ') : '없음'}`,
     `마감 3일 이내(또는 지난) 업무: ${ctx.urgent.length ? ctx.urgent.map((u) => `${u.name} ${u.dday}`).join(' / ') : '없음'}`,
-    `진행 중 퀘스트 전체: ${ctx.quests.length ? ctx.quests.join(' / ') : '없음'}`,
+    `진행 중 업무 전체: ${ctx.quests.length ? ctx.quests.join(' / ') : '없음'}`,
   ].join('\n');
 }
 
 function fallbackMessage(ctx, persona) {
   const name = persona.name || '비서';
   const parts = [];
-  if (ctx.done.length) parts.push(`벌써 ${ctx.done.length}개나 끝냈네요, 잘하고 있어요!`);
-  if (ctx.left.length) parts.push(`지금은 "${ctx.left[0]}"부터 해 볼까요?`);
-  if (ctx.urgent.length) parts.push(`"${ctx.urgent[0].name}" 마감이 ${ctx.urgent[0].dday}예요, 잊지 마세요.`);
-  if (!ctx.left.length) parts.push('오늘 할 일은 다 끝났어요. 퇴근까지 힘내요!');
+  if (ctx.done.length) parts.push(`오늘 ${ctx.done.length}건 완료했습니다.`);
+  if (ctx.left.length) parts.push(`다음은 "${ctx.left[0]}"부터 하시면 됩니다.`);
+  if (ctx.urgent.length) parts.push(`"${ctx.urgent[0].name}" 마감이 ${ctx.urgent[0].dday}입니다.`);
+  if (!ctx.left.length) parts.push('오늘 체크리스트는 모두 끝났습니다.');
   return { text: parts.slice(0, 4).join(' '), source: 'local', name };
 }
 
 function systemPrompt(persona, ctx) {
   return [
-    `너는 사용자의 업무 비서 "${persona.name || '비서'}"야.`,
-    `말투/성격: ${persona.tone || '다정하고 씩씩한 반말'}`,
+    `당신은 사용자의 업무 비서 "${persona.name || '업무비서'}"입니다.`,
+    `말투: ${persona.tone || '차분하고 간결한 존댓말'}. 과장된 칭찬, 감탄사, 이모지, 억지 응원은 쓰지 않는다. 사람 비서처럼 자연스럽게.`,
     persona.instructions ? `\n[사용자가 정해 둔 업무비서 지침]\n${persona.instructions}\n` : '',
     '사용자는 데스크탑 업무 다이어리 앱 안에서 너와 이야기해. 아래는 노션에서 방금 읽어 온 오늘 업무 상황이야. 업무 질문에는 이걸 근거로 답해.',
     `[오늘 업무 상황]\n${contextText(ctx)}`,
@@ -67,11 +67,11 @@ function systemPrompt(persona, ctx) {
 
 const CHECK_PROMPT = [
   '[자동 정시 체크] 지금 오늘 업무 상황을 보고 나에게 먼저 말 걸어 줘.',
-  '- 2~4문장, 목록 없이 말 걸듯이.',
-  '- 끝낸 일이 있으면 짧게 칭찬.',
+  '- 2~4문장, 목록 없이 자연스럽게.',
+  '- 끝낸 일이 있으면 한마디로만 언급(과한 칭찬 금지).',
   '- 남은 일 중 지금 먼저 할 일 하나를 콕 집기.',
   '- 마감 3일 이내(또는 지난) 업무가 있으면 꼭 이름과 D-day를 언급.',
-  '- 남은 일이 없으면 퇴근 응원.',
+  '- 남은 일이 없으면 마무리해도 된다고 짧게.',
 ].join('\n');
 
 // 저장된 대화를 API 형식으로 (user/assistant 번갈아, user 로 시작)

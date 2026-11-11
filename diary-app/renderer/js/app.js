@@ -303,10 +303,10 @@
 
   function renderQuests() {
     const head = $('#quest-title'); head.innerHTML = '';
-    head.append(S('section', '진행 중 퀘스트'), h('small', null, `${state.data.quests.length}개`));
+    head.append(S('section', '진행 중 업무'), h('small', null, `${state.data.quests.length}개`));
     const list = $('#quest-list'); list.innerHTML = '';
     if (!state.data.quests.length) {
-      const e = h('div', 'empty'); e.append(S('body', state.data.needsSetup ? '노션 연결 후 표시돼요.' : '진행 중인 퀘스트가 없어요.'));
+      const e = h('div', 'empty'); e.append(S('body', state.data.needsSetup ? '노션 연결 후 표시돼요.' : '진행 중인 업무가 없어요.'));
       list.append(e);
     }
     for (const q of state.data.quests) {
@@ -326,18 +326,21 @@
   // ---------- 아래 ----------
   function renderAssistant() {
     const a = state.theme.assistant;
+    $('#assistant').hidden = !state.hasKeys.anthropic; // Claude 키가 있을 때만 비서 칸을 보여 줌
+    if (!state.hasKeys.anthropic) return;
     const fig = $('#asst-figure'); fig.innerHTML = '';
+    fig.hidden = !a.image;
     if (a.image) { const img = h('img'); img.src = a.image.url; img.alt = a.name; fig.append(img); }
-    else { const p = h('div', 'placeholder'); p.textContent = '설정 > 비서에서\n캐릭터 그림(PNG)을\n올려 주세요'; p.style.whiteSpace = 'pre-line'; fig.append(p); }
+
     $('#asst-name').textContent = a.name;
     const msg = state.lastAssistant;
     const text = $('#asst-text');
     text.classList.toggle('thinking', !!(msg && msg.thinking));
-    text.replaceChildren(S('bubble', msg && msg.thinking ? '생각하는 중…' : msg ? msg.text : `안녕! 나는 ${a.name}. "지금 확인해줘"를 누르면 오늘 할 일을 같이 봐줄게.`));
+    text.replaceChildren(S('bubble', msg && msg.thinking ? '생각하는 중…' : msg ? msg.text : '오늘 업무를 같이 확인해 드릴게요. "지금 확인해줘"를 누르거나 아래에 물어보세요.'));
     const meta = $('#asst-meta');
     if (msg && msg.at && !msg.thinking) {
       const t = new Date(msg.at);
-      meta.textContent = `${pad(t.getHours())}:${pad(t.getMinutes())} · ${msg.source === 'claude' ? 'AI' : '기본 문장'}${msg.note ? ' · ' + msg.note : ''}`;
+      meta.textContent = `${pad(t.getHours())}:${pad(t.getMinutes())} · ${msg.source === 'claude' ? 'Claude' : '연결 안 됨'}${msg.note ? ' · ' + msg.note : ''}`;
     } else meta.textContent = '';
     $('#chk-hourly').checked = !!state.settings.hourly;
     $('#btn-claude').hidden = !state.settings.claudeUrl;
@@ -361,37 +364,71 @@
     if (on) renderChat();
   }
 
+  // 인간 파라미터: 이번 달 누적을 다섯 꼭짓점 별(레이더) 모양으로
+  const LV = [0, 3, 8, 15, 25]; // Lv1~Lv5 기준 (달 누적)
+  const lvOf = (v) => (v >= LV[4] ? 5 : v >= LV[3] ? 4 : v >= LV[2] ? 3 : v >= LV[1] ? 2 : 1);
+  function radarSvg(totals, today) {
+    const NS = 'http://www.w3.org/2000/svg';
+    const R = 54, C = 70;
+    const pt = (i, r) => { const a = -Math.PI / 2 + (i * 2 * Math.PI) / 5; return [C + Math.cos(a) * r, C + Math.sin(a) * r]; };
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 140 140');
+    svg.classList.add('radar');
+    const el = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); svg.append(e); return e; };
+    for (let ring = 5; ring >= 1; ring--) {
+      el('polygon', { points: [0, 1, 2, 3, 4].map((i) => pt(i, (R * ring) / 5).join(',')).join(' '), class: 'r-ring' + (ring === 5 ? ' outer' : '') });
+    }
+    [0, 1, 2, 3, 4].forEach((i) => { const [x, y] = pt(i, R); el('line', { x1: C, y1: C, x2: x, y2: y, class: 'r-axis' }); });
+    const top = Math.max(6, ...Object.values(totals)) * 1.15; // 이번 달 가장 높은 값에 맞춰 크게
+    const val = (v) => R * Math.max(0.08, Math.min(1, v / top));
+    const before = STATS.map((s, i) => pt(i, val(totals[s] - (today[s] || 0))).join(',')).join(' ');
+    const now = STATS.map((s, i) => pt(i, val(totals[s])).join(',')).join(' ');
+    el('polygon', { points: now, class: 'r-now' });
+    el('polygon', { points: before, class: 'r-before' });
+    STATS.forEach((s, i) => { const [x, y] = pt(i, val(totals[s])); el('circle', { cx: x, cy: y, r: 3.2, class: 'r-dot' }); });
+    STATS.forEach((s, i) => {
+      const [x, y] = pt(i, R + 11);
+      const t = el('text', { x, y: y + 3.5, class: 'r-label', 'text-anchor': 'middle' });
+      t.textContent = s;
+    });
+    return svg;
+  }
+
   function renderStats() {
     const head = $('#stats-title'); head.innerHTML = '';
     const sel = parse(state.selected);
     const lg = h('small', 'stats-legend');
-    lg.innerHTML = `<span>${state.settings.autoStats === false ? '' : '완료하면 자동 +1 · '}</span><span><i style="background:var(--main)"></i>${sel.getMonth() + 1}월 누적</span><span><i style="background:var(--accent)"></i>${sel.getMonth() + 1}/${sel.getDate()}</span>`;
-    head.append(S('section', '능력치'), lg);
+    lg.textContent = `${sel.getMonth() + 1}월 누적${state.settings.autoStats === false ? '' : ' · 업무 완료하면 자동 UP'}`;
+    head.append(S('section', '인간 파라미터'), lg);
     const month = state.selected.slice(0, 7);
     const totals = Object.fromEntries(STATS.map((s) => [s, 0]));
     for (const [date, v] of Object.entries(state.stats)) {
       if (!date.startsWith(month)) continue;
       STATS.forEach((s) => { totals[s] += v[s] || 0; });
     }
-    const max = Math.max(10, ...Object.values(totals));
     const today = state.stats[state.selected] || {};
     const list = $('#stats-list'); list.innerHTML = '';
+    const wrap = h('div', 'param');
+    wrap.append(radarSvg(totals, today));
+    const rows = h('div', 'param-rows');
     for (const s of STATS) {
       const row = h('div', 'stat');
+      const lv = lvOf(totals[s]);
       row.append(S('body', s, 'nm'));
-      const tr = h('div', 'track');
-      const all = h('i'); all.style.width = `${(totals[s] / max) * 100}%`;
-      const mine = h('b'); const t = today[s] || 0;
-      mine.style.left = `${((totals[s] - t) / max) * 100}%`; mine.style.width = `${(t / max) * 100}%`;
-      tr.append(all, mine);
-      row.append(tr, h('span', 'num', String(totals[s])));
-      const minus = h('button', 'minus', '−'); minus.title = '하나 빼기';
-      const plus = h('button', 'plus', '+'); plus.title = `${s} +1`;
+      const stars = h('span', 'stars');
+      for (let k = 1; k <= 5; k++) stars.append(h('i', k <= lv ? 'on' : '', '★'));
+      row.append(stars);
+      const t = today[s] || 0;
+      row.append(h('span', 'num', lv === 5 ? 'MAX' : `${totals[s]}`), h('span', 'today', t ? `+${t}` : ''));
+      const minus = h('button', 'minus', '−'); minus.title = `${s} 하나 빼기 (고른 날)`;
+      const plus = h('button', 'plus', '+'); plus.title = `${s} +1 (고른 날)`;
       minus.onclick = () => bump(s, -1);
       plus.onclick = () => bump(s, 1);
       row.append(minus, plus);
-      list.append(row);
+      rows.append(row);
     }
+    wrap.append(rows);
+    list.append(wrap);
   }
 
   function bump(stat, delta) {
@@ -466,6 +503,12 @@
     state.selected = state.today;
     state.viewMonth = state.today.slice(0, 7);
     if (init.theme) state.theme = D.mergeDefaults(D.DEFAULT_THEME, init.theme);
+    // 예전 기본 말투(반말·명랑)를 쓰던 경우 새 기본 말투로 바꿔 줌
+    if (state.theme.assistant.tone === '다정하고 씩씩한 반말. 짧고 명랑하게, 가끔 응원 한마디.') {
+      state.theme.assistant.tone = D.DEFAULT_THEME.assistant.tone;
+      if (state.theme.assistant.name === '모모') state.theme.assistant.name = D.DEFAULT_THEME.assistant.name;
+      window.diary.saveTheme(state.theme);
+    }
     D.theme.apply(state.theme);
     renderAll();
     D.settings && D.settings.init();
@@ -487,7 +530,7 @@
       state.stats = stats;
       renderStats();
       const ups = changes.filter((c) => c.delta > 0);
-      if (ups.length) toast(ups.map((c) => `${c.stat} +1 · ${c.text}`).slice(-3).join('\n'), 3500);
+      if (ups.length) toast(ups.map((c) => `${c.stat} UP! · ${c.text}`).slice(-3).join('\n'), 3500);
     });
     window.diary.onChat((list) => { state.chat = list; if (!$('#chat-log').hidden) renderChat(); });
     $('#chat-form').onsubmit = async (e) => {
