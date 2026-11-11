@@ -44,7 +44,7 @@
       `--stripe-op:${L.stripeOpacity / 100}`, `--texture:${L.texture / 100}`,
       `--asst-size:${theme.assistant.size}px`, `--asst-x:${theme.assistant.x}px`, `--asst-y:${theme.assistant.y}px`,
       `--asst-flip:${theme.assistant.flip ? -1 : 1}`,
-      `--sat:${D.rgba(c.sat)}`, `--panel-op:${L.panelOpacity / 100}`, `--panel-angle:${L.panelAngle}`,
+      `--sat:${D.rgba(c.sat)}`, `--panel:${D.rgba(c.panel)}`, `--event:${D.rgba(c.event)}`, `--panel-op:${L.panelOpacity / 100}`, `--panel-angle:${L.panelAngle}`,
     ];
     let css = `:root{${vars.join(';')}}\n`;
     for (const [key] of D.ELEMENTS) {
@@ -129,7 +129,8 @@
       lastMediaKey = mediaKey;
     }
     Object.assign(layer.style, { filter, transform: tf, opacity: bg.opacity / 100, backgroundImage: '', backgroundColor: 'transparent', backgroundSize: '', backgroundRepeat: '', backgroundPosition: '' });
-    if (bg.type === 'solid') layer.style.backgroundColor = D.rgba(bg.solid);
+    if (bg.type === 'theme') layer.style.backgroundColor = D.rgba(theme.colors.bg);
+    else if (bg.type === 'solid') layer.style.backgroundColor = D.rgba(bg.solid);
     else if (bg.type === 'gradient') {
       const stops = [...bg.grad.stops].sort((a, b) => a.p - b.p).map((s) => `${D.rgba(s)} ${s.p}%`).join(', ');
       layer.style.backgroundImage = bg.grad.kind === 'radial'

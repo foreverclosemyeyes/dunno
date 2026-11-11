@@ -273,6 +273,8 @@
       C.colorA(ctx, 'colors.bg', '배경'), C.colorA(ctx, 'colors.main', '메인 (글씨/선)'), C.colorA(ctx, 'colors.accent', '포인트'),
       C.colorA(ctx, 'colors.card', '카드'), C.colorA(ctx, 'colors.cardText', '카드 글씨'),
       C.colorA(ctx, 'colors.sat', '토요일 (큰 달력)'),
+      C.colorA(ctx, 'colors.panel', '사선 면'),
+      C.colorA(ctx, 'colors.event', '일정 점·선'),
     );
     const mode = C.section('레이아웃', true);
     mode.body.append(C.select(ctx, 'layout.mode', '화면 구성', [['bigcal', '큰 달력 + 노트 카드'], ['classic', '큰 날짜 숫자 + 이번 주 띠']], () => render()));
@@ -284,7 +286,14 @@
         C.slider(ctx, 'layout.panelAngle', '사선 면 기울기', -60, 60, 1),
         C.text(ctx, 'layout.stampText', '다 끝냈을 때 도장 글씨'),
       );
-      mode.body.append(note('큰 달력 숫자·요일·도장 글씨는 "글씨" 탭에서 꾸밀 수 있어요.'));
+      const er = h('div', 'ctl');
+      const sel = h('select');
+      [['all', '내 업무 중 기간이 있는 것 전부'], ['tags', 'Tags가 meeting·seminar 인 것만']].forEach(([v, t]) => { const o = h('option', null, t); o.value = v; sel.append(o); });
+      sel.value = state.settings.eventMode || 'all';
+      sel.onchange = async () => { state.settings = await window.diary.setSettings({ eventMode: sel.value }); D.toast('일정을 다시 불러오는 중…'); };
+      er.append(h('label', 'ctl-label', '달력 일정 점'), sel, h('span'));
+      mode.body.append(er);
+      mode.body.append(note('일정은 노션 "기간"으로 표시돼요. 하루짜리는 ○, 여러 날은 ○—○ 로 이어져요. Tags에 meeting·seminar 가 있으면 포인트 색이에요. 큰 달력 숫자·요일·도장 글씨는 "글씨" 탭에서 꾸며요.'));
     }
     const l = C.section('배치 · 기울기', true);
     l.body.append(
@@ -361,7 +370,7 @@
     }
     const P = slotPath();
     const t = C.section('종류', true);
-    t.body.append(C.select(ctx, `${P}.type`, '종류', [['solid', '단색'], ['gradient', '그라데이션'], ['image', '이미지'], ['video', '동영상 (소리 없이 반복)']], () => render()));
+    t.body.append(C.select(ctx, `${P}.type`, '종류', [['theme', '색·배치 탭의 배경색'], ['solid', '단색'], ['gradient', '그라데이션'], ['image', '이미지'], ['video', '동영상 (소리 없이 반복)']], () => render()));
     if (cur.type === 'solid') t.body.append(C.colorA(ctx, `${P}.solid`, '색'));
     if (cur.type === 'gradient') {
       t.body.append(

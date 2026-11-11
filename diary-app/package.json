@@ -1,6 +1,6 @@
 {
   "name": "work-diary",
-  "productName": "업무다이어리",
+  "productName": "WorkDiary",
   "version": "1.0.0",
   "description": "노션과 연결되는 업무용 데스크탑 다이어리",
   "main": "main/main.js",
@@ -25,7 +25,7 @@
   },
   "build": {
     "appId": "com.workdiary.app",
-    "productName": "업무다이어리",
+    "productName": "WorkDiary",
     "artifactName": "WorkDiary-${version}-${os}-${arch}.${ext}",
     "files": [
       "main/**/*",
@@ -55,9 +55,11 @@
         }
       ],
       "extendInfo": {
+        "CFBundleDisplayName": "업무다이어리",
         "LSUIElement": false,
         "NSUserNotificationAlertStyle": "alert"
-      }
+      },
+      "executableName": "WorkDiary"
     },
     "dmg": {
       "title": "업무다이어리 설치"
@@ -71,7 +73,8 @@
             "x64"
           ]
         }
-      ]
+      ],
+      "executableName": "WorkDiary"
     },
     "nsis": {
       "oneClick": false,

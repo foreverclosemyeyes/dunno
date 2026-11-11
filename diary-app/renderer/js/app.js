@@ -99,9 +99,25 @@
       const cell = h('div', cls.join(' '));
       cell.append(h('span', null, String(d.getDate())));
       if (c.total) { const dot = h('i', 'dot' + (c.done < c.total ? ' part' : '')); cell.append(dot); cell.title = `${c.done}/${c.total} 완료`; }
+      if (eventsOn(di).length) cell.classList.add('has-ev');
       cell.onclick = () => select(di);
       grid.append(cell);
     }
+  }
+
+  // ---------- 일정 (노션 기간) ----------
+  const isMeet = (e) => (e.tags || []).some((t) => /meeting|seminar/i.test(t));
+  function eventsOn(date) { return (state.data.events || []).filter((e) => e.start <= date && e.end >= date); }
+  // 달력 칸마다 겹치지 않게 줄(lane) 배정
+  function assignLanes(evs) {
+    const lanes = [];
+    const out = new Map();
+    for (const e of [...evs].sort((a, b) => a.start.localeCompare(b.start) || b.end.localeCompare(a.end))) {
+      let i = lanes.findIndex((end) => end < e.start);
+      if (i < 0) { i = lanes.length; lanes.push(e.end); } else lanes[i] = e.end;
+      out.set(e.id, i);
+    }
+    return out;
   }
 
   // ---------- 큰 달력 ----------
@@ -131,6 +147,8 @@
     const first = new Date(y, m - 1, 1);
     const last = new Date(y, m, 0);
     const lead = first.getDay();
+    const MAX_LANES = 3;
+    const lanes = assignLanes((state.data.events || []).filter((e) => e.end >= iso(first) && e.start <= iso(last)));
     const rows = Math.ceil((lead + last.getDate()) / 7);
     for (let r = 0; r < rows; r++) {
       let todayCol = -1;
@@ -147,8 +165,20 @@
         const j = jitter(di, J);
         cell.style.transform = `translateY(${j.dy.toFixed(1)}px) rotate(${j.rot.toFixed(1)}deg)`;
         cell.append(S('calNum', String(dayNum)));
+        const evs = eventsOn(di);
+        let hidden = 0;
+        for (const e of evs) {
+          const lane = lanes.get(e.id);
+          if (lane >= MAX_LANES) { hidden++; continue; }
+          const kind = e.start === e.end ? 'single' : e.start === di ? 'start' : e.end === di ? 'end' : 'mid';
+          const mk = h('i', `bc-ev ${kind}${isMeet(e) ? ' meet' : ''}`);
+          mk.style.top = `${-10 + lane * 17}px`;
+          cell.append(mk);
+        }
+        if (hidden) cell.append(h('b', 'bc-more', `+${hidden}`));
+        if (evs.length) cell.title = evs.map((e) => `• ${e.name}`).join('\n');
         const cnt = count(dayInfo(di) && dayInfo(di).items);
-        if (cnt.total) { cell.append(h('i', 'dot' + (cnt.done < cnt.total ? ' part' : ''))); cell.title = `${cnt.done}/${cnt.total} 완료`; }
+        if (cnt.total) { cell.append(h('i', 'dot' + (cnt.done < cnt.total ? ' part' : ''))); cell.title = `${cnt.done}/${cnt.total} 완료` + (cell.title ? '\n' + cell.title : ''); }
         cell.onclick = () => select(di);
         grid.append(cell);
       }
@@ -208,6 +238,13 @@
     const rc = $('#record-count'); rc.innerHTML = '';
     if (c.total) {
       rc.append(h('span', 'big', String(c.done)), h('span', 'of', ` / ${c.total}`), h('span', 'lbl', c.done === c.total ? 'ALL CLEAR!' : 'DONE'));
+    }
+    const evBox = $('#record-events'); evBox.innerHTML = '';
+    for (const e of eventsOn(state.selected)) {
+      const chip = h('button', 'ev-chip' + (isMeet(e) ? ' meet' : ''), `${isMeet(e) ? '● ' : ''}${e.name}${e.start !== e.end ? `  ${e.start.slice(5).replace('-', '/')}~${e.end.slice(5).replace('-', '/')}` : ''}`);
+      chip.title = '노션에서 열기';
+      chip.onclick = () => window.diary.open(e.url);
+      evBox.append(chip);
     }
     const stamp = $('#record-stamp');
     const allDone = c.total > 0 && c.done === c.total;

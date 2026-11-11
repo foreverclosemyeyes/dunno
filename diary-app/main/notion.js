@@ -149,6 +149,7 @@ function pageSummary(page) {
     start: date ? (date.start || '').slice(0, 10) : null,
     end: date ? (date.end || date.start || '').slice(0, 10) || null : null,
     lastEdited: page.last_edited_time,
+    tags: props.Tags && props.Tags.type === 'multi_select' ? props.Tags.multi_select.map((t) => t.name) : [],
   };
 }
 
@@ -313,6 +314,22 @@ async function fetchWeeklyPages(client, cfg, rangeStart, rangeEnd) {
     .sort((a, b) => a.start.localeCompare(b.start));
 }
 
+// 달력에 점으로 표시할 일정: 기본은 Tags 가 meeting/seminar 인 내 페이지, 'all' 이면 기간이 있는 내 업무 전부
+async function fetchEvents(client, cfg, rangeStart, rangeEnd, mode = 'tags') {
+  const and = [
+    { property: '담당자', people: { contains: cfg.userId } },
+    { property: '기간', date: { on_or_before: rangeEnd } },
+    { property: '기간', date: { on_or_after: shiftISO(rangeStart, -90) } },
+  ];
+  if (mode !== 'all') and.push({ or: [{ property: 'Tags', multi_select: { contains: 'meeting' } }, { property: 'Tags', multi_select: { contains: 'seminar' } }] });
+  const pages = await client.queryDataSource(cfg.dataSourceId, { filter: { and } });
+  return pages
+    .map(pageSummary)
+    .filter((p) => p.start && (p.end || p.start) >= rangeStart && !p.name.includes('운영성 업무'))
+    .map(({ id, url, name, status, start, end, tags }) => ({ id, url, name, status, start, end: end || start, tags }))
+    .sort((a, b) => a.start.localeCompare(b.start) || b.end.localeCompare(a.end));
+}
+
 function shiftISO(iso, days) {
   const d = new Date(iso + 'T00:00:00');
   d.setDate(d.getDate() + days);
@@ -327,6 +344,7 @@ module.exports = {
   pageSummary,
   fetchQuests,
   fetchWeeklyPages,
+  fetchEvents,
   shiftISO,
   toISO,
 };

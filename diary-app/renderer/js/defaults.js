@@ -31,7 +31,7 @@
   const T = (o) => ({ ...JSON.parse(JSON.stringify(textBase)), ...o });
 
   const bg = (o = {}) => ({
-    type: 'gradient',
+    type: 'theme', // theme = 색 탭의 '배경' 색 그대로
     solid: { c: '#151515', a: 1 },
     grad: {
       kind: 'linear',
@@ -65,6 +65,8 @@
       card: { c: '#F3EEE3', a: 1 },
       cardText: { c: '#151515', a: 1 },
       sat: { c: '#2FA4C7', a: 1 },
+      panel: { c: '#F3EEE3', a: 1 },
+      event: { c: '#F3EEE3', a: 1 },
     },
     layout: {
       mode: 'bigcal', // bigcal = 큰 달력 + 노트 카드, classic = 큰 날짜 숫자 + 이번 주 띠

@@ -11,6 +11,12 @@ module.exports = function demo(today) {
   const prevMon = new Date(mon); prevMon.setDate(mon.getDate() - 7);
   const pday = (i) => { const x = new Date(prevMon); x.setDate(prevMon.getDate() + i); return iso(x); };
   return {
+    events: [
+      { id: 'e1', url: 'https://www.notion.so/e1', name: '파트너사 미팅', status: '시작 전', start: add(1), end: add(1), tags: ['meeting'] },
+      { id: 'e2', url: 'https://www.notion.so/e2', name: '연말 행사 준비', status: '진행중', start: add(-2), end: add(3), tags: [] },
+      { id: 'e3', url: 'https://www.notion.so/e3', name: '외부 세미나', status: '시작 전', start: add(6), end: add(7), tags: ['seminar'] },
+      { id: 'e4', url: 'https://www.notion.so/e4', name: '분기 정산', status: '진행중', start: add(-9), end: add(-6), tags: [] },
+    ],
     quests: [
       { id: 'q1', url: 'https://www.notion.so/demo1', name: '분기 비용 정산 보고서', status: '진행중', start: add(-10), end: add(-2) },
       { id: 'q2', url: 'https://www.notion.so/demo2', name: '사무실 계약 갱신 검토', status: '진행중', start: add(-3), end: add(2) },

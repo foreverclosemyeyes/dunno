@@ -57,6 +57,7 @@ const state = {
   viewMonth: todayISO().slice(0, 7), // 렌더러가 보고 있는 달
   selected: todayISO(),
   quests: [],
+  events: [],
   weeks: [], // [{id,url,name,start,end,lastEdited,days}]
   lastSync: null,
   syncing: false,
@@ -74,6 +75,7 @@ function snapshot() {
   return {
     today: state.today,
     quests: state.quests,
+    events: state.events,
     weeks: state.weeks.map(({ days: _d, ...rest }) => rest),
     days,
     lastSync: state.lastSync,
@@ -137,11 +139,13 @@ async function doSync(force) {
       if (s < start) start = s;
       if (e > end) end = e;
     }
-    const [quests, pages] = await Promise.all([
+    const [quests, pages, events] = await Promise.all([
       notion.fetchQuests(client, c),
       notion.fetchWeeklyPages(client, c, start, end),
+      notion.fetchEvents(client, c, start, end, store.get('settings', {}).eventMode || 'all').catch((e) => { console.error('[events]', e); return state.events; }),
     ]);
     state.quests = quests;
+    state.events = events;
 
     const prev = new Map(state.weeks.map((w) => [w.id, w]));
     const weeks = [];
@@ -161,7 +165,7 @@ async function doSync(force) {
     applyPending();
     state.lastSync = new Date().toISOString();
     state.error = null;
-    cache.set('snapshot', { quests: state.quests, weeks: state.weeks, lastSync: state.lastSync });
+    cache.set('snapshot', { quests: state.quests, events: state.events, weeks: state.weeks, lastSync: state.lastSync });
   } catch (e) {
     state.error = e.friendly || e.message;
     console.error('[sync]', e);
@@ -266,7 +270,7 @@ async function toggleTodo(blockId, checked) {
     if (!token) throw Object.assign(new Error('no key'), { friendly: '노션 키가 없어요.' });
     await new notion.NotionClient(token).setTodo(blockId, checked);
     pendingTodos.delete(blockId);
-    cache.set('snapshot', { quests: state.quests, weeks: state.weeks, lastSync: state.lastSync });
+    cache.set('snapshot', { quests: state.quests, events: state.events, weeks: state.weeks, lastSync: state.lastSync });
     return { ok: true };
   } catch (e) {
     console.error('[todo]', e);
@@ -387,6 +391,7 @@ function setSettings(partial) {
   store.set('settings', s);
   if ('autoLaunch' in partial) applyAutoLaunch(!!partial.autoLaunch);
   if ('alwaysOnTop' in partial && win) win.setAlwaysOnTop(!!partial.alwaysOnTop);
+  if ('eventMode' in partial) sync(true);
   if (tray && tray.refreshMenu) tray.refreshMenu();
   push('settings', s);
   return s;
@@ -394,7 +399,10 @@ function setSettings(partial) {
 
 function applyAutoLaunch(on) {
   if (!app.isPackaged) return; // 개발 중에는 등록하지 않음
-  app.setLoginItemSettings({ openAtLogin: on, openAsHidden: true, args: ['--hidden'] });
+  try {
+    if (process.platform === 'darwin') app.setLoginItemSettings({ openAtLogin: on });
+    else app.setLoginItemSettings({ openAtLogin: on, args: ['--hidden'] });
+  } catch (e) { log('autoLaunch', e); }
 }
 
 // ---------- 파일(글씨체/그림/동영상) ----------
@@ -534,7 +542,7 @@ app.whenReady().then(() => {
 
   // 지난번 동기화 결과로 먼저 화면을 채움 (인터넷이 없어도 보임)
   const snap = cache.get('snapshot');
-  if (snap) { state.quests = snap.quests || []; state.weeks = snap.weeks || []; state.lastSync = snap.lastSync; }
+  if (snap) { state.quests = snap.quests || []; state.events = snap.events || []; state.weeks = snap.weeks || []; state.lastSync = snap.lastSync; }
 
   protocol.handle('diary-asset', (req) => {
     const id = path.basename(decodeURIComponent(new URL(req.url).pathname));
@@ -553,7 +561,7 @@ app.whenReady().then(() => {
   if (!settings) setSettings({ autoLaunch: true, hourly: true, alwaysOnTop: false });
   else if (app.isPackaged) applyAutoLaunch(!!settings.autoLaunch);
 
-  const startHidden = process.argv.includes('--hidden') || (app.getLoginItemSettings().wasOpenedAsHidden === true);
+  const startHidden = process.argv.includes('--hidden');
   createWindow(!startHidden);
   if (startHidden && process.platform === 'darwin' && app.dock) app.dock.hide();
 
