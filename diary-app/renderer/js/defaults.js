@@ -76,6 +76,7 @@
       panelOpacity: 12,
       panelAngle: 18,
       stampText: 'DONE!!',
+      cutOn: true, // 하루 시작 컷
       dialog: 'angular', // angular = 각진 대화창, flat = 네모 칸
       calTilt: -4,
       cardTilt: 1.2,

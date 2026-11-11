@@ -485,6 +485,7 @@
     window.diary.setView({ selected: newToday, month: state.viewMonth });
     D.theme.renderBackground(state.theme);
     renderAll();
+    D.cutscene && D.cutscene.maybePlay();
   }
 
   // ---------- 시작 ----------
@@ -513,6 +514,7 @@
     D.theme.apply(state.theme);
     renderAll();
     D.settings && D.settings.init();
+    document.fonts.ready.then(() => D.cutscene && D.cutscene.maybePlay());
 
     window.diary.onData((d) => { state.data = d; if (d.today && d.today !== state.today) dayChanged(d.today); renderAll(); });
     window.diary.onDayChanged(({ today }) => dayChanged(today));

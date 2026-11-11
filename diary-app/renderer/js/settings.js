@@ -288,6 +288,7 @@
         C.slider(ctx, 'layout.panelOpacity', '사선 면 진하기', 0, 100, 1, '%'),
         C.slider(ctx, 'layout.panelAngle', '사선 면 기울기', -60, 60, 1),
         C.text(ctx, 'layout.stampText', '다 끝냈을 때 도장 글씨'),
+        C.toggle(ctx, 'layout.cutOn', '하루 시작 컷 (날짜 바뀐 뒤 처음 켤 때)'),
       );
       const er = h('div', 'ctl');
       const sel = h('select');
@@ -296,6 +297,7 @@
       sel.onchange = async () => { state.settings = await window.diary.setSettings({ eventMode: sel.value }); D.toast('일정을 다시 불러오는 중…'); };
       er.append(h('label', 'ctl-label', '달력 일정 점'), sel, h('span'));
       mode.body.append(er);
+      mode.body.append(btn('하루 시작 컷 미리 보기', '', () => D.cutscene.play({ force: true })));
       mode.body.append(note('일정은 노션 "기간"으로 표시돼요. 하루짜리는 ○, 여러 날은 ○—○ 로 이어져요. Tags에 meeting·seminar 가 있으면 포인트 색이에요. 큰 달력 숫자·요일·도장 글씨는 "글씨" 탭에서 꾸며요.'));
     }
     const l = C.section('배치 · 기울기', true);

@@ -309,3 +309,43 @@ body.dialog-angular #asst-bubble .chip { border-radius: 0; clip-path: polygon(6%
 body.dialog-angular #asst-bubble .chip.accent { background: var(--accent); }
 body.dialog-angular #asst-bubble .chip.dark-on-main { background: var(--main); color: var(--bg); }
 body.dialog-angular .asst-actions { margin-top: 8px; }
+
+/* ======================================================
+   하루 시작 컷
+   ====================================================== */
+.cut { position: fixed; inset: 0; z-index: 200; overflow: hidden; background: var(--bg); cursor: pointer; opacity: 0; transition: opacity .35s; font-family: var(--cut-font); }
+.cut.in { opacity: 1; }
+.cut.out { opacity: 0; transition: opacity .4s; }
+.cut-rings { position: absolute; left: 50%; top: 118%; width: 260vmax; height: 260vmax; transform: translate(-50%, -50%) scale(.9);
+  background: repeating-radial-gradient(circle, var(--accent) 0 3.2vmax, transparent 3.2vmax 7.4vmax); opacity: .5;
+  transition: transform 3.5s cubic-bezier(.2,.7,.2,1); }
+.cut.in .cut-rings { transform: translate(-50%, -50%) scale(1.06); }
+.cut::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 70%, transparent 30%, color-mix(in srgb, var(--bg) 85%, transparent) 75%); }
+.cut-head { position: absolute; left: 4vw; top: 5vh; z-index: 5; display: flex; align-items: baseline; gap: 14px; color: var(--card);
+  -webkit-text-stroke: 7px #111; paint-order: stroke fill; filter: drop-shadow(5px 5px 0 #111); transform: rotate(-4deg) translateY(-30px); opacity: 0; transition: .5s .15s; }
+.cut.in .cut-head { transform: rotate(-4deg); opacity: 1; }
+.cut-year { font-size: 5.4vh; }
+.cut-month { font-size: 8vh; color: var(--accent); }
+.cut-stage { position: absolute; inset: 0; z-index: 3; }
+.cut-day { position: absolute; text-align: center; transition: left .7s cubic-bezier(.6,-0.2,.25,1.25), top .7s cubic-bezier(.6,-0.2,.25,1.25), transform .7s cubic-bezier(.6,-0.2,.25,1.25), opacity .5s; }
+.cut-num { font-size: 27vh; line-height: .82; color: var(--card); letter-spacing: -.04em;
+  -webkit-text-stroke: 16px #111; paint-order: stroke fill; filter: drop-shadow(10px 10px 0 #111); }
+.cut-day.sun .cut-num { color: var(--sun); }
+.cut-day.sat .cut-num { color: var(--sat); }
+.cut-day.past .cut-num { color: color-mix(in srgb, var(--card-solid) 55%, #666); }
+.cut-wd { display: inline-flex; align-items: baseline; gap: 8px; margin-top: 1vh; padding: .6vh 1.6vh .8vh; background: var(--card); color: #111;
+  font-size: 4.6vh; transform: rotate(-5deg); clip-path: polygon(0 10%, 100% 0, 96% 100%, 3% 92%); box-shadow: none; }
+.cut-wd b { font: 900 .62em "Noto Sans KR Variable", sans-serif; color: var(--accent); }
+.cut-slash { position: absolute; left: -10%; top: 44%; width: 0; height: 3.2vh; background: var(--accent); transform: rotate(-22deg); transform-origin: left center;
+  box-shadow: 0 0 0 6px #111; transition: width .35s cubic-bezier(.7,0,.3,1); }
+.cut.slash .cut-slash { width: 125%; }
+.cut-day.today .cut-num { transition: transform .45s cubic-bezier(.3,1.8,.4,1); }
+.cut.pop .cut-day.today .cut-num { transform: scale(1.14) rotate(-3deg); }
+.cut-note { position: absolute; right: 5vw; bottom: 7vh; z-index: 6; display: flex; flex-direction: column; gap: 4px; padding: 16px 28px 16px 22px;
+  background: #111; color: var(--card); border: 3px solid var(--card); transform: rotate(-2deg) translateX(40px); opacity: 0;
+  box-shadow: 9px 9px 0 var(--accent); transition: .45s cubic-bezier(.3,1.4,.4,1); font-family: "Noto Sans KR Variable", sans-serif; }
+.cut.note-in .cut-note { transform: rotate(-2deg); opacity: 1; }
+.cut-note b { font-family: var(--cut-font); font-size: 26px; font-weight: 400; color: var(--accent); }
+.cut-note span { font-size: 16px; font-weight: 700; }
+.cut-skip { position: absolute; left: 50%; bottom: 2.6vh; transform: translateX(-50%); z-index: 6; font: 600 12px "Noto Sans KR Variable", sans-serif; color: var(--card); opacity: .45; }
