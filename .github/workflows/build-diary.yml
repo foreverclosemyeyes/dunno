@@ -37,6 +37,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - name: 설치 파일 만들기
+        shell: bash
         run: npx electron-builder ${{ matrix.target }} --publish never -c.extraMetadata.version=1.0.${{ github.run_number }}
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
