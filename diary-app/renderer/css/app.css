@@ -1089,3 +1089,6 @@ body.layout-bigcal #right > #quests .quest .el-quest { font-size: 15px; }
 #asst-controls .chip, #asst-controls .switch em, #btn-open-notion, .ev-chip, #bc-tag, body.layout-bigcal #record-count .prog {
   font-family: "Nanum Gothic", "Noto Sans KR Variable", sans-serif !important; font-weight: 800 !important; letter-spacing: 0;
 }
+/* 진행 중 업무 목록의 업무 이름은 본문 글씨(나눔고딕) */
+.quest .el-quest, .rq-name { font-family: "Nanum Gothic", "Noto Sans KR Variable", sans-serif !important; font-weight: 700 !important; letter-spacing: 0; }
+body.layout-bigcal #right > #quests .quest .el-quest { font-size: 14px; }
