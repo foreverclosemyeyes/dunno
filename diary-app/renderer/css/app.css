@@ -971,3 +971,17 @@ body.layout-bigcal #record-count .big { text-shadow: none; filter: drop-shadow(5
 body.layout-bigcal #record-count .big { filter: none; position: relative; z-index: 1; }
 body.layout-bigcal #record-count::before { content: ''; position: absolute; left: -10px; top: 8px; width: 64px; height: 62px; background: var(--accent); transform: rotate(10deg) skewX(-8deg); z-index: 0; }
 body.layout-bigcal #record-count .slash, body.layout-bigcal #record-count .of { position: relative; z-index: 1; }
+/* ---------- 0/5: 단순하게 (최종) ---------- */
+body.layout-bigcal #record .card-head { position: relative; align-items: flex-end; }
+body.layout-bigcal #record-count { position: static !important; transform: rotate(-4deg) !important; margin: 0 4px 2px 0 !important; padding: 0 !important;
+  display: grid !important; grid-template-columns: auto auto auto; grid-template-rows: auto auto; align-items: end; justify-items: end; line-height: .85; }
+body.layout-bigcal #record-count::before { display: none !important; }
+body.layout-bigcal #record-count .big { font-size: 52px !important; letter-spacing: -2px !important; color: #0b0b0b !important; text-shadow: none !important; filter: none !important; -webkit-text-stroke: 0 !important; }
+body.layout-bigcal #record-count .slash { width: 5px !important; height: 30px !important; margin: 0 6px 4px 4px !important; background: #0b0b0b; }
+body.layout-bigcal #record-count .of { font-size: 26px !important; margin: 0 0 4px !important; color: #0b0b0b !important; -webkit-text-stroke: 0 !important; opacity: .55; }
+body.layout-bigcal #record-count .lbl { position: static !important; grid-column: 1 / -1; transform: none !important; margin-top: 4px; background: #0b0b0b !important; color: #fff; font-size: 11px !important; padding: 2px 10px 1px !important; }
+body.layout-bigcal #record-count { justify-items: center !important; }
+body.layout-bigcal #record-count .big { font-size: 50px !important; text-shadow: 4px 4px 0 var(--accent) !important; }
+body.layout-bigcal #record-count .of { font-size: 36px !important; opacity: 1 !important; text-shadow: 3px 3px 0 var(--accent) !important; margin-bottom: 2px !important; }
+body.layout-bigcal #record-count .slash { height: 34px !important; margin: 0 7px 3px 6px !important; box-shadow: 3px 3px 0 var(--accent); }
+body.layout-bigcal #record-count .lbl { justify-self: stretch; text-align: center; margin-top: 6px; }

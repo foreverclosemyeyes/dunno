@@ -22,7 +22,7 @@
     const freeW = L.right - freeLeft;
     if (freeW < 300) return; // 마지막 줄이 꽉 찬 달은 원래 자리에
     const dx = Math.max(0, freeLeft - c.left);
-    const dy = Math.min(0, r.top + r.height * 0.55 - c.top); // 마지막 줄 중간 높이부터 (조금 낮게)
+    const dy = Math.min(0, r.bottom + 4 - c.top); // 마지막 줄 바로 아래부터
     col.style.transform = `translate(${dx}px, ${dy}px)`;
     col.style.maxWidth = `${Math.max(300, L.right - (c.left + dx) - 4)}px`;
   }
