@@ -16,6 +16,7 @@ const notion = require('./notion');
 const assistant = require('./assistant');
 const statsAuto = require('./stats');
 const updater = require('./updater');
+const { NotionMcp, parseMarkdown, cleanText } = require('./notionMcp');
 
 // ---------- 오류 기록 (문제가 생기면 원인을 알 수 있게) ----------
 let logFile = null;
@@ -121,9 +122,10 @@ async function doSync(force) {
     return;
   }
   const token = secrets.get('notion');
+  if (!token && mcp && mcp.loggedIn()) return syncViaMcp();
   if (!token) {
     state.needsSetup = true;
-    state.error = '노션 키를 아직 넣지 않았어요. 오른쪽 위 ⚙ 설정 > 연결에서 넣어 주세요.';
+    state.error = '노션이 아직 연결되지 않았어요. 오른쪽 위 SETTING > 연결에서 "노션으로 로그인"을 눌러 주세요.';
     pushData();
     return;
   }
@@ -176,6 +178,91 @@ async function doSync(force) {
   } finally {
     state.syncing = false;
     pushData();
+  }
+}
+
+// ---------- 노션으로 로그인 (MCP) 경로 ----------
+let mcp = null;
+const mcpPages = new Map(); // pageId → { md, lastEdited, start }
+let mcpAnchors = new Map();
+const idOf = (url) => { const m = String(url || '').replace(/-/g, '').match(/([0-9a-f]{32})(?:[?#].*)?$/i); return m ? m[1] : url; };
+const isoDay = (v) => (v ? String(v).slice(0, 10) : null);
+const sqlStr = (v) => `'${String(v).replace(/'/g, "''")}'`;
+function rowToPage(r) {
+  return {
+    id: idOf(r.url), url: r.url, name: cleanText(r.Name) || '(제목 없음)', status: r['상태'] || null,
+    start: isoDay(r['date:기간:start']), end: isoDay(r['date:기간:end']) || isoDay(r['date:기간:start']),
+    lastEdited: r['Last edited time'], tags: (() => { try { return JSON.parse(r.Tags || '[]'); } catch { return []; } })(),
+  };
+}
+
+async function syncViaMcp() {
+  state.needsSetup = false;
+  state.syncing = true;
+  pushData();
+  lastSyncAt = Date.now();
+  const c = cfg();
+  try {
+    const months = new Set([state.viewMonth, state.today.slice(0, 7)]);
+    let start = '9999', end = '0000';
+    for (const ym of months) { const [s0, e0] = monthRange(ym); if (s0 < start) start = s0; if (e0 > end) end = e0; }
+    const me = sqlStr(`%${c.userId}%`);
+    const cols = 'url, Name, "상태", Tags, "date:기간:start", "date:기간:end", "Last edited time"';
+    const T = '{T}';
+    const questRows = await mcp.sql(c.dataSourceId, `SELECT ${cols} FROM ${T} WHERE "담당자" LIKE ${me} AND "상태" IN ('진행중','시작 전')`);
+    state.quests = questRows.map(rowToPage).filter((p) => !p.name.includes('운영성 업무'))
+      .sort((a, b) => (a.end || '9999').localeCompare(b.end || '9999'));
+    const weekRows = await mcp.sql(c.dataSourceId, `SELECT ${cols} FROM ${T} WHERE Name LIKE '%운영성 업무%' AND "date:기간:start" <= ${sqlStr(end)} AND "date:기간:start" >= ${sqlStr(notion.shiftISO(start, -14))}`);
+    const pages = weekRows.map(rowToPage).filter((p) => p.start && (p.end || p.start) >= start && p.start <= end).sort((a, b) => a.start.localeCompare(b.start));
+    try {
+      const evMode = store.get('settings', {}).eventMode || 'all';
+      const evRows = await mcp.sql(c.dataSourceId, `SELECT ${cols} FROM ${T} WHERE "담당자" LIKE ${me} AND "date:기간:start" <= ${sqlStr(end)} AND "date:기간:start" >= ${sqlStr(notion.shiftISO(start, -90))}`);
+      state.events = evRows.map(rowToPage)
+        .filter((p) => p.start && (p.end || p.start) >= start && !p.name.includes('운영성 업무') && (evMode === 'all' || p.tags.some((t) => /meeting|seminar/i.test(t))))
+        .map(({ id, url, name, status, start: s0, end: e0, tags }) => ({ id, url, name, status, start: s0, end: e0 || s0, tags }))
+        .sort((a, b) => a.start.localeCompare(b.start) || b.end.localeCompare(a.end));
+    } catch (e) { console.error('[mcp events]', e); }
+
+    const weeks = [];
+    const anchors = new Map();
+    for (const p of pages) {
+      const active = (p.start <= state.today && (p.end || p.start) >= state.today) || (p.start <= state.selected && (p.end || p.start) >= state.selected);
+      let cached = mcpPages.get(p.id);
+      if (!cached || active || cached.lastEdited !== p.lastEdited) {
+        cached = { md: await mcp.fetchPage(p.id), lastEdited: p.lastEdited, start: p.start };
+        mcpPages.set(p.id, cached);
+      }
+      const parsed = parseMarkdown(cached.md, p.id, p.start);
+      parsed.anchors.forEach((v, k) => anchors.set(k, v));
+      weeks.push({ ...p, days: parsed.days });
+    }
+    mcpAnchors = anchors;
+    state.weeks = weeks;
+    applyPending();
+    state.lastSync = new Date().toISOString();
+    state.error = null;
+    updateStats();
+    cache.set('snapshot', { quests: state.quests, events: state.events, weeks: state.weeks, lastSync: state.lastSync });
+  } catch (e) {
+    state.error = e.friendly || e.message;
+    console.error('[mcp sync]', e);
+  } finally {
+    state.syncing = false;
+    pushData();
+  }
+}
+
+async function toggleViaMcp(id, checked) {
+  const a = mcpAnchors.get(id);
+  if (!a) throw Object.assign(new Error('no anchor'), { friendly: '잠시 후 다시 눌러 주세요. (노션 내용을 다시 불러오는 중)' });
+  const cur = mcpPages.get(a.pageId);
+  const wantChecked = /- \[x\]/i.test(a.newStr.split('\n').pop());
+  if (wantChecked !== checked) return; // 이미 원하는 상태
+  await mcp.replaceText(a.pageId, a.oldStr, a.newStr);
+  if (cur) {
+    cur.md = cur.md.replace(a.oldStr, a.newStr);
+    const parsed = parseMarkdown(cur.md, a.pageId, cur.start);
+    parsed.anchors.forEach((v, k) => mcpAnchors.set(k, v));
   }
 }
 
@@ -295,8 +382,9 @@ async function toggleTodo(blockId, checked) {
   if (process.env.DIARY_DEMO) { pendingTodos.delete(blockId); updateStats(); return { ok: true }; }
   try {
     const token = secrets.get('notion');
-    if (!token) throw Object.assign(new Error('no key'), { friendly: '노션 키가 없어요.' });
-    await new notion.NotionClient(token).setTodo(blockId, checked);
+    if (!token && mcp && mcp.loggedIn()) await toggleViaMcp(blockId, checked);
+    else if (!token) throw Object.assign(new Error('no key'), { friendly: '노션이 연결되지 않았어요.' });
+    else await new notion.NotionClient(token).setTodo(blockId, checked);
     pendingTodos.delete(blockId);
     updateStats();
     cache.set('snapshot', { quests: state.quests, events: state.events, weeks: state.weeks, lastSync: state.lastSync });
@@ -474,7 +562,8 @@ function registerIpc() {
     platform: process.platform,
     settings: store.get('settings', {}),
     notionCfg: cfg(),
-    hasKeys: { notion: secrets.has('notion') || !!process.env.DIARY_DEMO, anthropic: secrets.has('anthropic'), github: secrets.has('github') },
+    notionLogin: !!(mcp && mcp.loggedIn()),
+    hasKeys: { notion: secrets.has('notion') || !!process.env.DIARY_DEMO || !!(mcp && mcp.loggedIn()), anthropic: secrets.has('anthropic'), github: secrets.has('github') },
     version: app.getVersion(),
     update: updateState,
     theme: store.get('theme', null),
@@ -501,7 +590,11 @@ function registerIpc() {
   });
   ipcMain.handle('notion:test', async () => {
     const token = secrets.get('notion');
-    if (!token) return { ok: false, message: '먼저 노션 키를 저장해 주세요.' };
+    if (!token && mcp && mcp.loggedIn()) {
+      try { await mcp.connect(); const r = await mcp.sql(cfg().dataSourceId, 'SELECT Name FROM {T} LIMIT 1'); return { ok: true, message: `연결 성공! (노션 로그인 · 업무 DB 읽기 확인${r.length ? '' : ' — 비어 있음'})` }; }
+      catch (e) { return { ok: false, message: e.friendly || e.message }; }
+    }
+    if (!token) return { ok: false, message: '먼저 "노션으로 로그인"을 누르거나 노션 키를 저장해 주세요.' };
     const client = new notion.NotionClient(token);
     try {
       const me = await client.me();
@@ -520,6 +613,11 @@ function registerIpc() {
     return true;
   });
   ipcMain.handle('update:check', () => checkUpdate());
+  ipcMain.handle('notion:login', async () => {
+    try { await mcp.login(); sync(true); return { ok: true, loggedIn: true }; }
+    catch (e) { log('notion login', e); return { ok: false, message: e.friendly || '노션 로그인에 실패했어요. 다시 해 주세요.' }; }
+  });
+  ipcMain.handle('notion:logout', () => { mcp.logout(); mcpPages.clear(); mcpAnchors = new Map(); state.weeks = []; state.quests = []; state.events = []; sync(true); return { loggedIn: false }; });
   ipcMain.handle('update:install', () => installUpdate());
   ipcMain.handle('assistant:ask', () => runAssistant({ notify: false }));
   ipcMain.handle('assistant:chat', (_e, text) => chatWithAssistant(text));
@@ -618,6 +716,11 @@ app.whenReady().then(() => {
   store = new JsonStore(path.join(ud, 'diary-data.json'));
   cache = new JsonStore(path.join(ud, 'notion-cache.json'));
   secrets = new Secrets(path.join(ud, 'secrets.json'));
+  mcp = new NotionMcp({
+    load: () => { try { return JSON.parse(secrets.get('notionMcp') || '{}'); } catch { return {}; } },
+    save: (o) => secrets.set('notionMcp', JSON.stringify(o || {})),
+    open: (url) => shell.openExternal(url),
+  });
   assetsDir = path.join(ud, 'assets');
   fs.mkdirSync(assetsDir, { recursive: true });
 

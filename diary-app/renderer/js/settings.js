@@ -153,6 +153,23 @@
 
   function renderConnect(body) {
     const n = C.section('노션 연결', true);
+    const lg = h('div', 'key');
+    lg.append(h('div', 'ctl-label', '노션으로 로그인 (관리자 권한 없이 — 추천)'));
+    lg.append(h('div', 'key-status ' + (state.notionLogin ? 'ok' : ''), state.notionLogin ? '● 로그인됨' : '○ 아직 안 함'));
+    const lr = h('div', 'row-inline');
+    if (!state.notionLogin) {
+      lr.append(btn('노션으로 로그인', 'primary', async (ev) => {
+        ev.target.textContent = '브라우저에서 허용을 눌러 주세요…';
+        const r = await window.diary.notionLogin();
+        if (r.ok) { state.notionLogin = true; state.hasKeys.notion = true; D.toast('노션 연결 완료! 불러오는 중…'); D.renderAll(); }
+        else D.toast(r.message, 6000);
+        render();
+      }));
+    } else {
+      lr.append(btn('로그아웃', '', async () => { await window.diary.notionLogout(); state.notionLogin = false; render(); }));
+    }
+    lg.append(lr);
+    n.body.append(lg, note('브라우저에서 노션 로그인 화면이 열리면 <b>Buzz & Beyond</b> 워크스페이스를 고르고 <b>허용</b>을 누르세요. 회사에서 API 키를 만들 수 없을 때 쓰는 방법이에요. 아래 노션 키 칸은 비워 두면 돼요.'));
     n.body.append(keyField('notion', '노션 내부 통합 키', 'ntn_ 로 시작하는 키 붙여넣기'));
     const test = h('div', 'test-result');
     n.body.append(h('div', 'row-inline', null));
@@ -194,7 +211,6 @@
       linkBtn('열쇠 만들기 페이지 ↗', 'https://github.com/settings/personal-access-tokens/new'),
     );
     up.body.append(note('새 버전이 있으면 위쪽에 <b>UPDATE</b> 버튼이 떠요. 누르면 받아서 바꿔 끼우고 다시 켜져요. 앱은 <b>응용 프로그램 폴더</b>에 있어야 해요.'));
-    body.append(up.el);
     const g = C.section('일반', true);
     const sw = (key, label, desc) => {
       const r = h('div', 'ctl');
@@ -214,7 +230,7 @@
     );
     g.body.append(note('창을 닫아도(✕) 앱은 메뉴 막대/트레이에 남아 정시 알림을 보내요. 완전히 끄려면 트레이 아이콘 → "완전히 종료".'));
     if (!state.settings.isPackaged) { /* 개발 실행에서는 자동 실행이 등록되지 않음 */ }
-    body.append(n.el, a.el, g.el, ids.el);
+    body.append(n.el, a.el, up.el, g.el, ids.el);
   }
 
   // ---------- 글씨 ----------

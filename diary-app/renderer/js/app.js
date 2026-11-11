@@ -707,6 +707,7 @@
     state.settings = init.settings || {};
     state.notionCfg = init.notionCfg;
     state.hasKeys = init.hasKeys;
+    state.notionLogin = init.notionLogin;
     state.stats = init.stats || {};
     state.themes = init.themes || [];
     state.lastAssistant = init.lastAssistant;

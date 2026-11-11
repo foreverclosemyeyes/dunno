@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld('diary', {
   setNotionCfg: (p) => ipcRenderer.invoke('notionCfg:set', p),
   setSecret: (name, value) => ipcRenderer.invoke('secret:set', name, value),
   testNotion: () => ipcRenderer.invoke('notion:test'),
+  notionLogin: () => ipcRenderer.invoke('notion:login'),
+  notionLogout: () => ipcRenderer.invoke('notion:logout'),
   sync: (force) => ipcRenderer.invoke('sync', force),
   setView: (v) => ipcRenderer.invoke('view', v),
   askAssistant: () => ipcRenderer.invoke('assistant:ask'),
