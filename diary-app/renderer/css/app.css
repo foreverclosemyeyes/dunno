@@ -361,17 +361,17 @@ body.dialog-angular .asst-actions { margin-top: 8px; }
 .cut-skip { color: #fff; text-shadow: 0 0 3px #000, 0 0 3px #000; opacity: .7; }
 
 /* 숫자·요일: 레퍼런스처럼 검은 글자 + 두꺼운 흰 테두리 + 가는 검은 바깥선 */
-.cut .cut-num { color: #111; -webkit-text-stroke: 2.2vh #fff; paint-order: stroke fill;
-  filter: drop-shadow(.35vh 0 0 #111) drop-shadow(-.35vh 0 0 #111) drop-shadow(0 .35vh 0 #111) drop-shadow(0 -.35vh 0 #111) drop-shadow(.8vh .8vh 0 rgba(0,0,0,.35)); }
+.cut .cut-num { color: #111; font-size: 23vh; letter-spacing: -.02em; -webkit-text-stroke: 1.1vh #fff; paint-order: stroke fill;
+  filter: drop-shadow(.22vh 0 0 #111) drop-shadow(-.22vh 0 0 #111) drop-shadow(0 .22vh 0 #111) drop-shadow(0 -.22vh 0 #111) drop-shadow(.6vh .6vh 0 rgba(0,0,0,.3)); }
 .cut .cut-day.sun .cut-num { color: #e3201b; }
 .cut .cut-day.sat .cut-num { color: #2f9be0; }
 .cut .cut-day.past .cut-num { color: #111; }
-.cut .cut-wd { background: none; clip-path: none; padding: 0; margin-top: .6vh; font-size: 5.6vh; color: #fff; transform: rotate(-6deg);
-  -webkit-text-stroke: 1.3vh #111; paint-order: stroke fill; filter: drop-shadow(.5vh .5vh 0 rgba(0,0,0,.35)); position: relative; z-index: 2; }
-.cut .cut-wd b { -webkit-text-stroke: .6vh #111; paint-order: stroke fill; color: #fff; font-size: .7em; }
-.cut .cut-day.today .cut-wd { font-size: 7vh; }
-.cut-head { color: #111; -webkit-text-stroke: 1.6vh #fff; paint-order: stroke fill;
-  filter: drop-shadow(.3vh 0 0 #111) drop-shadow(-.3vh 0 0 #111) drop-shadow(0 .3vh 0 #111) drop-shadow(0 -.3vh 0 #111); }
+.cut .cut-wd { background: none; clip-path: none; padding: 0; margin-top: .4vh; font-size: 4.4vh; color: #fff; transform: rotate(-6deg);
+  -webkit-text-stroke: .7vh #111; paint-order: stroke fill; filter: drop-shadow(.4vh .4vh 0 rgba(0,0,0,.3)); position: relative; z-index: 2; }
+.cut .cut-wd b { -webkit-text-stroke: .45vh #111; paint-order: stroke fill; color: #fff; font-size: .7em; }
+.cut .cut-day.today .cut-wd { font-size: 5.4vh; }
+.cut-head { color: #111; -webkit-text-stroke: .9vh #fff; paint-order: stroke fill;
+  filter: drop-shadow(.2vh 0 0 #111) drop-shadow(-.2vh 0 0 #111) drop-shadow(0 .2vh 0 #111) drop-shadow(0 -.2vh 0 #111); }
 .cut-head .cut-month { color: #111; }
 
 /* 등장: 숫자들이 차례로 떨어짐, 넘어갈 때 살짝 흐려짐, 끝날 때 다가가며 사라짐 */
