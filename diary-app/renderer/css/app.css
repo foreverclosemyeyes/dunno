@@ -870,3 +870,41 @@ body.layout-bigcal #asst-figure:not([hidden]) ~ #asst-bubble { margin-left: 26px
 body.layout-bigcal #record { margin-bottom: 26px; }
 body.layout-bigcal #right > #quests { margin-top: 0; transform: rotate(1.2deg); }
 body.layout-bigcal .nb-sheet-back { transform: rotate(3deg) translate(6px, 2px); }
+
+/* ---------- 말풍선 v4: 몸통+꼬리 한 외곽선 ---------- */
+.dlg-shape { display: none; }
+body.dialog-angular .dlg-shape { display: block; position: absolute; left: 0; top: 0; overflow: visible; z-index: -1; pointer-events: none; }
+body.dialog-angular .dlg-shape path { fill: #101010; stroke: #fff; stroke-width: 5; stroke-linejoin: miter; stroke-miterlimit: 8; filter: drop-shadow(6px 6px 0 rgba(0,0,0,.45)); }
+body.dialog-angular #asst-bubble { transform: none; margin: 0; padding: 26px 34px 20px 30px; }
+#asst-col { transition: none; }
+body.dialog-angular #asst-bubble { min-height: 150px; padding: 34px 40px 28px 34px; }
+body.dialog-angular #asst-text { max-height: 6.2em; }
+/* 말풍선 글씨 조금 크게 */
+body.dialog-angular #asst-text .el-bubble { font-size: 17px; }
+/* ---------- 0/5 DONE: 스티커 느낌 ---------- */
+body.layout-bigcal #record-count { display: flex; align-items: flex-end; gap: 2px; transform: rotate(-6deg); line-height: .8; margin-top: -6px; }
+body.layout-bigcal #record-count .big { font-family: "Gasoek One", sans-serif; font-weight: 400; font-size: 66px; letter-spacing: -3px; color: #0b0b0b; text-shadow: 4px 4px 0 var(--accent); }
+body.layout-bigcal #record-count .of { font-family: "Gasoek One", sans-serif; font-weight: 400; font-size: 28px; color: #fff; -webkit-text-stroke: 6px #0b0b0b; paint-order: stroke fill; opacity: 1; margin: 0 0 6px 2px; letter-spacing: -1px; }
+body.layout-bigcal #record-count .lbl { display: inline-block; position: absolute; right: -10px; bottom: -18px; background: #0b0b0b; color: #fff; font-family: "Gasoek One", sans-serif; font-weight: 400; font-size: 13px; letter-spacing: .06em; padding: 3px 10px 2px; opacity: 1; transform: rotate(4deg); clip-path: polygon(4% 0, 100% 0, 96% 100%, 0 100%); }
+body.layout-bigcal #record-count { position: relative; padding-bottom: 14px; }
+body.layout-bigcal #record-count .lbl:is(:empty) { display: none; }
+body.layout-bigcal #asst-controls { margin-left: 150px; }
+
+/* ---------- 위쪽 줄: 로고 + 각진 버튼 ---------- */
+#topbar { height: 44px; }
+.brand { display: flex; align-items: baseline; opacity: 1; letter-spacing: 0; font-family: "Gasoek One", sans-serif; font-weight: 400; transform: rotate(-3deg); }
+.brand b { font-weight: 400; font-size: 26px; color: var(--accent); -webkit-text-stroke: 4px #0b0b0b; paint-order: stroke fill; margin-right: 1px; }
+.brand span { font-size: 15px; color: var(--main); letter-spacing: .02em; }
+.top-actions { gap: 6px; }
+.top-actions .sync { display: none; }
+.tb-btn { height: 26px; padding: 0 14px; border: 0; background: #0b0b0b; color: #fff; font-family: "Gasoek One", sans-serif; font-size: 12px; letter-spacing: .06em;
+  clip-path: polygon(8% 0, 100% 0, 92% 100%, 0 100%); transform: rotate(-2deg); display: inline-flex; align-items: center; gap: 5px; }
+.tb-btn:hover { background: #333; }
+.tb-btn.on { background: var(--accent); }
+.tb-btn.spin i { display: inline-block; animation: spin 1s linear infinite; }
+.tb-btn i { font-style: normal; font-family: sans-serif; }
+#btn-settings { background: var(--accent); }
+/* 0/5 의 사선 */
+#record-count .slash { display: inline-block; width: 6px; height: 34px; background: #0b0b0b; transform: skewX(-22deg); margin: 0 4px 6px 6px; align-self: flex-end; }
+body.layout-bigcal #record-count .of { -webkit-text-stroke: 0; color: #0b0b0b; font-size: 30px; }
+body.layout-bigcal #asst-controls { margin-left: 120px; }

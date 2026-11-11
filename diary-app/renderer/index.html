@@ -23,14 +23,14 @@
 
   <div id="app">
     <header id="topbar">
-      <div class="brand"><span class="el-body">WORK&nbsp;DIARY</span></div>
+      <div class="brand"><b>W</b><span>ORK DIARY</span></div>
       <div class="top-actions">
         <span id="sync-status" class="sync"></span>
         <button id="btn-today" class="chip" hidden>오늘로</button>
-        <button id="btn-refresh" class="icon-btn" title="노션 새로고침">⟳</button>
-        <button id="btn-hidechar" class="icon-btn" title="캐릭터 숨기기/보이기 (⌘/Ctrl+Shift+H)">🙈</button>
-        <button id="btn-pin" class="icon-btn" title="항상 위에 띄우기">📌</button>
-        <button id="btn-settings" class="icon-btn" title="꾸미기·설정">⚙</button>
+        <button id="btn-refresh" class="tb-btn" title="노션 새로고침"><i>⟳</i>SYNC</button>
+        <button id="btn-hidechar" class="tb-btn" title="캐릭터 숨기기/보이기 (⌘/Ctrl+Shift+H)">HIDE</button>
+        <button id="btn-pin" class="tb-btn" title="항상 위에 띄우기">PIN</button>
+        <button id="btn-settings" class="tb-btn" title="꾸미기·설정">SETTING</button>
       </div>
     </header>
 
@@ -113,14 +113,7 @@
           <div id="asst-figure"></div>
           <div id="asst-col">
           <div id="asst-bubble">
-            <svg class="dlg-bg" viewBox="0 0 600 160" preserveAspectRatio="none" aria-hidden="true">
-              <polygon class="dlg-fill" points="14,10 596,0 586,156 2,148"/>
-              <polygon class="dlg-inner" points="26,20 584,11 575,145 15,138"/>
-            </svg>
-            <svg class="dlg-tail" viewBox="0 0 90 80" aria-hidden="true">
-              <polygon class="t-fill" points="90,40 52,34 58,24 0,8 46,46 38,52 90,64"/>
-              <polyline class="t-line" points="86,39.4 52,34 58,24 0,8 46,46 38,52 86,61.2"/>
-            </svg>
+
             <div id="asst-name"></div>
             <div id="asst-text"></div>
           </div>
@@ -154,6 +147,7 @@
   <script src="js/fonts.js"></script>
   <script src="js/theme.js"></script>
   <script src="js/face.js"></script>
+  <script src="js/bubble.js"></script>
   <script src="js/app.js"></script>
   <script src="js/controls.js"></script>
   <script src="js/settings.js"></script>

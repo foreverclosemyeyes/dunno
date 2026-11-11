@@ -287,7 +287,7 @@
     const c = count(info && info.items);
     const rc = $('#record-count'); rc.innerHTML = '';
     if (c.total) {
-      rc.append(h('span', 'big', String(c.done)), h('span', 'of', ` / ${c.total}`), h('span', 'lbl', c.done === c.total ? 'ALL CLEAR!' : 'DONE'));
+      rc.append(h('span', 'big', String(c.done)), h('i', 'slash'), h('span', 'of', String(c.total)), h('span', 'lbl', c.done === c.total ? 'ALL CLEAR!!' : 'DONE'));
     }
     const evBox = $('#record-events'); evBox.innerHTML = '';
     for (const e of eventsOn(state.selected)) {
@@ -597,6 +597,7 @@
   function renderAll() {
     arrange();
     renderLeft(); renderBigCal(); renderRecord(); renderQuests(); renderAssistant(); renderStats(); renderSync();
+    D.bubble && D.bubble.update();
   }
   D.renderAll = renderAll;
   D.onFontsChanged = () => renderAll();
