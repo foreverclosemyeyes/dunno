@@ -274,3 +274,36 @@ body.layout-bigcal .todo-children .todo { min-height: 30px; }
 .ev-chip { font-size: 11px; font-weight: 700; border: 1.5px solid currentColor; border-radius: 99px; padding: 2px 9px; cursor: pointer; background: transparent; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ev-chip.meet { background: var(--accent); border-color: var(--accent); color: #fff; }
 .ev-chip:hover { filter: brightness(1.1); text-decoration: underline; }
+
+/* ---------- 각진 대화창 (dialog-angular) ---------- */
+.asst-tail { display: none; }
+body.dialog-angular #asst-bubble {
+  background: none; backdrop-filter: none; border: 0; color: var(--main);
+  padding: 30px 46px 18px 40px; margin: 0 0 4px 18px; isolation: isolate; transform: rotate(-1.5deg);
+}
+body.dialog-angular #asst-bubble::before, body.dialog-angular #asst-bubble::after { content: ''; position: absolute; z-index: -2; }
+/* 바깥 굵은 테두리 */
+body.dialog-angular #asst-bubble::before {
+  inset: 10px 0 0 0; background: var(--main);
+  clip-path: polygon(1.5% 6%, 100% 0, 96.5% 100%, 0 88%);
+}
+/* 안쪽 어두운 면 */
+body.dialog-angular #asst-bubble::after {
+  inset: 10px 0 0 0; background: var(--bg); z-index: -1;
+  clip-path: polygon(calc(1.5% + 7px) calc(6% + 7px), calc(100% - 9px) 7px, calc(96.5% - 8px) calc(100% - 7px), 8px calc(88% - 7px));
+}
+/* 캐릭터 쪽으로 꺾인 꼬리 */
+body.dialog-angular .asst-tail {
+  display: block; position: absolute; left: -44px; top: 34%; width: 70px; height: 58px; z-index: -1; background: var(--main);
+  clip-path: polygon(0 52%, 46% 20%, 40% 42%, 100% 8%, 100% 92%, 52% 70%, 58% 88%);
+}
+/* 비스듬한 이름표 */
+body.dialog-angular #asst-name {
+  position: absolute; left: 34px; top: 0; z-index: 1; margin: 0;
+  background: var(--main); color: var(--bg); letter-spacing: .06em; font-size: 15px;
+  padding: 5px 22px 5px 16px; transform: rotate(-5deg); clip-path: polygon(0 0, 100% 12%, 94% 100%, 4% 88%);
+}
+body.dialog-angular #asst-text { font-weight: 700; scrollbar-width: thin; scrollbar-color: var(--accent) transparent; }
+body.dialog-angular #asst-bubble { padding-top: 34px; }
+body.dialog-angular #chat-input { border-radius: 2px; transform: skewX(-6deg); }
+body.dialog-angular #asst-bubble .chip { border-radius: 2px; transform: skewX(-8deg); }

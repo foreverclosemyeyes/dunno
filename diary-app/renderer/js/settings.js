@@ -451,6 +451,7 @@
       C.text(ctx, 'assistant.name', '비서 이름'),
       C.text(ctx, 'assistant.tone', '말투 · 성격', { multiline: true, placeholder: '예: 시크하지만 챙겨주는 존댓말, 짧게' }),
     );
+    a.body.append(C.select(ctx, 'layout.dialog', '대화창 모양', [['angular', '각진 대화창'], ['flat', '네모 칸']]));
     const img = C.section('캐릭터 그림', true);
     const r = h('div', 'row-inline');
     const cur = state.theme.assistant.image;
