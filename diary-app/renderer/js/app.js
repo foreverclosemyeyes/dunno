@@ -405,6 +405,14 @@
     $('#btn-hidechar').classList.toggle('on', !!state.settings.hideChar);
 
     $('#asst-name').textContent = a.name;
+    $('#asst-name').title = '눌러서 다음 비서로 바꾸기';
+    $('#asst-name').style.cursor = 'pointer';
+    $('#asst-name').onclick = () => {
+      const ids = D.CAST.map((c) => c[0]), cur = state.theme.castActive || 'ren';
+      D.castSwitch(state.theme, ids[(ids.indexOf(cur) + 1) % ids.length]);
+      window.diary.saveTheme(state.theme); renderAll();
+      toast(`비서: ${state.theme.assistant.name}`);
+    };
     const msg = state.lastAssistant;
     const text = $('#asst-text');
     text.classList.toggle('thinking', !!(msg && msg.thinking));
@@ -761,6 +769,15 @@
     if (state.theme.assistant.tone === '다정하고 씩씩한 반말. 짧고 명랑하게, 가끔 응원 한마디.') {
       state.theme.assistant.tone = D.DEFAULT_THEME.assistant.tone;
       if (state.theme.assistant.name === '모모') state.theme.assistant.name = D.DEFAULT_THEME.assistant.name;
+      window.diary.saveTheme(state.theme);
+    }
+    // 비서 4명 말투를 처음 한 번 맞춰 줌 (지금 비서 = 렌)
+    if (!state.theme.castReady) {
+      state.theme.castReady = true;
+      if ((state.theme.castActive || 'ren') === 'ren') {
+        state.theme.assistant.tone = D.CAST[0][2];
+        if (!state.theme.assistant.name || state.theme.assistant.name === '업무비서') state.theme.assistant.name = D.CAST[0][1];
+      }
       window.diary.saveTheme(state.theme);
     }
     D.theme.apply(state.theme);

@@ -190,3 +190,6 @@ body.settings-open #settings { transform: none; }
 #settings .ctl-label { font-size: 12.5px; color: #e6e6e6; }
 #settings .btn { font-size: 12px; }
 .set-title { font-family: "Gasoek One", sans-serif !important; font-weight: 400 !important; }
+
+.cast-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.cast-row .btn.on { background: var(--accent, #E3170A); color: #fff; }
