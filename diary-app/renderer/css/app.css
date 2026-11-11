@@ -349,3 +349,138 @@ body.dialog-angular .asst-actions { margin-top: 8px; }
 .cut-note b { font-family: var(--cut-font); font-size: 26px; font-weight: 400; color: var(--accent); }
 .cut-note span { font-size: 16px; font-weight: 700; }
 .cut-skip { position: absolute; left: 50%; bottom: 2.6vh; transform: translateX(-50%); z-index: 6; font: 600 12px "Noto Sans KR Variable", sans-serif; color: var(--card); opacity: .45; }
+
+/* ======================================================
+   큰 달력 레이아웃 v2 — 왼쪽 큰 달력 / 오른쪽 밝은 면 + 기울어진 노트
+   ====================================================== */
+body.layout-bigcal #layout {
+  grid-template-columns: minmax(440px, 1.3fr) minmax(400px, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas: "left right" "bottom right";
+  gap: 10px 40px; padding: 0 34px 14px 22px;
+}
+body.layout-bigcal #bottom { grid-template-columns: 1fr; }
+body.layout-bigcal #right { padding-top: 0; gap: 6px; min-height: 0; }
+
+/* 들쭉날쭉한 밝은 면 */
+body.layout-bigcal #bg-panel {
+  opacity: var(--panel-op);
+  clip-path: polygon(
+    calc(50% + var(--panel-angle) * .3%) 0, 69% 0, 73% 16%, 77.5% 0, 100% 0, 100% 100%,
+    calc(41% + var(--panel-angle) * .3%) 100%, calc(51% + var(--panel-angle) * .3%) 63%,
+    calc(47.5% + var(--panel-angle) * .3%) 60%, calc(55% + var(--panel-angle) * .3%) 30%);
+}
+
+/* 달 · 날짜표 (밝은 면 위) */
+body.layout-bigcal #bc-bar { color: var(--card-text); padding: 4px 4px 0 40px; align-items: center; }
+body.layout-bigcal #bc-month { align-items: center; gap: 10px; }
+body.layout-bigcal #bc-month .mc-nav { width: 40px; height: 26px; font-size: 20px; opacity: 1; background: var(--card-text); color: var(--card); border-radius: 7px; line-height: 1; transform: rotate(-4deg); }
+body.layout-bigcal #bc-month .mc-nav:hover { background: var(--accent); color: #fff; }
+body.layout-bigcal #bc-month-label .el-calHead { transform: scale(1.5) rotate(-2deg); transform-origin: center; margin: 0 22px; color: var(--card-text); }
+body.layout-bigcal #bc-month-label .bc-year { display: none; }
+body.layout-bigcal #bc-tag { background: var(--card-text); color: var(--card); padding: 7px 34px 7px 30px; margin-right: -34px; clip-path: polygon(0 0, 100% 0, 100% 100%, 2% 100%); transform: rotate(-1.5deg); font-weight: 800; }
+
+/* 큰 달력 숫자 */
+body.layout-bigcal .bc-d { color: color-mix(in srgb, var(--main-solid) 78%, var(--bg)); padding: 0 1px 12px; }
+body.layout-bigcal .bc-d.sun, body.layout-bigcal .bc-h.sun { color: var(--sun); }
+body.layout-bigcal .bc-d.sat, body.layout-bigcal .bc-h.sat { color: var(--sat); }
+body.layout-bigcal .bc-h { color: var(--main); }
+body.layout-bigcal .bc-d.today, body.layout-bigcal .bc-d.today.sel { color: #111; text-shadow: none; }
+body.layout-bigcal .bc-d.today::before { background: var(--accent); inset: 4% -6% 16% -6%; transform: rotate(-12deg); box-shadow: none; }
+body.layout-bigcal .bc-d.sel:not(.today) { color: var(--bg); }
+body.layout-bigcal .bc-d.sel:not(.today)::before { background: var(--main); inset: 4% -6% 16% -6%; transform: rotate(-12deg); box-shadow: none; }
+body.layout-bigcal .bc-d.today:not(.sel)::before { background: transparent; box-shadow: inset 0 0 0 5px var(--accent); }
+body.layout-bigcal .bc-d.today:not(.sel) { color: var(--accent); }
+body.layout-bigcal .bc-line { height: 4px; opacity: .85; }
+
+/* 노트 */
+body.layout-bigcal #record {
+  flex: 1; min-height: 0; margin: 6px 44px 18px 18px; padding: 22px 30px 16px 26px;
+  background: var(--card); color: var(--card-text);
+  border: 7px solid #111; border-radius: 2px;
+  box-shadow: none;
+  transform: perspective(1100px) rotateY(-9deg) rotate(-3.5deg);
+  transform-origin: 30% 50%;
+}
+/* 뒤에 겹친 한 장 */
+body.layout-bigcal #record::before {
+  content: ''; position: absolute; inset: -7px; z-index: -1; background: color-mix(in srgb, var(--card-solid) 70%, #888);
+  border: 7px solid #111; transform: translate(26px, 10px) rotate(2.5deg);
+}
+/* 오른쪽 아래 망점 */
+body.layout-bigcal #record::after {
+  content: ''; position: absolute; right: 0; bottom: 0; width: 55%; height: 45%; pointer-events: none;
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--card-text-solid) 22%, transparent) 1.4px, transparent 1.6px);
+  background-size: 7px 7px;
+  -webkit-mask-image: linear-gradient(135deg, transparent 20%, #000 90%);
+  mask-image: linear-gradient(135deg, transparent 20%, #000 90%);
+}
+body.layout-bigcal .nb-pane { display: none; flex-direction: column; min-height: 0; flex: 1; position: relative; z-index: 1; }
+body.layout-bigcal #record[data-tab="log"] .nb-pane[data-pane="log"],
+body.layout-bigcal #record[data-tab="quests"] .nb-pane[data-pane="quests"],
+body.layout-bigcal #record[data-tab="params"] .nb-pane[data-pane="params"] { display: flex; }
+.nb-tabs { display: none; }
+.nb-pane { display: contents; }
+/* 오른쪽 가장자리 검은 탭 */
+body.layout-bigcal .nb-tabs { display: flex; flex-direction: column; gap: 10px; position: absolute; right: -50px; top: 10%; z-index: 3; }
+body.layout-bigcal .nb-tabs button {
+  writing-mode: vertical-rl; background: #111; color: #fff; border: 0; padding: 14px 7px; min-height: 72px;
+  font-weight: 900; font-size: 12px; letter-spacing: .12em; clip-path: polygon(0 0, 100% 6%, 100% 94%, 0 100%); opacity: .55;
+}
+body.layout-bigcal #record[data-tab="log"] .nb-tabs button[data-tab="log"],
+body.layout-bigcal #record[data-tab="quests"] .nb-tabs button[data-tab="quests"],
+body.layout-bigcal #record[data-tab="params"] .nb-tabs button[data-tab="params"] { opacity: 1; background: var(--accent); }
+
+body.layout-bigcal #record .card-head { border-bottom: 3px solid #111; padding-bottom: 8px; margin-bottom: 4px; }
+body.layout-bigcal #record-title .el-section { transform: rotate(-3deg) scale(1.35); transform-origin: left center; }
+body.layout-bigcal #record-sub { margin-top: 10px; }
+body.layout-bigcal #record-list { background-image: repeating-linear-gradient(to bottom, transparent 0 37px, color-mix(in srgb, var(--card-text-solid) 30%, transparent) 37px 38.5px); }
+body.layout-bigcal .todo { min-height: 38px; }
+body.layout-bigcal .todo .box { border-width: 2.5px; }
+body.layout-bigcal .todo.done .box { background: #111; border-color: #111; }
+body.layout-bigcal .todo.done .txt { opacity: .9; text-decoration: none; position: relative; }
+body.layout-bigcal .todo.done .txt::after { content: ''; position: absolute; left: -4px; right: -6px; top: 55%; height: 4px; background: var(--accent); border-radius: 2px; transform: rotate(-1.5deg); }
+body.layout-bigcal #record-stamp { right: 18px; top: -26px; }
+body.layout-bigcal .card-foot { border-top: 0; }
+
+/* 노트 안의 '진행 중 업무' · '인간 파라미터' */
+body.layout-bigcal #quests, body.layout-bigcal #stats { border: 0; background: none; backdrop-filter: none; padding: 0; margin: 0; flex: 1; min-height: 0; color: var(--card-text); display: flex; flex-direction: column; }
+body.layout-bigcal #quests .panel-head, body.layout-bigcal #stats .panel-head { border-bottom: 3px solid #111; padding-bottom: 8px; margin-bottom: 6px; }
+body.layout-bigcal #quests .panel-head::after, body.layout-bigcal #stats .panel-head::after { display: none; }
+body.layout-bigcal #quests .el-section, body.layout-bigcal #stats .el-section { transform: rotate(-3deg) scale(1.3); transform-origin: left center; }
+body.layout-bigcal .quest { border-bottom: 1.5px solid color-mix(in srgb, var(--card-text-solid) 25%, transparent); padding: 9px 4px; }
+body.layout-bigcal .quest.soon { background: none; color: var(--card-text); margin: 0; }
+body.layout-bigcal .quest.soon .el-quest { color: var(--accent); font-weight: 800; }
+body.layout-bigcal .quest.soon .dd { color: #fff; background: var(--accent); padding: 0 8px; transform: rotate(-4deg); }
+body.layout-bigcal .quest.over .dd { color: #fff; background: #111; text-decoration: none; }
+body.layout-bigcal .quest .st { border-color: color-mix(in srgb, var(--card-text-solid) 50%, transparent); }
+body.layout-bigcal .param { grid-template-columns: 1fr; justify-items: center; gap: 4px; }
+body.layout-bigcal .radar { width: 210px; height: 210px; }
+body.layout-bigcal .r-ring, body.layout-bigcal .r-axis { stroke: color-mix(in srgb, var(--card-text-solid) 25%, transparent); }
+body.layout-bigcal .r-ring.outer { stroke: #111; stroke-width: 2.2; }
+body.layout-bigcal .r-before { stroke: #111; }
+body.layout-bigcal .r-dot { fill: #111; }
+body.layout-bigcal .r-label { fill: #111; font-size: 10.5px; }
+body.layout-bigcal .param-rows { width: 100%; }
+body.layout-bigcal .stat .stars i { opacity: .2; color: #111; }
+body.layout-bigcal .stat .stars i.on { opacity: 1; color: var(--accent); }
+body.layout-bigcal .stat button { border-color: #111; }
+body.layout-bigcal .stat button.plus { background: #111; color: #fff; }
+body.layout-bigcal .stats-legend { color: var(--card-text); }
+body.layout-bigcal #layout { grid-template-columns: minmax(460px, 1.5fr) minmax(400px, 1fr); }
+body.layout-bigcal .bc-d { margin: 0 -7px; }
+body.layout-bigcal #bc-head { column-gap: 0; }
+body.layout-bigcal .top-actions { color: var(--card-text); }
+body.layout-bigcal .top-actions .sync { color: var(--card-text); }
+body.layout-bigcal #bc-bar { flex-wrap: wrap; row-gap: 8px; }
+body.layout-bigcal #bc-month-label .el-calHead { transform: scale(1.35) rotate(-2deg); margin: 0 30px; }
+body.layout-bigcal #bg-panel {
+  clip-path: polygon(
+    calc(50% + var(--panel-angle) * .3%) 0, 60% 0, 63.5% 14%, 67% 0, 100% 0, 100% 100%,
+    calc(41% + var(--panel-angle) * .3%) 100%, calc(51% + var(--panel-angle) * .3%) 63%,
+    calc(47.5% + var(--panel-angle) * .3%) 60%, calc(55% + var(--panel-angle) * .3%) 30%);
+}
+body.layout-bigcal #bc-bar { position: relative; z-index: 5; }
+body.layout-bigcal #record { margin-top: 22px; }
+body.layout-bigcal .bc-d { margin: 0 -4px; }
+body.layout-bigcal #quest-list, body.layout-bigcal .param-rows { padding-left: 8px; }

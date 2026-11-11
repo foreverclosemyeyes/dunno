@@ -165,7 +165,9 @@
         if (di === state.today) { cell.classList.add('today'); todayCol = c; }
         if (di === state.selected) cell.classList.add('sel');
         const j = jitter(di, J);
-        cell.style.transform = `translateY(${j.dy.toFixed(1)}px) rotate(${j.rot.toFixed(1)}deg)`;
+        const rs = 0.84 + r * 0.055; // 아래 줄로 갈수록 크게 (원근감)
+        cell.style.transform = `translateY(${j.dy.toFixed(1)}px) rotate(${j.rot.toFixed(1)}deg) scale(${rs.toFixed(3)})`;
+        cell.style.transformOrigin = '50% 85%';
         cell.append(S('calNum', String(dayNum)));
         cellOf.set(di, { cell, row: r, col: c });
         const evs = eventsOn(di);
@@ -236,7 +238,7 @@
     const t = state.theme.layout.calTilt;
     const rad = Math.abs(t) * Math.PI / 180; // 기울인 만큼 커지는 크기도 계산
     const rw = iw * Math.cos(rad) + ih * Math.sin(rad), rh = iw * Math.sin(rad) + ih * Math.cos(rad);
-    const f = Math.min(bw / rw, bh / rh) * 0.98;
+    const f = Math.min((bw * 1.06) / rw, bh / rh) * 0.98; // 옆으로 살짝 넘쳐도 크게
     inner.style.transformOrigin = '50% 50%';
     const ty = (rh * f - ih) / 2 + 4; // 위쪽에 붙임
     inner.style.transform = `translate(${(bw - iw) / 2}px, ${ty}px) scale(${f}) rotate(${t}deg)`;
@@ -454,7 +456,22 @@
     $('#btn-pin').classList.toggle('on', !!state.settings.alwaysOnTop);
   }
 
+  // 큰 달력 레이아웃에서는 '진행 중 업무'·'인간 파라미터'를 노트 탭 안으로
+  function arrange() {
+    const big = state.theme.layout.mode === 'bigcal';
+    const q = $('#quests'), st = $('#stats');
+    if (big) {
+      if (q.parentElement !== $('.nb-pane[data-pane="quests"]')) $('.nb-pane[data-pane="quests"]').append(q);
+      if (st.parentElement !== $('.nb-pane[data-pane="params"]')) $('.nb-pane[data-pane="params"]').append(st);
+    } else {
+      if (q.parentElement !== $('#right')) $('#right').append(q);
+      if (st.parentElement !== $('#bottom')) $('#bottom').append(st);
+    }
+  }
+  D.arrange = arrange;
+
   function renderAll() {
+    arrange();
     renderLeft(); renderBigCal(); renderRecord(); renderQuests(); renderAssistant(); renderStats(); renderSync();
   }
   D.renderAll = renderAll;
@@ -504,7 +521,7 @@
     state.today = init.data.today || state.today;
     state.selected = state.today;
     state.viewMonth = state.today.slice(0, 7);
-    if (init.theme) state.theme = D.mergeDefaults(D.DEFAULT_THEME, init.theme);
+    if (init.theme) { state.theme = D.mergeDefaults(D.DEFAULT_THEME, init.theme); if (D.migrateTheme(state.theme)) window.diary.saveTheme(state.theme); }
     // 예전 기본 말투(반말·명랑)를 쓰던 경우 새 기본 말투로 바꿔 줌
     if (state.theme.assistant.tone === '다정하고 씩씩한 반말. 짧고 명랑하게, 가끔 응원 한마디.') {
       state.theme.assistant.tone = D.DEFAULT_THEME.assistant.tone;
@@ -525,6 +542,7 @@
     $('#btn-today').onclick = goToday;
     $('#mc-prev').onclick = () => shiftMonth(-1);
     $('#mc-next').onclick = () => shiftMonth(1);
+    document.querySelectorAll('.nb-tabs button').forEach((b) => { b.onclick = () => { $('#record').dataset.tab = b.dataset.tab; }; });
     $('#bc-prev').onclick = () => shiftMonth(-1);
     $('#bc-next').onclick = () => shiftMonth(1);
     document.fonts.ready.then(fitBigCal);

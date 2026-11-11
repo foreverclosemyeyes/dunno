@@ -36,10 +36,6 @@
     <main id="layout">
       <!-- 왼쪽: 달력 덩어리 (통째로 기울어짐) -->
       <section id="left">
-        <div id="bc-bar">
-          <div id="bc-month"><button class="mc-nav" id="bc-prev">‹</button><span id="bc-month-label"></span><button class="mc-nav" id="bc-next">›</button></div>
-          <div id="bc-tag"></div>
-        </div>
         <div id="bigcal">
           <div id="bc-inner">
             <div id="bc-head"></div>
@@ -69,8 +65,16 @@
 
       <!-- 오른쪽: 오늘의 기록 + 진행 중 업무 -->
       <section id="right">
-        <article id="record" class="card">
+        <div id="bc-bar">
+          <div id="bc-month"><button class="mc-nav" id="bc-prev">‹</button><span id="bc-month-label"></span><button class="mc-nav" id="bc-next">›</button></div>
+          <div id="bc-tag"></div>
+        </div>
+        <article id="record" class="card" data-tab="log">
           <div id="record-stamp" hidden></div>
+          <div class="nb-tabs">
+            <button data-tab="log">기록</button><button data-tab="quests">업무</button><button data-tab="params">파라미터</button>
+          </div>
+          <div class="nb-pane" data-pane="log">
           <div class="card-head">
             <div>
               <div id="record-title"></div>
@@ -84,6 +88,9 @@
             <button id="btn-open-notion" class="chip dark">노션에서 열기 ↗</button>
             <span id="record-sync" class="muted"></span>
           </div>
+          </div>
+          <div class="nb-pane" data-pane="quests"></div>
+          <div class="nb-pane" data-pane="params"></div>
         </article>
         <article id="quests" class="panel">
           <div class="panel-head" id="quest-title"></div>

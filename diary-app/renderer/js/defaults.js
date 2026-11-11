@@ -57,30 +57,30 @@
   });
 
   const DEFAULT_THEME = {
-    version: 1,
+    version: 2,
     colors: {
-      bg: { c: '#141414', a: 1 },
-      main: { c: '#F3EEE3', a: 1 },
-      accent: { c: '#FF4A1C', a: 1 },
-      card: { c: '#F3EEE3', a: 1 },
-      cardText: { c: '#151515', a: 1 },
-      sun: { c: '#FF4A1C', a: 1 },
-      sat: { c: '#2FA4C7', a: 1 },
-      panel: { c: '#F3EEE3', a: 1 },
-      event: { c: '#F3EEE3', a: 1 },
+      bg: { c: '#1E0B0B', a: 1 },
+      main: { c: '#E4E4E4', a: 1 },
+      accent: { c: '#D8231B', a: 1 },
+      card: { c: '#F8F8F5', a: 1 },
+      cardText: { c: '#111111', a: 1 },
+      sun: { c: '#C81E17', a: 1 },
+      sat: { c: '#1C8BA5', a: 1 },
+      panel: { c: '#C9C9C9', a: 1 },
+      event: { c: '#E4E4E4', a: 1 },
     },
     layout: {
       mode: 'bigcal', // bigcal = 큰 달력 + 노트 카드, classic = 큰 날짜 숫자 + 이번 주 띠
       calJitter: 4, // 큰 달력 숫자 흔들림(°)
       panelOn: true, // 오른쪽 사선 면
-      panelOpacity: 12,
+      panelOpacity: 100,
       panelAngle: 18,
       stampText: 'DONE!!',
       cutOn: true, // 하루 시작 컷
       dialog: 'angular', // angular = 각진 대화창, flat = 네모 칸
       calTilt: -4,
       cardTilt: 1.2,
-      stripeOn: true,
+      stripeOn: false,
       stripeAngle: -24,
       stripeWidth: 130,
       stripePos: 58,
@@ -98,7 +98,7 @@
       body: T({ size: 13, weight: 400 }),
       calNum: T({ font: 'Gasoek One', size: 92, tracking: -4, lineHeight: 0.9 }),
       calHead: T({ font: 'Gasoek One', size: 30, tracking: -1, lineHeight: 1, upper: true }),
-      stamp: T({ font: 'Gasoek One', size: 64, tracking: -2, lineHeight: 0.9, rotate: -14, color: { c: '#FF4A1C', a: 1 } }),
+      stamp: T({ font: 'Gasoek One', size: 64, tracking: -2, lineHeight: 0.9, rotate: -14, color: { c: '#D8231B', a: 1 } }),
     },
     background: {
       mode: 'single', // single | weekday | rotate
@@ -135,6 +135,18 @@
   D.DEFAULT_THEME = DEFAULT_THEME;
   D.makeBg = bg;
   D.ELEMENTS = ELEMENTS;
+  // 예전(1판) 기본값을 그대로 쓰던 항목만 새 기본값으로 바꿔 줌. 직접 바꾼 값은 그대로 둠.
+  const OLD = { bg: '#141414', main: '#F3EEE3', accent: '#FF4A1C', card: '#F3EEE3', cardText: '#151515', sun: '#FF4A1C', sat: '#2FA4C7', panel: '#F3EEE3', event: '#F3EEE3' };
+  D.migrateTheme = (t) => {
+    if ((t.version || 1) >= 2) return false;
+    for (const k in OLD) if (t.colors[k] && t.colors[k].c && t.colors[k].c.toUpperCase() === OLD[k].toUpperCase()) t.colors[k] = { ...DEFAULT_THEME.colors[k] };
+    if (t.layout.panelOpacity === 12) t.layout.panelOpacity = 100;
+    if (t.layout.stripeOn === true && t.layout.stripeAngle === -24) t.layout.stripeOn = false;
+    if (t.text.stamp && t.text.stamp.color && t.text.stamp.color.c === '#FF4A1C') t.text.stamp.color.c = '#D8231B';
+    if (t.background && t.background.base && t.background.base.type === 'gradient' && t.background.base.grad.stops[0].c === '#1a1a1a') t.background.base.type = 'theme';
+    t.version = 2;
+    return true;
+  };
   D.clone = (o) => JSON.parse(JSON.stringify(o));
   D.getPath = (obj, path) => path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
   D.setPath = (obj, path, val) => {
