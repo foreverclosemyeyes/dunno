@@ -273,6 +273,7 @@
     row.append(del);
     row.title = item.checked ? '눌러서 체크 풀기 (노션에도 반영)' : '눌러서 완료 체크 (노션에도 반영)';
     row.onclick = async () => {
+      if (!item.checked && D.fx) D.fx.burst(row.querySelector('.box'));
       row.classList.add('busy');
       const r = await window.diary.toggleTodo(item.id, !item.checked);
       row.classList.remove('busy');
@@ -332,7 +333,7 @@
     }
     const stamp = $('#record-stamp');
     const allDone = c.total > 0 && c.done === c.total;
-    if (allDone && stamp.hidden) { stamp.replaceChildren(S('stamp', state.theme.layout.stampText || 'DONE!!')); stamp.hidden = false; }
+    if (allDone && stamp.hidden) { stamp.replaceChildren(S('stamp', state.theme.layout.stampText || 'DONE!!')); stamp.hidden = false; D.fx && D.fx.thud('#record'); }
     else if (allDone) stamp.replaceChildren(S('stamp', state.theme.layout.stampText || 'DONE!!'));
     else stamp.hidden = true;
     const list = $('#record-list'); list.innerHTML = '';
@@ -613,6 +614,7 @@
 
   function openParams() {
     const old = document.querySelector('.ps2'); if (old) old.remove();
+    D.fx && D.fx.wipe();
     const totals = monthTotals(state.today);
     const today = state.stats[state.today] || {};
     const scr = h('div', 'ps2');
@@ -699,10 +701,12 @@
   D.onFontsChanged = () => renderAll();
 
   function select(date) {
+    const prev = state.selected;
     state.selected = date;
     if (date.slice(0, 7) !== state.viewMonth) state.viewMonth = date.slice(0, 7);
     window.diary.setView({ selected: date, month: state.viewMonth });
     renderAll();
+    if (D.fx && prev !== date) D.fx.swap('#record', date < prev ? -1 : 1);
   }
   function goToday() { select(state.today); }
   D.goToday = goToday;
@@ -713,6 +717,7 @@
     state.viewMonth = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
     window.diary.setView({ month: state.viewMonth });
     renderLeft(); renderBigCal(); renderRecord();
+    D.fx && D.fx.swap('#bc-grid', delta);
   }
 
   function dayChanged(newToday) {
@@ -754,7 +759,7 @@
     D.theme.apply(state.theme);
     renderAll();
     D.settings && D.settings.init();
-    document.fonts.ready.then(() => D.cutscene && D.cutscene.maybePlay());
+    document.fonts.ready.then(() => (D.cutscene && D.cutscene.maybePlay())).then(() => D.fx && D.fx.intro());
 
     window.diary.onData((d) => { state.data = d; if (d.today && d.today !== state.today) dayChanged(d.today); renderAll(); });
     window.diary.onDayChanged(({ today }) => dayChanged(today));

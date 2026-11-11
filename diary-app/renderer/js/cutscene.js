@@ -111,7 +111,7 @@
       return;
     }
     window.diary.setSettings({ lastCut: D.state.today });
-    play();
+    return play();
   }
 
   D.cutscene = { play, maybePlay };

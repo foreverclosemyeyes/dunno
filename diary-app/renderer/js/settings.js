@@ -84,6 +84,7 @@
   ];
 
   function open() {
+    D.fx && D.fx.wipe();
     document.body.classList.add('settings-open');
     panel.setAttribute('aria-hidden', 'false');
     render();
@@ -350,6 +351,7 @@
         C.slider(ctx, 'layout.panelAngle', '사선 면 기울기', -60, 60, 1),
         C.text(ctx, 'layout.stampText', '다 끝냈을 때 도장 글씨'),
         C.toggle(ctx, 'layout.cutOn', '하루 시작 컷 (날짜 바뀐 뒤 처음 켤 때)'),
+        C.toggle(ctx, 'layout.fxOn', '화려한 연출 (등장·넘김·체크 효과)'),
       );
       const er = h('div', 'ctl');
       const sel = h('select');

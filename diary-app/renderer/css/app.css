@@ -1147,3 +1147,50 @@ body.layout-bigcal .nb-holes, body.layout-bigcal #right > #quests::before {
 body.layout-bigcal #record .card-head > div:first-child { min-width: 0; flex: 1; }
 body.layout-bigcal #record-title, body.layout-bigcal #record-title .el-section { white-space: nowrap; }
 body.layout-bigcal #record-title .el-section { font-size: 26px; }
+
+/* ===== 연출 효과 (fx.js) — 짧고 날카롭게, 한 번만 ===== */
+@keyframes fxIn { 0% { opacity: 0; translate: var(--fx-from, -70px) 18px; scale: .96; } 65% { opacity: 1; translate: 5px -2px; scale: 1.005; } 100% { opacity: 1; translate: 0 0; scale: 1; } }
+body.fx-intro #topbar { animation: fxIn .42s cubic-bezier(.2,.9,.25,1.15) both; --fx-from: 0 -40px; }
+body.fx-intro #bigcal { animation: fxIn .5s .06s cubic-bezier(.2,.9,.25,1.15) both; }
+body.fx-intro #bc-bar { animation: fxIn .42s .16s cubic-bezier(.2,.9,.25,1.15) both; --fx-from: 70px; }
+body.fx-intro #record { animation: fxIn .5s .22s cubic-bezier(.2,.9,.25,1.15) both; --fx-from: 90px; }
+body.fx-intro #quests { animation: fxIn .5s .3s cubic-bezier(.2,.9,.25,1.15) both; --fx-from: 90px; }
+body.fx-intro #asst-figure { animation: fxIn .55s .36s cubic-bezier(.2,.9,.25,1.15) both; --fx-from: -40px 60px; }
+body.fx-intro #asst-col { animation: fxIn .45s .5s cubic-bezier(.2,.9,.25,1.15) both; --fx-from: 0 30px; }
+
+@keyframes fxSwap { 0% { opacity: .15; translate: calc(var(--fx-dir, 1) * 46px) 0; } 70% { opacity: 1; translate: calc(var(--fx-dir, 1) * -3px) 0; } 100% { translate: 0 0; } }
+.fx-swap { animation: fxSwap .36s cubic-bezier(.2,.9,.3,1.1); }
+@keyframes fxSlash { from { translate: calc(var(--fx-dir, 1) * 130%) 0; } to { translate: calc(var(--fx-dir, 1) * -130%) 0; } }
+.fx-slash { position: fixed; z-index: 50; pointer-events: none; overflow: hidden; }
+.fx-slash i { position: absolute; top: -10%; bottom: -10%; left: 38%; width: 16%; transform: skewX(-24deg);
+  background: linear-gradient(90deg, var(--accent, #E5191C) 0 72%, #0b0b0b 72% 100%); opacity: .9;
+  animation: fxSlash .4s cubic-bezier(.55,0,.35,1) forwards; }
+
+.fx-burst { position: fixed; z-index: 60; width: 0; height: 0; pointer-events: none; }
+.fx-burst i { position: absolute; left: 0; top: 0; display: block; }
+@keyframes fxStar { 0% { transform: translate(-50%, -50%) scale(.2) rotate(-30deg); opacity: 1; } 45% { transform: translate(-50%, -50%) scale(1.15) rotate(8deg); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1.35) rotate(14deg); opacity: 0; } }
+.fx-star { width: 40px; height: 40px; background: var(--accent, #E5191C);
+  clip-path: polygon(50% 0, 59% 32%, 92% 14%, 70% 43%, 100% 56%, 66% 62%, 78% 96%, 50% 72%, 22% 98%, 33% 63%, 0 58%, 30% 42%, 6% 12%, 41% 31%);
+  animation: fxStar .45s cubic-bezier(.2,.8,.3,1) forwards; }
+@keyframes fxShard { 0% { transform: translate(-50%, -50%) rotate(var(--rot)) scale(1); opacity: 1; } 100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(calc(var(--rot) + 120deg)) scale(.4); opacity: 0; } }
+.fx-shard { width: 9px; height: 7px; background: var(--accent, #E5191C); clip-path: polygon(0 0, 100% 40%, 20% 100%);
+  animation: fxShard .55s cubic-bezier(.15,.7,.3,1) forwards; }
+.fx-shard.dark { background: #0b0b0b; }
+
+@keyframes fxThud { 0% { scale: 1; } 25% { scale: 1.018; translate: -2px 1px; } 50% { scale: .993; translate: 2px -1px; } 100% { scale: 1; translate: 0 0; } }
+.fx-thud { animation: fxThud .34s ease-out; }
+
+@keyframes fxWipe { from { translate: -120vw 0; } to { translate: 120vw 0; } }
+.fx-wipe { position: fixed; inset: 0; z-index: 9999; pointer-events: none; overflow: hidden; }
+.fx-wipe i { position: absolute; top: -20%; bottom: -20%; left: 0; width: 46vw; transform: skewX(-22deg); background: var(--accent, #E5191C); animation: fxWipe .48s cubic-bezier(.6,0,.35,1) forwards; }
+.fx-wipe i + i { width: 30vw; background: #0b0b0b; animation-delay: .06s; translate: -120vw 0; }
+
+/* 버튼: 올라오며 빨간 그림자가 툭 */
+.tb-btn { transition: translate .1s ease-out, box-shadow .1s ease-out, background .12s; }
+.tb-btn:hover { translate: 0 -2px; box-shadow: 3px 3px 0 var(--accent, #E5191C); }
+.tb-btn:active { translate: 1px 1px; box-shadow: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  body.fx-intro *, .fx-swap, .fx-thud { animation: none !important; }
+  .fx-slash, .fx-burst, .fx-wipe { display: none; }
+}

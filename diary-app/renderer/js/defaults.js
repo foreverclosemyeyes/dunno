@@ -80,6 +80,7 @@
       panelAngle: 18,
       stampText: 'DONE!!',
       cutOn: true, // 하루 시작 컷
+      fxOn: true, // 연출 효과
       dialog: 'angular', // angular = 각진 대화창, flat = 네모 칸
       calTilt: -4,
       cardTilt: 1.2,
