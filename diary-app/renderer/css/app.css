@@ -1155,7 +1155,6 @@ body.fx-intro #bigcal { animation: fxIn .5s .06s cubic-bezier(.2,.9,.25,1.15) bo
 body.fx-intro #bc-bar { animation: fxIn .42s .16s cubic-bezier(.2,.9,.25,1.15) both; --fx-from: 70px; }
 body.fx-intro #record { animation: fxIn .5s .22s cubic-bezier(.2,.9,.25,1.15) both; --fx-from: 90px; }
 body.fx-intro #quests { animation: fxIn .5s .3s cubic-bezier(.2,.9,.25,1.15) both; --fx-from: 90px; }
-body.fx-intro #asst-figure { animation: fxIn .55s .36s cubic-bezier(.2,.9,.25,1.15) both; --fx-from: -40px 60px; }
 body.fx-intro #asst-col { animation: fxIn .45s .5s cubic-bezier(.2,.9,.25,1.15) both; --fx-from: 0 30px; }
 
 @keyframes fxSwap { 0% { opacity: .15; translate: calc(var(--fx-dir, 1) * 46px) 0; } 70% { opacity: 1; translate: calc(var(--fx-dir, 1) * -3px) 0; } 100% { translate: 0 0; } }
