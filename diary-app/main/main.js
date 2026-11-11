@@ -15,6 +15,18 @@ const { Secrets } = require('./secrets');
 const notion = require('./notion');
 const assistant = require('./assistant');
 
+// ---------- 오류 기록 (문제가 생기면 원인을 알 수 있게) ----------
+let logFile = null;
+function log(...args) {
+  const line = `[${new Date().toISOString()}] ${args.map((a) => (a && a.stack) || (typeof a === 'string' ? a : JSON.stringify(a))).join(' ')}\n`;
+  try { if (logFile) fs.appendFileSync(logFile, line); } catch { /* 기록 실패는 무시 */ }
+}
+const origError = console.error.bind(console);
+console.error = (...a) => { origError(...a); log('ERROR', ...a); };
+// 메인 프로세스 오류로 앱 전체가 꺼지지 않도록
+process.on('uncaughtException', (e) => { log('uncaughtException', e); });
+process.on('unhandledRejection', (e) => { log('unhandledRejection', e); });
+
 const SYNC_MS = 2 * 60 * 1000;
 const DEFAULT_CFG = {
   databaseId: 'ca74544b319f4aef888b8302b527232f',
@@ -336,6 +348,12 @@ function createWindow(show) {
       }
     }
   });
+  // 화면이 죽으면 다시 그리기
+  win.webContents.on('render-process-gone', (_e, d) => {
+    log('render-process-gone', d);
+    if (d.reason !== 'clean-exit' && !quitting) setTimeout(() => { if (win && !win.isDestroyed()) win.reload(); }, 1000);
+  });
+  win.webContents.on('unresponsive', () => log('renderer unresponsive'));
   win.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' }; });
   win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('file:')) { e.preventDefault(); shell.openExternal(url); } });
 }
@@ -499,6 +517,13 @@ app.on('activate', showWindow);
 app.on('window-all-closed', () => { /* 트레이에 남아 있음 */ });
 
 app.whenReady().then(() => {
+  try {
+    fs.mkdirSync(app.getPath('logs'), { recursive: true });
+    logFile = path.join(app.getPath('logs'), 'main.log');
+    try { if (fs.statSync(logFile).size > 2e6) fs.renameSync(logFile, logFile + '.old'); } catch { /* 처음 */ }
+  } catch { /* 기록 폴더 없음 */ }
+  log('start', app.getVersion(), process.platform, process.arch, `electron ${process.versions.electron}`, require('os').release());
+  app.on('child-process-gone', (_e, d) => log('child-process-gone', d));
   if (process.platform === 'win32') app.setAppUserModelId('com.workdiary.app');
   const ud = app.getPath('userData');
   store = new JsonStore(path.join(ud, 'diary-data.json'));
