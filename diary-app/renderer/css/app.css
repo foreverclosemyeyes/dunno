@@ -785,3 +785,17 @@ body.layout-bigcal #record { background: transparent; border-color: transparent;
 body.layout-bigcal .nb-sheet { display: block; position: absolute; inset: -6px; border: 6px solid #0b0b0b; pointer-events: none; }
 body.layout-bigcal .nb-sheet-back { z-index: -2; background: color-mix(in srgb, var(--card-solid) 88%, #000); transform: rotate(5deg) translate(8px, 6px); }
 body.layout-bigcal .nb-sheet-front { z-index: -1; background: var(--card); }
+
+/* ---------- 둥근 모양 → 각진 딱지 ---------- */
+body.layout-bigcal #record-sub:empty { display: none; }
+body.layout-bigcal .ev-chip { border: 0; border-radius: 0; background: #0b0b0b; color: #fff; padding: 3px 12px 3px 10px; font-weight: 800; letter-spacing: -.3px;
+  clip-path: polygon(0 0, 100% 0, 96% 100%, 0 100%); transform: rotate(-1.5deg); }
+body.layout-bigcal .ev-chip.meet { background: var(--accent); }
+body.layout-bigcal .quest .st { border: 0; border-radius: 0; background: #0b0b0b; color: #fff; padding: 1px 7px; font-size: 10px; letter-spacing: 0;
+  clip-path: polygon(0 0, 100% 0, 92% 100%, 0 100%); }
+body.layout-bigcal #btn-open-notion { border-radius: 0; padding: 6px 18px 6px 14px; clip-path: polygon(0 0, 100% 0, 94% 100%, 0 100%); letter-spacing: -.2px; }
+body.layout-bigcal #record-sync { letter-spacing: .08em; font-weight: 800; opacity: .45; }
+body.layout-bigcal .rq-more { letter-spacing: .06em; }
+body.layout-bigcal .stats-legend { letter-spacing: -.2px; }
+.chip { border-radius: 0; clip-path: polygon(0 0, 100% 0, 94% 100%, 0 100%); }
+.top-actions .chip { clip-path: none; border-radius: 3px; }

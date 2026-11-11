@@ -70,7 +70,7 @@
     lines.push(total ? `오늘 할 일 ${left}개` : '오늘 체크리스트 없음');
     if (evs) lines.push(`일정 ${evs}개`);
     if (soon) lines.push(`마감 임박 ${soon}건`);
-    note.append(h('b', null, `${today.getMonth() + 1}/${today.getDate()} ${WD_KO[today.getDay()]}요일`), h('span', null, lines.join(' · ')));
+    note.append(h('b', null, `${today.getMonth() + 1}/${today.getDate()} ${WD_KO[today.getDay()]}요일`), h('span', null, lines.join('  /  ')));
     root.append(note);
     root.append(h('div', 'cut-skip', '누르면 넘어가요'));
 

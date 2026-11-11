@@ -70,7 +70,7 @@
   });
 
   const DEFAULT_THEME = {
-    version: 7,
+    version: 8,
     colors: toColors(PALETTES[0][1]),
     layout: {
       mode: 'bigcal', // bigcal = 큰 달력 + 노트 카드, classic = 큰 날짜 숫자 + 이번 주 띠
@@ -95,10 +95,10 @@
       bigDate: T({ font: 'Gasoek One', size: 168, tracking: -5, lineHeight: 0.82, skew: 10 }),
       monthDay: T({ font: 'Gasoek One', size: 30, tracking: 1, lineHeight: 1.05, upper: true }),
       section: T({ font: 'Gasoek One', size: 22, tracking: 0.5, lineHeight: 1.1, upper: true }),
-      checklist: T({ size: 13, weight: 400, lineHeight: 1.45 }),
-      quest: T({ size: 14, weight: 500, lineHeight: 1.35 }),
-      bubble: T({ size: 15, weight: 500, lineHeight: 1.55 }),
-      body: T({ size: 13, weight: 400 }),
+      checklist: T({ size: 13, weight: 400, lineHeight: 1.45, tracking: -0.5 }),
+      quest: T({ size: 14, weight: 600, lineHeight: 1.35, tracking: -0.5 }),
+      bubble: T({ size: 15, weight: 600, lineHeight: 1.5, tracking: -0.5 }),
+      body: T({ size: 13, weight: 500, tracking: -0.3 }),
       calNum: T({ font: 'Gasoek One', size: 92, tracking: -4, lineHeight: 0.9 }),
       calHead: T({ font: 'Gasoek One', size: 30, tracking: -1, lineHeight: 1, upper: true }),
       stamp: T({ font: 'Gasoek One', size: 64, tracking: -2, lineHeight: 0.9, rotate: -14, color: { c: '#E3170A', a: 1 } }),
@@ -162,6 +162,13 @@
     t.version = 4;
     return true;
   };
+  // 8판: 한글 자간 살짝 좁게
+  const migrate8 = (t) => {
+    if ((t.version || 1) >= 8) return false;
+    for (const k of ['checklist', 'quest', 'bubble', 'body']) if (t.text[k] && t.text[k].tracking === 0) t.text[k].tracking = DEFAULT_THEME.text[k].tracking;
+    t.version = 8;
+    return true;
+  };
   // 7판: 체크리스트 글씨 작게 (줄 간격은 글씨 크기를 따라감)
   const migrate7 = (t) => {
     if ((t.version || 1) >= 7) return false;
@@ -186,11 +193,12 @@
     return true;
   };
   D.migrateTheme = (t) => {
-    if ((t.version || 1) >= 6) return migrate7(t);
-    if ((t.version || 1) >= 5) { migrate6(t); migrate7(t); return true; }
-    if ((t.version || 1) >= 4) { migrate5(t); migrate6(t); migrate7(t); return true; }
-    if ((t.version || 1) >= 3) { migrate4(t); migrate5(t); migrate6(t); migrate7(t); return true; }
-    if ((t.version || 1) >= 2) { migrate3(t); migrate4(t); migrate5(t); migrate6(t); migrate7(t); return true; }
+    if ((t.version || 1) >= 7) return migrate8(t);
+    if ((t.version || 1) >= 6) { migrate7(t); migrate8(t); return true; }
+    if ((t.version || 1) >= 5) { migrate6(t); migrate7(t); migrate8(t); return true; }
+    if ((t.version || 1) >= 4) { migrate5(t); migrate6(t); migrate7(t); migrate8(t); return true; }
+    if ((t.version || 1) >= 3) { migrate4(t); migrate5(t); migrate6(t); migrate7(t); migrate8(t); return true; }
+    if ((t.version || 1) >= 2) { migrate3(t); migrate4(t); migrate5(t); migrate6(t); migrate7(t); migrate8(t); return true; }
     for (const k in OLD) if (t.colors[k] && t.colors[k].c && t.colors[k].c.toUpperCase() === OLD[k].toUpperCase()) t.colors[k] = { ...DEFAULT_THEME.colors[k] };
     if (t.layout.panelOpacity === 12) t.layout.panelOpacity = 100;
     if (t.layout.stripeOn === true && t.layout.stripeAngle === -24) t.layout.stripeOn = false;
@@ -202,6 +210,7 @@
     migrate5(t);
     migrate6(t);
     migrate7(t);
+    migrate8(t);
     return true;
   };
   D.clone = (o) => JSON.parse(JSON.stringify(o));

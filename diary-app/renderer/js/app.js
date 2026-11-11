@@ -58,7 +58,7 @@
     big.appendChild(S('bigDate', String(t.getDate())));
     $('#md-month').replaceChildren(S('monthDay', `${t.getMonth() + 1}월`));
     $('#md-day').replaceChildren(S('monthDay', `${WD[t.getDay()]}요일`));
-    $('#md-year').replaceChildren(S('body', `${t.getFullYear()} · ${WD_EN[t.getDay()]}`));
+    $('#md-year').replaceChildren(S('body', `${t.getFullYear()} ${WD_EN[t.getDay()]}`));
 
     // 이번 주 월~금
     const strip = $('#week-strip'); strip.innerHTML = '';
@@ -132,7 +132,7 @@
     const [y, m] = state.viewMonth.split('-').map(Number);
     const sel = parse(state.selected);
     $('#bc-month-label').replaceChildren(S('calHead', MON_EN[m - 1]), S('body', ` ${y}`, 'bc-year'));
-    $('#bc-tag').replaceChildren(S('body', `${sel.getMonth() + 1}/${sel.getDate()} (${WD[sel.getDay()]})${state.selected === state.today ? ' · 오늘' : ''}`));
+    $('#bc-tag').replaceChildren(S('body', `${sel.getMonth() + 1}/${sel.getDate()} (${WD[sel.getDay()]})${state.selected === state.today ? '  TODAY' : ''}`));
 
     const head = $('#bc-head'); head.innerHTML = '';
     const grid = $('#bc-grid'); grid.innerHTML = '';
@@ -281,7 +281,7 @@
     const isToday = state.selected === state.today;
     $('#record-title').replaceChildren(S('section', isToday ? '오늘의 기록' : `${sel.getMonth() + 1}/${sel.getDate()} (${WD[sel.getDay()]})의 기록`));
     const info = dayInfo(state.selected);
-    $('#record-sub').replaceChildren(S('body', info ? `노션 · ${info.pageName}` : `${sel.getMonth() + 1}월 ${sel.getDate()}일 ${WD[sel.getDay()]}요일`));
+    $('#record-sub').replaceChildren(info ? '' : S('body', `${sel.getMonth() + 1}월 ${sel.getDate()}일 ${WD[sel.getDay()]}요일`));
     const c = count(info && info.items);
     const rc = $('#record-count'); rc.innerHTML = '';
     if (c.total) {
@@ -289,7 +289,7 @@
     }
     const evBox = $('#record-events'); evBox.innerHTML = '';
     for (const e of eventsOn(state.selected)) {
-      const chip = h('button', 'ev-chip' + (isMeet(e) ? ' meet' : ''), `일정 · ${e.name}${e.start !== e.end ? `  ${e.start.slice(5).replace('-', '/')}~${e.end.slice(5).replace('-', '/')}` : ''}`);
+      const chip = h('button', 'ev-chip' + (isMeet(e) ? ' meet' : ''), `${e.name}${e.start !== e.end ? ` ${e.start.slice(5).replace('-', '/')}–${e.end.slice(5).replace('-', '/')}` : ''}`);
       chip.title = '노션에서 열기';
       chip.onclick = () => window.diary.open(e.url);
       evBox.append(chip);
@@ -299,7 +299,7 @@
     const qs = state.data.quests || [];
     if (qs.length) {
       const head = h('div', 'rq-head');
-      const more = h('button', 'rq-more', `${qs.length}개 · 자세히 →`);
+      const more = h('button', 'rq-more', `ALL ${qs.length} →`);
       more.onclick = () => { $('#record').dataset.tab = 'quests'; };
       head.append(h('b', null, '진행 중 업무'), more);
       rq.append(head);
@@ -375,7 +375,7 @@
     const meta = $('#asst-meta');
     if (msg && msg.at && !msg.thinking) {
       const t = new Date(msg.at);
-      meta.textContent = `${pad(t.getHours())}:${pad(t.getMinutes())} · ${msg.source === 'claude' ? 'Claude' : '연결 안 됨'}${msg.note ? ' · ' + msg.note : ''}`;
+      meta.textContent = `${pad(t.getHours())}:${pad(t.getMinutes())}${msg.source === 'claude' ? '' : ' 연결 안 됨'}${msg.note ? ' — ' + msg.note : ''}`;
     } else meta.textContent = '';
     $('#chk-hourly').checked = !!state.settings.hourly;
     $('#btn-claude').hidden = !state.settings.claudeUrl;
@@ -385,7 +385,7 @@
     const list = $('#chat-list'); list.innerHTML = '';
     if (!state.chat.length) list.append(h('div', 'msg auto', '아직 대화가 없어요. 아래 칸에 말을 걸어 보세요.'));
     for (const m of state.chat) {
-      if (m.auto) { list.append(h('div', 'msg auto', `⏰ 정시 체크 · ${new Date(m.at).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' })}`)); continue; }
+      if (m.auto) { list.append(h('div', 'msg auto', `정시 체크 ${new Date(m.at).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' })}`)); continue; }
       const el = h('div', 'msg ' + m.role, m.text);
       const t = h('time', null, new Date(m.at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }));
       el.append(t);
@@ -478,7 +478,7 @@
     const head = $('#stats-title'); head.innerHTML = '';
     const sel = parse(state.selected);
     const lg = h('small', 'stats-legend');
-    lg.textContent = `${sel.getMonth() + 1}월 누적${state.settings.autoStats === false ? '' : ' · 업무 완료하면 자동 UP'}`;
+    lg.textContent = `${sel.getMonth() + 1}월 누적`;
     head.append(S('section', '인간 파라미터'), lg);
     const totals = monthTotals(state.selected);
     const today = state.stats[state.selected] || {};
@@ -512,7 +512,7 @@
       const v = totals[st], lv = lvOf(v);
       const lo = LV[lv - 1], hi = lv < 5 ? LV[lv] : null;
       const row = h('div', 'pn-row');
-      row.append(h('b', null, st), h('span', 'pn-rank', `${lv} · ${RANKS[st][lv - 1]}`));
+      row.append(h('b', null, st), h('span', 'pn-rank', `Lv.${lv} ${RANKS[st][lv - 1]}`));
       const bar = h('div', 'pn-bar'); const fill = h('i');
       fill.style.width = hi ? `${((v - lo) / (hi - lo)) * 100}%` : '100%';
       bar.append(fill);
@@ -573,7 +573,7 @@
     else if (d.lastSync) { const t = new Date(d.lastSync); txt = `마지막 동기화 ${pad(t.getHours())}:${pad(t.getMinutes())}`; }
     el.textContent = txt.length > 70 ? txt.slice(0, 70) + '…' : txt;
     el.title = d.error || '';
-    $('#record-sync').textContent = d.lastSync ? `노션 ${pad(new Date(d.lastSync).getHours())}:${pad(new Date(d.lastSync).getMinutes())} 기준 · 2분마다 자동` : '';
+    $('#record-sync').textContent = d.lastSync ? `SYNC ${pad(new Date(d.lastSync).getHours())}:${pad(new Date(d.lastSync).getMinutes())}` : '';
     $('#btn-pin').classList.toggle('on', !!state.settings.alwaysOnTop);
   }
 
