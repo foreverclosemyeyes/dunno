@@ -142,7 +142,7 @@
       const j = jitter('h' + w, J);
       cell.style.transform = `translateY(${j.dy.toFixed(1)}px) rotate(${j.rot.toFixed(1)}deg)`;
       cell.append(S('calHead', w));
-      head.append(cell);
+      grid.append(cell); // 요일도 숫자와 같은 칸에 → 열이 딱 맞음
     });
     const first = new Date(y, m - 1, 1);
     const last = new Date(y, m, 0);
@@ -165,7 +165,7 @@
         if (di === state.today) { cell.classList.add('today'); todayCol = c; }
         if (di === state.selected) cell.classList.add('sel');
         const j = jitter(di, J);
-        const rs = 0.84 + r * 0.055; // 아래 줄로 갈수록 크게 (원근감)
+        const rs = 1; // 모든 줄 같은 크기
         cell.style.transform = `translateY(${j.dy.toFixed(1)}px) rotate(${j.rot.toFixed(1)}deg) scale(${rs.toFixed(3)})`;
         cell.style.transformOrigin = '50% 85%';
         cell.append(S('calNum', String(dayNum)));

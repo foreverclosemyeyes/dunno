@@ -946,3 +946,12 @@ body.layout-bigcal #record-count { right: 36px; }
 #chat-input, .msg, .rq-row, .rq-head b, .pn-rank, .quest .meta, #record-events .ev-chip, .chip, .tb-btn ~ .sync { font-family: "Nanum Gothic", "Noto Sans KR Variable", sans-serif; }
 #chat-input { font-size: 15px; letter-spacing: .3px; }
 .mc-nav { font-family: "Noto Sans KR Variable", sans-serif !important; font-weight: 900 !important; }
+
+/* 요일은 숫자 열 위 가운데 */
+#bc-head { display: none; }
+#bc-grid { grid-template-columns: repeat(7, auto); }
+.bc-h { align-self: end; justify-self: center; padding-bottom: 2px; }
+/* 달력 숫자만 살짝 깎기 (배경색 외곽선) */
+body.layout-bigcal .bc-d .el-calNum { -webkit-text-stroke: 3px var(--bg); paint-order: normal; }
+body.layout-bigcal .bc-d.today .el-calNum, body.layout-bigcal .bc-d.sel .el-calNum { -webkit-text-stroke: 3px var(--accent); }
+body.layout-bigcal .bc-d.sel:not(.today) .el-calNum { -webkit-text-stroke: 3px var(--main); }
