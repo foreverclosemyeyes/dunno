@@ -3,7 +3,7 @@
   // 색 조합 (설정 > 색·배치 > 색 조합에서 한 번에 바꾸기)
   const P = (bg, main, accent, card, cardText, sun, sat, panel, param, event) => ({ bg, main, accent, card, cardText, sun, sat, panel, param, event: event || main });
   const PALETTES = [
-    ['레퍼런스', P('#140202', '#D6D2D3', '#E3170A', '#FDFDFD', '#000000', '#9C0C01', '#007C94', '#B5B5B5', '#FFCF34', '#D6D2D3')],
+    ['레퍼런스', P('#0B0808', '#D6D2D3', '#E3170A', '#FDFDFD', '#000000', '#9C0C01', '#007C94', '#B5B5B5', '#FFCF34', '#D6D2D3')],
     ['블랙 레드', P('#0D0D0F', '#EDEDED', '#E3241B', '#FAFAF7', '#111111', '#E3241B', '#2F9BD6', '#C7C7C9', '#F5C518')],
     ['모노크롬', P('#111111', '#F2F2F2', '#FF3B30', '#FFFFFF', '#0A0A0A', '#FF3B30', '#8E8E93', '#E5E5E5', '#FF3B30')],
     ['미드나잇 옐로', P('#0E1726', '#E8EDF5', '#FFC629', '#FFFFFF', '#0E1726', '#FF6B5B', '#5FB3FF', '#C9D3E0', '#FFC629')],
@@ -50,9 +50,9 @@
       kind: 'linear',
       angle: 200,
       stops: [
-        { c: '#3A0909', a: 1, p: 0 },
-        { c: '#1A0303', a: 1, p: 45 },
-        { c: '#0B0000', a: 1, p: 100 },
+        { c: '#211414', a: 1, p: 0 },
+        { c: '#110B0B', a: 1, p: 45 },
+        { c: '#060505', a: 1, p: 100 },
       ],
     },
     media: null,
@@ -70,7 +70,7 @@
   });
 
   const DEFAULT_THEME = {
-    version: 4,
+    version: 5,
     colors: toColors(PALETTES[0][1]),
     layout: {
       mode: 'bigcal', // bigcal = 큰 달력 + 노트 카드, classic = 큰 날짜 숫자 + 이번 주 띠
@@ -162,9 +162,19 @@
     t.version = 4;
     return true;
   };
+  // 5판: 배경만 더 어둡고 채도 낮게
+  const migrate5 = (t) => {
+    if ((t.version || 1) >= 5) return false;
+    if (t.colors.bg && t.colors.bg.c && t.colors.bg.c.toUpperCase() === '#140202') t.colors.bg = { ...DEFAULT_THEME.colors.bg };
+    const b = t.background && t.background.base;
+    if (b && b.type === 'gradient' && b.grad.stops[0] && b.grad.stops[0].c.toUpperCase() === '#3A0909') b.grad = JSON.parse(JSON.stringify(DEFAULT_THEME.background.base.grad));
+    t.version = 5;
+    return true;
+  };
   D.migrateTheme = (t) => {
-    if ((t.version || 1) >= 3) return migrate4(t);
-    if ((t.version || 1) >= 2) { migrate3(t); return migrate4(t) || true; }
+    if ((t.version || 1) >= 4) return migrate5(t);
+    if ((t.version || 1) >= 3) { migrate4(t); migrate5(t); return true; }
+    if ((t.version || 1) >= 2) { migrate3(t); migrate4(t); migrate5(t); return true; }
     for (const k in OLD) if (t.colors[k] && t.colors[k].c && t.colors[k].c.toUpperCase() === OLD[k].toUpperCase()) t.colors[k] = { ...DEFAULT_THEME.colors[k] };
     if (t.layout.panelOpacity === 12) t.layout.panelOpacity = 100;
     if (t.layout.stripeOn === true && t.layout.stripeAngle === -24) t.layout.stripeOn = false;
@@ -173,6 +183,7 @@
     t.version = 2;
     migrate3(t);
     migrate4(t);
+    migrate5(t);
     return true;
   };
   D.clone = (o) => JSON.parse(JSON.stringify(o));
