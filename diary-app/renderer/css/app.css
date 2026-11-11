@@ -714,3 +714,28 @@ body.layout-bigcal .rq-head b { font-size: 21px; letter-spacing: -.5px; }
 body.layout-bigcal .rq-list { flex: 1; min-height: 0; overflow-y: auto; }
 body.layout-bigcal .rq-row { padding: 7px 2px; font-size: 14px; border-bottom-color: color-mix(in srgb, var(--card-text-solid) 18%, transparent); }
 body.layout-bigcal .rq-dd { font-size: 13px; }
+
+/* ---------- 종이 여러 장: 1장 = 오늘의 기록(+파라미터 탭), 2장 = 진행 중 업무 ---------- */
+body.layout-bigcal #record-quests { display: none !important; }
+body.layout-bigcal #record-list { flex: 1 1 auto; }
+body.layout-bigcal .nb-tabs button[data-tab="quests"] { display: none; }
+body.layout-bigcal #record { flex: 1.35 1 0; margin-bottom: 4px; }
+body.layout-bigcal #right > #quests {
+  position: relative; flex: 1 1 0; min-height: 150px; display: flex; flex-direction: column;
+  margin: 0 64px 16px 30px; padding: 18px 64px 12px 30px;
+  background: var(--card); color: var(--card-text); border: 6px solid #0b0b0b; border-radius: 2px;
+  transform: rotate(2.2deg); z-index: 1; backdrop-filter: none;
+}
+body.layout-bigcal #right > #quests::before {
+  content: ''; position: absolute; right: 16px; top: 18px; bottom: 18px; width: 20px; pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, #0b0b0b 0 7.5px, color-mix(in srgb, var(--card-text-solid) 35%, transparent) 8px 9px, transparent 9.5px) center top / 20px 40px repeat-y;
+}
+body.layout-bigcal #right > #quests::after {
+  content: ''; position: absolute; left: 0; right: 40px; bottom: 0; height: 45%; pointer-events: none; opacity: .4;
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--card-text-solid) 22%, transparent) 1.4px, transparent 1.6px); background-size: 7px 7px;
+  -webkit-mask-image: linear-gradient(160deg, transparent 35%, #000 95%); mask-image: linear-gradient(160deg, transparent 35%, #000 95%);
+}
+body.layout-bigcal #right > #quests #quest-list { flex: 1; min-height: 0; overflow-y: auto; padding-left: 0; }
+body.layout-bigcal #right > #quests .panel-head { border-bottom: 4px solid #0b0b0b; padding-bottom: 6px; margin-bottom: 4px; }
+body.layout-bigcal #right > #quests .quest { padding: 7px 2px; }
+body.layout-bigcal #right > #quests #quest-list { scrollbar-width: thin; scrollbar-color: #0b0b0b55 transparent; }

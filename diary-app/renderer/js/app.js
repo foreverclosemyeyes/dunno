@@ -581,7 +581,8 @@
     const big = state.theme.layout.mode === 'bigcal';
     const q = $('#quests'), st = $('#stats');
     if (big) {
-      if (q.parentElement !== $('.nb-pane[data-pane="quests"]')) $('.nb-pane[data-pane="quests"]').append(q);
+      // 진행 중 업무는 노트 아래 따로 놓인 두 번째 종이
+      if (q.previousElementSibling !== $('#record') || q.parentElement !== $('#right')) $('#record').after(q);
       if (st.parentElement !== $('.nb-pane[data-pane="params"]')) $('.nb-pane[data-pane="params"]').append(st);
     } else {
       if (q.parentElement !== $('#right')) $('#right').append(q);
