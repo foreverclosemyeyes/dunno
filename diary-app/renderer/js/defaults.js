@@ -70,7 +70,7 @@
   });
 
   const DEFAULT_THEME = {
-    version: 12,
+    version: 13,
     colors: toColors(PALETTES[0][1]),
     layout: {
       mode: 'bigcal', // bigcal = 큰 달력 + 노트 카드, classic = 큰 날짜 숫자 + 이번 주 띠
@@ -93,15 +93,15 @@
       texture: 35,
     },
     text: {
-      bigDate: T({ font: 'Gasoek One', size: 168, tracking: -5, lineHeight: 0.82, skew: 10 }),
-      monthDay: T({ font: 'Gasoek One', size: 30, tracking: 1, lineHeight: 1.05, upper: true }),
-      section: T({ font: 'Gasoek One', size: 22, tracking: 0.5, lineHeight: 1.1, upper: true }),
+      bigDate: T({ font: 'Lilita One', size: 168, tracking: -3, lineHeight: 0.82, skew: 10 }),
+      monthDay: T({ font: 'Lilita One', size: 30, tracking: 1, lineHeight: 1.05, upper: true }),
+      section: T({ font: 'Black Han Sans', size: 24, tracking: 0, lineHeight: 1.1, upper: true }),
       checklist: T({ font: 'Nanum Gothic', size: 13, weight: 700, lineHeight: 1.4, tracking: 0 }),
       quest: T({ font: 'Nanum Gothic', size: 14, weight: 700, lineHeight: 1.3, tracking: 0 }),
       bubble: T({ font: 'Nanum Gothic', size: 16, weight: 700, lineHeight: 1.45, tracking: 0.3 }),
       body: T({ font: 'Nanum Gothic', size: 13, weight: 700, tracking: 0 }),
-      calNum: T({ font: 'Gasoek One', size: 92, tracking: -4, lineHeight: 0.9, scaleY: 122 }),
-      calHead: T({ font: 'Gasoek One', size: 30, tracking: -1, lineHeight: 1, upper: true }),
+      calNum: T({ font: 'Lilita One', size: 96, tracking: -2, lineHeight: 0.9, scaleY: 110 }),
+      calHead: T({ font: 'Lilita One', size: 32, tracking: -1, lineHeight: 1, upper: false }),
       stamp: T({ font: 'Permanent Marker', size: 72, tracking: -2, lineHeight: 0.9, rotate: -14, color: { c: '#E3170A', a: 1 } }),
     },
     background: {
@@ -161,6 +161,20 @@
     if (t.text.stamp && t.text.stamp.color && ['#E3241B', '#D8231B', '#FF4A1C'].includes(t.text.stamp.color.c)) t.text.stamp.color.c = DEFAULT_THEME.colors.accent.c;
     if (t.background && t.background.base && t.background.base.type === 'theme') t.background.base = JSON.parse(JSON.stringify(DEFAULT_THEME.background.base));
     t.version = 4;
+    return true;
+  };
+  // 13판: 글씨체를 레퍼런스에 가깝게 (달력 숫자·요일 Lilita One, 제목 Black Han Sans)
+  const migrate13 = (t) => {
+    if ((t.version || 1) >= 13) return false;
+    const x = t.text;
+    for (const k of ['bigDate', 'monthDay', 'calNum', 'calHead']) if (x[k] && x[k].font === 'Gasoek One') {
+      const d = DEFAULT_THEME.text[k];
+      Object.assign(x[k], { font: d.font, tracking: d.tracking, upper: d.upper });
+      if (k === 'calNum') Object.assign(x[k], { size: d.size, scaleY: d.scaleY });
+      if (k === 'calHead') x[k].size = d.size;
+    }
+    if (x.section && x.section.font === 'Gasoek One') Object.assign(x.section, { font: 'Black Han Sans', size: 24, tracking: 0 });
+    t.version = 13;
     return true;
   };
   // 12판: 달력 숫자 세로로 조금 더 길게
@@ -228,16 +242,17 @@
     return true;
   };
   D.migrateTheme = (t) => {
-    if ((t.version || 1) >= 11) return migrate12(t);
-    if ((t.version || 1) >= 10) { migrate11(t); migrate12(t); return true; }
-    if ((t.version || 1) >= 9) { migrate10(t); migrate11(t); migrate12(t); return true; }
-    if ((t.version || 1) >= 8) { migrate9(t); migrate10(t); migrate11(t); migrate12(t); return true; }
-    if ((t.version || 1) >= 7) { migrate8(t); migrate9(t); migrate10(t); migrate11(t); migrate12(t); return true; }
-    if ((t.version || 1) >= 6) { migrate7(t); migrate8(t); migrate9(t); migrate10(t); migrate11(t); migrate12(t); return true; }
-    if ((t.version || 1) >= 5) { migrate6(t); migrate7(t); migrate8(t); migrate9(t); migrate10(t); migrate11(t); migrate12(t); return true; }
-    if ((t.version || 1) >= 4) { migrate5(t); migrate6(t); migrate7(t); migrate8(t); migrate9(t); migrate10(t); migrate11(t); migrate12(t); return true; }
-    if ((t.version || 1) >= 3) { migrate4(t); migrate5(t); migrate6(t); migrate7(t); migrate8(t); migrate9(t); migrate10(t); migrate11(t); migrate12(t); return true; }
-    if ((t.version || 1) >= 2) { migrate3(t); migrate4(t); migrate5(t); migrate6(t); migrate7(t); migrate8(t); migrate9(t); migrate10(t); migrate11(t); migrate12(t); return true; }
+    if ((t.version || 1) >= 12) return migrate13(t);
+    if ((t.version || 1) >= 11) { migrate12(t); migrate13(t); return true; }
+    if ((t.version || 1) >= 10) { migrate11(t); migrate12(t); migrate13(t); return true; }
+    if ((t.version || 1) >= 9) { migrate10(t); migrate11(t); migrate12(t); migrate13(t); return true; }
+    if ((t.version || 1) >= 8) { migrate9(t); migrate10(t); migrate11(t); migrate12(t); migrate13(t); return true; }
+    if ((t.version || 1) >= 7) { migrate8(t); migrate9(t); migrate10(t); migrate11(t); migrate12(t); migrate13(t); return true; }
+    if ((t.version || 1) >= 6) { migrate7(t); migrate8(t); migrate9(t); migrate10(t); migrate11(t); migrate12(t); migrate13(t); return true; }
+    if ((t.version || 1) >= 5) { migrate6(t); migrate7(t); migrate8(t); migrate9(t); migrate10(t); migrate11(t); migrate12(t); migrate13(t); return true; }
+    if ((t.version || 1) >= 4) { migrate5(t); migrate6(t); migrate7(t); migrate8(t); migrate9(t); migrate10(t); migrate11(t); migrate12(t); migrate13(t); return true; }
+    if ((t.version || 1) >= 3) { migrate4(t); migrate5(t); migrate6(t); migrate7(t); migrate8(t); migrate9(t); migrate10(t); migrate11(t); migrate12(t); migrate13(t); return true; }
+    if ((t.version || 1) >= 2) { migrate3(t); migrate4(t); migrate5(t); migrate6(t); migrate7(t); migrate8(t); migrate9(t); migrate10(t); migrate11(t); migrate12(t); migrate13(t); return true; }
     for (const k in OLD) if (t.colors[k] && t.colors[k].c && t.colors[k].c.toUpperCase() === OLD[k].toUpperCase()) t.colors[k] = { ...DEFAULT_THEME.colors[k] };
     if (t.layout.panelOpacity === 12) t.layout.panelOpacity = 100;
     if (t.layout.stripeOn === true && t.layout.stripeAngle === -24) t.layout.stripeOn = false;

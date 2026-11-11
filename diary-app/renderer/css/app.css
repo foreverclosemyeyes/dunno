@@ -1217,3 +1217,62 @@ body.fx-intro #asst-col { animation: fxIn .45s .5s cubic-bezier(.2,.9,.25,1.15) 
   .fx-burst { display: none; }
   .fx-pop { animation: none !important; }
 }
+
+
+/* ===== 레퍼런스 달력 배경: 왼쪽 검붉은 면 + 오른쪽 회색 면 (한 번 크게 꺾이는 모양) ===== */
+body.layout-bigcal #bg-base { background: radial-gradient(ellipse 70% 80% at 28% 45%, rgba(120, 12, 12, .38), transparent 75%), var(--bg); }
+body.layout-bigcal #bg-panel {
+  background: var(--panel);
+  clip-path: polygon(
+    57% 0, 70.7% 0, 72.4% 6.9%, 74% 0, 100% 0, 100% 100%,
+    50.4% 100%, 68.4% 24.6%, 62.7% 23%) !important;
+}
+.shard { display: none !important; }
+
+/* ===== 글씨체: 메뉴바는 Black Han Sans, 하루 시작 컷은 Dela Gothic One ===== */
+.tb-btn, .nb-tabs button { font-family: "Black Han Sans", "Gasoek One", sans-serif !important; letter-spacing: .04em; font-size: 14px; }
+.cut { --cut-font: "Lilita One", "Black Han Sans", sans-serif !important; }
+.cut .cut-num, .cut .cut-wd, .cut-head, .cut-note b { font-family: "Lilita One", "Black Han Sans", sans-serif; }
+.cut .cut-wd b, .cut-head .cut-month { font-family: "Black Han Sans", sans-serif; }
+.cut .cut-num { letter-spacing: -.03em; font-size: 26vh; }
+.cut .cut-wd { letter-spacing: -.01em; }
+.cut .cut-wd b { font-size: .85em; -webkit-text-stroke: .32vh #111; margin-left: .2em; }
+
+/* 오른쪽 위 날짜표: 레퍼런스처럼 명조 */
+#bc-tag, #bc-tag * { font-family: "Nanum Myeongjo", serif !important; font-weight: 800 !important; letter-spacing: .02em; }
+.cut .cut-wd b { font-family: "Black Han Sans", sans-serif !important; font-size: 1em; -webkit-text-stroke: 0; color: #fff;
+  text-shadow: .12vh .12vh 0 #111, -.12vh -.12vh 0 #111, .12vh -.12vh 0 #111, -.12vh .12vh 0 #111, .3vh .3vh 0 #111; font-size: 1.05em; }
+
+/* ===== 하루 시작 컷 글씨: 레퍼런스처럼 ===== */
+/* 숫자: 세로로 긴 둥근 글씨, 검은 속 + 두꺼운 흰 테두리 + 가는 검은 바깥선 */
+.cut .cut-num { font-family: "Lilita One", sans-serif !important; font-size: 25vh; letter-spacing: -.01em; transform: scaleY(1.12);
+  -webkit-text-stroke: 2.4vh #fff; paint-order: stroke fill;
+  filter: drop-shadow(.28vh 0 0 #111) drop-shadow(-.28vh 0 0 #111) drop-shadow(0 .28vh 0 #111) drop-shadow(0 -.28vh 0 #111); }
+/* 요일: 흰 글씨 + 검은 선, 바깥에 흰 스티커 테두리, 글자마다 들쭉날쭉 */
+.cut .cut-wd { font-family: "Lilita One", sans-serif !important; font-size: 5vh; color: #fff; letter-spacing: 0; margin-top: -1vh;
+  -webkit-text-stroke: .55vh #111; paint-order: stroke fill; transform: rotate(-7deg);
+  filter: drop-shadow(.45vh 0 0 #fff) drop-shadow(-.45vh 0 0 #fff) drop-shadow(0 .45vh 0 #fff) drop-shadow(0 -.45vh 0 #fff)
+          drop-shadow(.18vh 0 0 #111) drop-shadow(-.18vh 0 0 #111) drop-shadow(0 .18vh 0 #111) drop-shadow(0 -.18vh 0 #111); }
+.cut .cut-wd-en i { display: inline-block; font-style: normal; transform: translateY(var(--y)) rotate(var(--r)) scale(var(--s)); transform-origin: 50% 80%; margin: 0 -.02em; }
+.cut .cut-wd b { font-family: "Black Han Sans", sans-serif !important; font-size: .78em; color: #fff; -webkit-text-stroke: .35vh #111; text-shadow: none; margin-left: .15em; }
+.cut .cut-day.today .cut-wd { font-size: 6.2vh; }
+.cut-head { font-family: "Lilita One", "Black Han Sans", sans-serif !important; -webkit-text-stroke: 1.2vh #fff; }
+
+/* 컷 글씨: 각지고 세로로 긴 Anton (레퍼런스의 날 선 느낌) */
+.cut .cut-num { font-family: "Anton", sans-serif !important; font-size: 27vh; letter-spacing: .01em; transform: scaleY(1.04) skewX(-4deg); -webkit-text-stroke: 2.2vh #fff; }
+.cut .cut-wd { font-family: "Anton", sans-serif !important; font-size: 5.6vh; letter-spacing: .01em; }
+.cut .cut-day.today .cut-wd { font-size: 7vh; }
+.cut-head { font-family: "Anton", "Black Han Sans", sans-serif !important; letter-spacing: .02em; }
+.cut .cut-wd { -webkit-text-stroke: .32vh #111;
+  filter: drop-shadow(.4vh 0 0 #fff) drop-shadow(-.4vh 0 0 #fff) drop-shadow(0 .4vh 0 #fff) drop-shadow(0 -.4vh 0 #fff)
+          drop-shadow(.15vh 0 0 #111) drop-shadow(-.15vh 0 0 #111) drop-shadow(0 .15vh 0 #111) drop-shadow(0 -.15vh 0 #111); }
+.cut .cut-wd-en i { margin: 0 .01em; }
+/* 숫자는 작게, 외곽선은 더 굵게 */
+.cut .cut-num { font-size: 21vh; -webkit-text-stroke: 2.6vh #fff;
+  filter: drop-shadow(.5vh 0 0 #111) drop-shadow(-.5vh 0 0 #111) drop-shadow(0 .5vh 0 #111) drop-shadow(0 -.5vh 0 #111) drop-shadow(.7vh .7vh 0 rgba(0,0,0,.35)); }
+.cut .cut-wd { font-size: 5vh; -webkit-text-stroke: .4vh #111;
+  filter: drop-shadow(.6vh 0 0 #fff) drop-shadow(-.6vh 0 0 #fff) drop-shadow(0 .6vh 0 #fff) drop-shadow(0 -.6vh 0 #fff)
+          drop-shadow(.3vh 0 0 #111) drop-shadow(-.3vh 0 0 #111) drop-shadow(0 .3vh 0 #111) drop-shadow(0 -.3vh 0 #111); }
+.cut .cut-day.today .cut-wd { font-size: 6vh; }
+.cut-head { -webkit-text-stroke: 1.5vh #fff;
+  filter: drop-shadow(.4vh 0 0 #111) drop-shadow(-.4vh 0 0 #111) drop-shadow(0 .4vh 0 #111) drop-shadow(0 -.4vh 0 #111); }

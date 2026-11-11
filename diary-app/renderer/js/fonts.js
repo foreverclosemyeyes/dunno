@@ -4,6 +4,10 @@
   const ALL_WEIGHTS = [100, 200, 300, 400, 500, 600, 700, 800, 900];
 
   registry.set('Gasoek One', { css: 'Gasoek One', variable: null, weights: [400], source: 'builtin' });
+  registry.set('Dela Gothic One', { css: 'Dela Gothic One', variable: null, weights: [400], source: 'builtin' });
+  registry.set('Anton', { css: 'Anton', variable: null, weights: [400], source: 'builtin' });
+  registry.set('Lilita One', { css: 'Lilita One', variable: null, weights: [400], source: 'builtin' });
+  registry.set('Black Han Sans', { css: 'Black Han Sans', variable: null, weights: [400], source: 'builtin' });
   registry.set('Permanent Marker', { css: 'Permanent Marker', variable: null, weights: [400], source: 'builtin' });
   registry.set('Nanum Gothic', { css: 'Nanum Gothic', variable: null, weights: [400, 700, 800], source: 'builtin' });
   registry.set('Noto Sans KR', { css: 'Noto Sans KR Variable', variable: { min: 100, max: 900 }, weights: ALL_WEIGHTS, source: 'builtin' });
@@ -153,5 +157,5 @@
     return `"${i.css.replace(/"/g, '')}", "Noto Sans KR Variable", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`;
   }
 
-  D.fonts = { registry, info, cssStack, analyzeUpload, registerUploaded, loadSystemFonts, checkVariable, builtin: ['Gasoek One', 'Noto Sans KR', 'Nanum Gothic', 'Permanent Marker'] };
+  D.fonts = { registry, info, cssStack, analyzeUpload, registerUploaded, loadSystemFonts, checkVariable, builtin: ['Anton', 'Lilita One', 'Gasoek One', 'Dela Gothic One', 'Black Han Sans', 'Noto Sans KR', 'Nanum Gothic', 'Permanent Marker'] };
 })();

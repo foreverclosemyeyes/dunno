@@ -1,6 +1,6 @@
 // 하루 시작 컷: 날짜가 바뀐 뒤 처음 켰을 때(또는 켜 둔 채 자정이 지났을 때) 한 번 보여 줌
 (function () {
-  const WD_EN = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+  const WD_EN = ['SUNDaY', 'MoNDaY', 'TUESDaY', 'WeDNESDaY', 'THURSDaY', 'FRiDaY', 'SaTURDaY']; // 레퍼런스처럼 대소문자 섞기
   const WD_KO = ['일', '월', '화', '수', '목', '금', '토'];
   const pad = (n) => String(n).padStart(2, '0');
   const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -39,7 +39,19 @@
       const d = new Date(today); d.setDate(today.getDate() + off);
       const it = h('div', 'cut-day' + (d.getDay() === 0 ? ' sun' : d.getDay() === 6 ? ' sat' : '') + (off < 0 ? ' past' : '') + (off === 0 ? ' today' : ''));
       it.append(h('div', 'cut-num', String(d.getDate())));
-      const lab = h('div', 'cut-wd'); lab.append(h('span', null, WD_EN[d.getDay()]), h('b', null, WD_KO[d.getDay()]));
+      const lab = h('div', 'cut-wd');
+      // 레퍼런스처럼 글자마다 크기·높이·기울기가 조금씩 다른 스티커 글씨
+      const word = h('span', 'cut-wd-en');
+      [...WD_EN[d.getDay()]].forEach((ch, k) => {
+        const r1 = Math.sin((d.getDate() * 31 + k * 17) * 12.9898) * 43758.5453, r2 = Math.sin((d.getDate() * 7 + k * 29) * 78.233) * 12345.678;
+        const f1 = r1 - Math.floor(r1), f2 = r2 - Math.floor(r2);
+        const c = h('i', null, ch);
+        c.style.setProperty('--s', (ch === ch.toLowerCase() ? 0.9 : 0.94 + f1 * 0.16).toFixed(2));
+        c.style.setProperty('--r', ((f2 - 0.5) * 10).toFixed(1) + 'deg');
+        c.style.setProperty('--y', ((f1 - 0.5) * 0.12).toFixed(2) + 'em');
+        word.append(c);
+      });
+      lab.append(word);
       it.append(lab);
       it.style.setProperty('--i', String(off + 4));
       stage.append(it);
