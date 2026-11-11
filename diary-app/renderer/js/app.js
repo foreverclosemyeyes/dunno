@@ -281,7 +281,7 @@
     const isToday = state.selected === state.today;
     $('#record-title').replaceChildren(S('section', isToday ? '오늘의 기록' : `${sel.getMonth() + 1}/${sel.getDate()} (${WD[sel.getDay()]})의 기록`));
     const info = dayInfo(state.selected);
-    $('#record-sub').replaceChildren(S('body', info ? info.pageName : `${sel.getMonth() + 1}월 ${sel.getDate()}일 ${WD[sel.getDay()]}요일`));
+    $('#record-sub').replaceChildren(S('body', info ? `노션 · ${info.pageName}` : `${sel.getMonth() + 1}월 ${sel.getDate()}일 ${WD[sel.getDay()]}요일`));
     const c = count(info && info.items);
     const rc = $('#record-count'); rc.innerHTML = '';
     if (c.total) {
@@ -289,7 +289,7 @@
     }
     const evBox = $('#record-events'); evBox.innerHTML = '';
     for (const e of eventsOn(state.selected)) {
-      const chip = h('button', 'ev-chip' + (isMeet(e) ? ' meet' : ''), `${isMeet(e) ? '● ' : ''}${e.name}${e.start !== e.end ? `  ${e.start.slice(5).replace('-', '/')}~${e.end.slice(5).replace('-', '/')}` : ''}`);
+      const chip = h('button', 'ev-chip' + (isMeet(e) ? ' meet' : ''), `일정 · ${e.name}${e.start !== e.end ? `  ${e.start.slice(5).replace('-', '/')}~${e.end.slice(5).replace('-', '/')}` : ''}`);
       chip.title = '노션에서 열기';
       chip.onclick = () => window.diary.open(e.url);
       evBox.append(chip);
