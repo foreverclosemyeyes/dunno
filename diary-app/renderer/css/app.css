@@ -908,3 +908,31 @@ body.layout-bigcal #asst-controls { margin-left: 150px; }
 #record-count .slash { display: inline-block; width: 6px; height: 34px; background: #0b0b0b; transform: skewX(-22deg); margin: 0 4px 6px 6px; align-self: flex-end; }
 body.layout-bigcal #record-count .of { -webkit-text-stroke: 0; color: #0b0b0b; font-size: 30px; }
 body.layout-bigcal #asst-controls { margin-left: 120px; }
+
+/* ---------- 답하는 칸: 레퍼런스 선택지처럼 ---------- */
+#asst-controls #chat-form, #chat-form { position: relative; isolation: isolate; display: flex; align-items: center; gap: 8px; min-height: 50px; padding: 10px 58px 10px 24px; margin: 4px 0 0 0; transform: rotate(-1.5deg); }
+.reply-shape { position: absolute; left: 0; top: 0; overflow: visible; z-index: -1; pointer-events: none; }
+.reply-shape path { fill: #0b0b0b; stroke: #fff; stroke-width: 4; stroke-linejoin: miter; stroke-miterlimit: 8; filter: drop-shadow(5px 5px 0 rgba(0,0,0,.4)); }
+#asst-controls #chat-input, #chat-input { flex: 1; border: 0 !important; background: transparent !important; color: #fff; font: 700 16px "Nanum Gothic", "Noto Sans KR Variable", sans-serif; letter-spacing: .5px; padding: 2px 0; transform: none; outline: none; }
+#chat-input::placeholder { color: #ffffff70; }
+.reply-send { border: 0; background: none; color: #fff; font-size: 14px; padding: 0 4px; cursor: pointer; opacity: .7; }
+.reply-send:hover { opacity: 1; color: var(--accent); }
+/* 대화 기록: 내가 한 말도 같은 모양 */
+.msg.user { background: #0b0b0b; color: #fff; border: 3px solid #fff; border-radius: 0; clip-path: none; transform: rotate(-1deg); font-family: "Nanum Gothic", sans-serif; font-weight: 700; box-shadow: 4px 4px 0 rgba(0,0,0,.35); }
+.msg.assistant { font-family: "Nanum Gothic", sans-serif; font-weight: 700; border-radius: 0; }
+/* 한글은 단어 단위로 줄바꿈 */
+body, .msg, #asst-text { word-break: keep-all; overflow-wrap: anywhere; }
+#asst-controls #chat-form, #chat-form { min-height: 56px; }
+/* 0/5: 노트 오른쪽 위에 걸친 큰 도장 */
+body.layout-bigcal #record .card-head { position: static; min-height: 54px; }
+body.layout-bigcal #record-count { position: absolute; right: 64px; top: -30px; z-index: 4; margin: 0; padding: 0 0 16px; transform: rotate(-9deg); }
+body.layout-bigcal #record-count .big { font-size: 92px; letter-spacing: -4px; color: #0b0b0b; -webkit-text-stroke: 5px var(--card); paint-order: stroke fill; text-shadow: 6px 6px 0 var(--accent); }
+body.layout-bigcal #record-count .slash { height: 46px; width: 8px; margin: 0 5px 12px 4px; }
+body.layout-bigcal #record-count .of { font-size: 40px; margin-bottom: 10px; -webkit-text-stroke: 4px var(--card); paint-order: stroke fill; }
+body.layout-bigcal #record-count .lbl { right: -6px; bottom: -4px; font-size: 15px; padding: 3px 12px 2px; background: var(--accent); }
+body.layout-bigcal #record-stamp { right: auto; left: 46%; top: -34px; }
+body.layout-bigcal #record-count { right: 52px; top: -24px; }
+body.layout-bigcal #record-count .big { font-size: 66px; letter-spacing: -3px; text-shadow: 5px 5px 0 var(--accent); }
+body.layout-bigcal #record-count .slash { height: 34px; width: 7px; margin: 0 4px 10px 3px; }
+body.layout-bigcal #record-count .of { font-size: 30px; margin-bottom: 8px; }
+body.layout-bigcal #record-count .lbl { font-size: 13px; bottom: -2px; }

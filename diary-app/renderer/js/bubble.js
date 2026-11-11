@@ -73,14 +73,36 @@
     svg.firstChild.setAttribute('d', 'M' + pts.map((p) => p.map((v) => v.toFixed(1)).join(',')).join(' L') + ' Z');
   }
 
+  // 답하는 칸: 흰 테두리 검은 칸 + 오른쪽 뾰족한 꼬리 (한 외곽선)
+  function drawReply() {
+    const f = document.getElementById('chat-form');
+    if (!f) return;
+    let svg = f.querySelector('svg.reply-shape');
+    if (!svg) {
+      svg = document.createElementNS(NS, 'svg');
+      svg.classList.add('reply-shape');
+      svg.setAttribute('aria-hidden', 'true');
+      svg.append(document.createElementNS(NS, 'path'));
+      f.prepend(svg);
+    }
+    const w = f.offsetWidth, h = f.offsetHeight;
+    if (!w || !h) return;
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    svg.setAttribute('width', w); svg.setAttribute('height', h);
+    const tail = 34;
+    const R = w - tail;
+    const pts = [[10, 4], [R - 6, 0], [R - 2, h * 0.32], [R + tail * 0.55, h * 0.42], [R + 4, h * 0.5], [w, h * 0.78], [R - 8, h * 0.68], [R - 12, h], [0, h - 5]];
+    svg.firstChild.setAttribute('d', 'M' + pts.map((p) => p.map((v) => v.toFixed(1)).join(',')).join(' L') + ' Z');
+  }
+
   function update() {
-    requestAnimationFrame(() => { place(); requestAnimationFrame(draw); });
+    requestAnimationFrame(() => { place(); requestAnimationFrame(() => { draw(); drawReply(); }); });
   }
   window.addEventListener('resize', update);
   if (window.ResizeObserver) {
     window.addEventListener('DOMContentLoaded', () => {
       const ro = new ResizeObserver(update);
-      ['#asst-bubble', '#bigcal', '#asst-figure'].forEach((q) => { const el = $(q); if (el) ro.observe(el); });
+      ['#asst-bubble', '#bigcal', '#asst-figure', '#chat-form'].forEach((q) => { const el = $(q); if (el) ro.observe(el); });
     });
   }
   D.bubble = { update };
