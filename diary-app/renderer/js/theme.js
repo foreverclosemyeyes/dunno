@@ -44,7 +44,7 @@
       `--stripe-op:${L.stripeOpacity / 100}`, `--texture:${L.texture / 100}`,
       `--asst-size:${theme.assistant.size}px`, `--asst-x:${theme.assistant.x}px`, `--asst-y:${theme.assistant.y}px`,
       `--asst-flip:${theme.assistant.flip ? -1 : 1}`,
-      `--sat:${D.rgba(c.sat)}`, `--panel:${D.rgba(c.panel)}`, `--event:${D.rgba(c.event)}`, `--panel-op:${L.panelOpacity / 100}`, `--panel-angle:${L.panelAngle}`,
+      `--sun:${D.rgba(c.sun)}`, `--sat:${D.rgba(c.sat)}`, `--panel:${D.rgba(c.panel)}`, `--event:${D.rgba(c.event)}`, `--panel-op:${L.panelOpacity / 100}`, `--panel-angle:${L.panelAngle}`,
     ];
     let css = `:root{${vars.join(';')}}\n`;
     for (const [key] of D.ELEMENTS) {

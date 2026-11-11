@@ -238,7 +238,8 @@
     const rw = iw * Math.cos(rad) + ih * Math.sin(rad), rh = iw * Math.sin(rad) + ih * Math.cos(rad);
     const f = Math.min(bw / rw, bh / rh) * 0.98;
     inner.style.transformOrigin = '50% 50%';
-    inner.style.transform = `translate(${(bw - iw) / 2}px, ${(bh - ih) / 2}px) scale(${f}) rotate(${t}deg)`;
+    const ty = (rh * f - ih) / 2 + 4; // 위쪽에 붙임
+    inner.style.transform = `translate(${(bw - iw) / 2}px, ${ty}px) scale(${f}) rotate(${t}deg)`;
   }
   window.addEventListener('resize', () => fitBigCal());
 

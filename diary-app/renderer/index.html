@@ -36,6 +36,10 @@
     <main id="layout">
       <!-- 왼쪽: 달력 덩어리 (통째로 기울어짐) -->
       <section id="left">
+        <div id="bc-bar">
+          <div id="bc-month"><button class="mc-nav" id="bc-prev">‹</button><span id="bc-month-label"></span><button class="mc-nav" id="bc-next">›</button></div>
+          <div id="bc-tag"></div>
+        </div>
         <div id="bigcal">
           <div id="bc-inner">
             <div id="bc-head"></div>
@@ -65,10 +69,6 @@
 
       <!-- 오른쪽: 오늘의 기록 + 진행 중 업무 -->
       <section id="right">
-        <div id="bc-bar">
-          <div id="bc-month"><button class="mc-nav" id="bc-prev">‹</button><span id="bc-month-label"></span><button class="mc-nav" id="bc-next">›</button></div>
-          <div id="bc-tag"></div>
-        </div>
         <article id="record" class="card">
           <div id="record-stamp" hidden></div>
           <div class="card-head">
@@ -100,7 +100,14 @@
           </div>
           <div id="asst-figure"></div>
           <div id="asst-bubble">
-            <i class="asst-tail"></i>
+            <svg class="dlg-bg" viewBox="0 0 600 160" preserveAspectRatio="none" aria-hidden="true">
+              <polygon class="dlg-shadow" points="40,30 598,14 586,160 24,150"/>
+              <polygon class="dlg-fill" points="26,18 592,4 578,150 10,138"/>
+              <polygon class="dlg-inner" points="38,29 579,16 567,139 23,128"/>
+            </svg>
+            <svg class="dlg-tail" viewBox="0 0 80 70" aria-hidden="true">
+              <polygon class="dlg-tail-fill" points="80,8 40,22 50,30 0,50 62,40 52,34 80,34"/>
+            </svg>
             <div id="asst-name"></div>
             <div id="asst-text"></div>
             <form id="chat-form" autocomplete="off">

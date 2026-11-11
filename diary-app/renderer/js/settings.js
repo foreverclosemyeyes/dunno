@@ -274,7 +274,8 @@
     c.body.append(
       C.colorA(ctx, 'colors.bg', '배경'), C.colorA(ctx, 'colors.main', '메인 (글씨/선)'), C.colorA(ctx, 'colors.accent', '포인트'),
       C.colorA(ctx, 'colors.card', '카드'), C.colorA(ctx, 'colors.cardText', '카드 글씨'),
-      C.colorA(ctx, 'colors.sat', '토요일 (큰 달력)'),
+      C.colorA(ctx, 'colors.sun', '일요일'),
+      C.colorA(ctx, 'colors.sat', '토요일'),
       C.colorA(ctx, 'colors.panel', '사선 면'),
       C.colorA(ctx, 'colors.event', '일정 점·선'),
     );

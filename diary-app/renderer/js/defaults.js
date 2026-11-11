@@ -64,6 +64,7 @@
       accent: { c: '#FF4A1C', a: 1 },
       card: { c: '#F3EEE3', a: 1 },
       cardText: { c: '#151515', a: 1 },
+      sun: { c: '#FF4A1C', a: 1 },
       sat: { c: '#2FA4C7', a: 1 },
       panel: { c: '#F3EEE3', a: 1 },
       event: { c: '#F3EEE3', a: 1 },
