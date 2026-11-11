@@ -175,6 +175,7 @@ function parseMarkdown(md, pageId, startISO) {
   const lines = md.split('\n');
   const days = {};
   const anchors = new Map();
+  const sections = {}; // 날짜 → { start, last } (줄 번호)
   const fallback = startISO ? workdaysFrom(startISO, 10) : [];
   let col = -1, date = null, secStart = 0, stack = [], counter = {};
   for (let i = 0; i < lines.length; i++) {
@@ -185,12 +186,15 @@ function parseMarkdown(md, pageId, startISO) {
       const y = resolveYear(+dm[1], startISO || `${new Date().getFullYear()}-01-01`);
       date = `${y}-${pad(+dm[1])}-${pad(+dm[2])}`;
       secStart = i; stack = [];
+      sections[date] = { start: i, last: i };
       continue;
     }
     const tm = ln.match(TODO_RE);
     if (!tm) continue;
     const d = date || (col >= 0 ? fallback[col] : null);
     if (!d) continue;
+    if (!sections[d]) sections[d] = { start: secStart, last: i };
+    sections[d].last = i;
     const indent = tm[1].replace(/\t/g, '  ').length;
     const text = cleanText(tm[3]);
     while (stack.length && stack[stack.length - 1].indent >= indent) stack.pop();
@@ -200,12 +204,23 @@ function parseMarkdown(md, pageId, startISO) {
     const item = { id, text, checked: tm[2] !== ' ', children: [] };
     const block = lines.slice(secStart, i + 1);
     const toggled = ln.replace(/- \[( |x|X)\]/, tm[2] === ' ' ? '- [x]' : '- [ ]');
-    anchors.set(id, { pageId, line: i, oldStr: block.join('\n'), newStr: [...block.slice(0, -1), toggled].join('\n') });
+    // 지우기용: 이 항목과 그 아래 하위 항목 줄까지
+    let endL = i;
+    for (let k = i + 1; k < lines.length; k++) {
+      const m2 = lines[k].match(/^(\s*)- \[/);
+      if (m2 && m2[1].replace(/\t/g, '  ').length > indent) endL = k; else break;
+    }
+    const delBlock = lines.slice(secStart, endL + 1);
+    anchors.set(id, { pageId, line: i, oldStr: block.join('\n'), newStr: [...block.slice(0, -1), toggled].join('\n'),
+      delOld: delBlock.join('\n'), delNew: lines.slice(secStart, i).join('\n') });
     if (stack.length) stack[stack.length - 1].item.children.push(item);
     else (days[d] = days[d] || []).push(item);
     stack.push({ indent, item });
   }
-  return { days, anchors };
+  // 새 체크박스 넣기용: 그 날짜 구역(제목~마지막 체크박스)을 찾아 바꿀 문자열
+  const adders = {};
+  for (const [d, sec] of Object.entries(sections)) adders[d] = lines.slice(sec.start, sec.last + 1).join('\n');
+  return { days, anchors, adders };
 }
 
 module.exports = { NotionMcp, parseMarkdown, cleanText, REDIRECT };

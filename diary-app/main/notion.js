@@ -117,6 +117,17 @@ class NotionClient {
     return blocks;
   }
 
+  // 체크박스 지우기 (노션 휴지통으로)
+  deleteBlock(id) { return this.request('DELETE', `/blocks/${id}`); }
+
+  // 체크박스 새로 넣기 (afterId 블록 바로 뒤)
+  addTodo(parentId, afterId, text) {
+    return this.request('PATCH', `/blocks/${parentId}/children`, {
+      after: afterId,
+      children: [{ object: 'block', type: 'to_do', to_do: { rich_text: [{ type: 'text', text: { content: text } }], checked: false } }],
+    });
+  }
+
   me() {
     return this.request('GET', '/users/me');
   }
@@ -202,7 +213,7 @@ function workdaysFrom(startISO, count) {
 /**
  * 블록 트리 → { 'YYYY-MM-DD': [ {id,text,checked,children:[...]}, ... ] }
  */
-function parseChecklist(blocks, refStartISO) {
+function parseChecklist(blocks, refStartISO, meta = {}) {
   const days = {};
   const columns = []; // [{ date|null, items }]
 
@@ -215,7 +226,7 @@ function parseChecklist(blocks, refStartISO) {
         for (const col of b.children || []) {
           if (col.type !== 'column') continue;
           const c = { date: null, sections: [], current: null };
-          walkColumn(col.children || [], c);
+          walkColumn(col.children || [], c, col.id);
           columns.push(c);
         }
       } else if (b.type === 'to_do') {
@@ -232,12 +243,13 @@ function parseChecklist(blocks, refStartISO) {
     }
   }
 
-  function walkColumn(list, c) {
+  function walkColumn(list, c, parentId) {
     for (const b of list) {
       if (b.type === 'to_do') {
+        if (!c.current) { c.current = { date: null, items: [], parentId, afterId: null }; c.sections.push(c.current); }
+        if (c.current.parentId === parentId) c.current.afterId = b.id; // 새 체크박스를 넣을 자리
         const t = parseTodo(b);
         if (!t) continue;
-        if (!c.current) { c.current = { date: null, items: [] }; c.sections.push(c.current); }
         c.current.items.push(t);
       } else if (b.type === 'column_list') {
         walkContainer([b], loose);
@@ -245,10 +257,10 @@ function parseChecklist(blocks, refStartISO) {
         const text = blockText(b);
         const m = isHeadingLike(b) && text.match(DATE_RE);
         if (m) {
-          c.current = { date: toISO(resolveYear(+m[1], refStartISO), +m[1], +m[2]), items: [] };
+          c.current = { date: toISO(resolveYear(+m[1], refStartISO), +m[1], +m[2]), items: [], parentId, afterId: b.id };
           c.sections.push(c.current);
         } else if (b.children && b.children.length && !['child_database', 'child_page'].includes(b.type)) {
-          walkColumn(b.children, c);
+          walkColumn(b.children, c, b.id);
         }
       }
     }
@@ -263,6 +275,7 @@ function parseChecklist(blocks, refStartISO) {
       const date = s.date || fallback[idx];
       if (!date) continue;
       (days[date] = days[date] || []).push(...s.items);
+      if (s.parentId && s.afterId) meta[date] = { parentId: s.parentId, afterId: s.afterId };
     }
   });
   for (const { date, item } of loose.items) {

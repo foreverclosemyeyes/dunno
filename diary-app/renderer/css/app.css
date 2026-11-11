@@ -1101,3 +1101,45 @@ body.layout-bigcal .quest .dd { font-size: 17px; padding: 1px 8px; }
 .quest:hover .q-hide { opacity: 1; }
 .q-hide:hover { background: var(--accent); }
 #chat-form[hidden], #btn-chatlog[hidden] { display: none !important; }
+/* 달력 일정 점·선: 작고 얇게 */
+body.layout-bigcal .ev-line, body.layout-bigcal .ev-line.meet { height: 3px; margin-top: -1.5px; border-radius: 2px; }
+body.layout-bigcal .ev-dot, body.layout-bigcal .ev-dot.meet { width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; }
+
+/* 노트 구멍: 레퍼런스처럼 비스듬한 네모 */
+body.layout-bigcal .nb-holes, body.layout-bigcal #right > #quests::before {
+  width: 22px; right: 14px;
+  background: linear-gradient(#0b0b0b, #0b0b0b) center top / 16px 30px repeat-y;
+  background-image: repeating-linear-gradient(to bottom, #0b0b0b 0 30px, transparent 30px 48px);
+  background-size: 14px 100%; background-repeat: no-repeat; background-position: center;
+  transform: skewY(-14deg);
+}
+
+/* 체크박스: 굵은 검은 네모 + 빨간 마커 체크 */
+body.layout-bigcal .todo .box {
+  width: 1.15em !important; height: 1.15em !important; border: 2.5px solid #0b0b0b !important; background: var(--card) !important;
+  transform: rotate(-4deg); position: relative; color: transparent !important; overflow: visible; border-radius: 0;
+}
+body.layout-bigcal .todo.done .box { background: var(--card) !important; border-color: #0b0b0b !important; }
+body.layout-bigcal .todo.done .box::after {
+  content: ''; position: absolute; left: 18%; top: -45%; width: 42%; height: 110%;
+  border-right: 4px solid var(--accent); border-bottom: 4px solid var(--accent); transform: rotate(40deg); border-radius: 1px;
+}
+body.layout-bigcal .todo-children .box { border-width: 2px !important; }
+
+/* 할 일 추가 칸 */
+#todo-add { display: none; }
+body.layout-bigcal #todo-add { display: flex; align-items: center; gap: 10px; height: var(--rule); padding: 0 4px; font-size: var(--cl-size); flex: none; }
+#todo-add .box { width: 1.15em; height: 1.15em; border: 2px dashed #0b0b0b88; transform: rotate(-4deg); flex: none; }
+#todo-add-input { flex: 1; border: 0; background: transparent; font: 700 1em "Nanum Gothic", sans-serif; color: var(--card-text); outline: none; border-bottom: 1.5px solid transparent; }
+#todo-add-input:focus { border-bottom-color: var(--accent); }
+#todo-add-input::placeholder { color: #0b0b0b66; }
+
+.todo { position: relative; }
+.todo-del { margin-left: auto; flex: none; align-self: center; width: 18px; height: 18px; border: 0; border-radius: 50%; background: #0b0b0b; color: #fff; font-size: 12px; line-height: 1; padding: 0; opacity: 0; cursor: pointer; transition: opacity .12s; }
+.todo:hover > .todo-del { opacity: .8; }
+.todo-del:hover { opacity: 1 !important; background: var(--accent); }
+/* 노트 구멍: 레퍼런스처럼 길이·기울기가 제각각인 비스듬한 칼자국 */
+body.layout-bigcal .nb-holes, body.layout-bigcal #right > #quests::before {
+  width: 26px; right: 12px; transform: none;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='26' height='150' viewBox='0 0 26 150'><g fill='%230b0b0b'><polygon points='7,2 19,6 17,34 5,31'/><polygon points='9,46 21,49 18,66 6,64'/><polygon points='6,80 18,83 17,118 4,114'/><polygon points='10,128 20,130 19,146 8,144'/></g></svg>") center top / 26px 150px repeat-y;
+}

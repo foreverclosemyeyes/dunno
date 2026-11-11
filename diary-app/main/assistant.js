@@ -115,6 +115,51 @@ function splitMood(text) {
   return m ? { text: text.slice(m[0].length).trim(), mood: m[1].trim() } : { text: String(text || '').trim(), mood: null };
 }
 
+// ---------- Claude 구독(클로드 앱 로그인)으로 답하기: 내 맥의 Claude Code 를 사용 ----------
+const { execFile } = require('child_process');
+const fsx = require('fs');
+const pathx = require('path');
+const osx = require('os');
+let cliPath; // undefined = 아직 안 찾음, null = 없음
+function findClaudeCli() {
+  if (cliPath !== undefined) return Promise.resolve(cliPath);
+  const home = osx.homedir();
+  const cands = [
+    pathx.join(home, '.local/bin/claude'), pathx.join(home, '.claude/local/claude'),
+    '/opt/homebrew/bin/claude', '/usr/local/bin/claude', pathx.join(home, '.npm-global/bin/claude'),
+  ];
+  for (const c of cands) { try { fsx.accessSync(c, fsx.constants.X_OK); cliPath = c; return Promise.resolve(c); } catch { /* 없음 */ } }
+  return new Promise((resolve) => {
+    const shell = process.env.SHELL || '/bin/zsh';
+    execFile(shell, ['-lc', 'command -v claude'], { timeout: 8000 }, (err, out) => {
+      cliPath = !err && out.trim() ? out.trim().split('\n').pop() : null;
+      resolve(cliPath);
+    });
+  });
+}
+function resetCli() { cliPath = undefined; }
+
+function askViaCli(persona, ctx, history, userText) {
+  return findClaudeCli().then((bin) => new Promise((resolve, reject) => {
+    if (!bin) return reject(Object.assign(new Error('no cli'), { friendly: 'Claude Code가 설치돼 있지 않아요. 사용설명서 4장을 보고 설치해 주세요.' }));
+    const past = toMessages(history).slice(-12).map((m) => `${m.role === 'user' ? '사용자' : '나'}: ${m.content}`).join('\n');
+    const prompt = (past ? `[지난 대화]\n${past}\n\n` : '') + `사용자: ${userText}`;
+    const cwd = pathx.join(osx.tmpdir(), 'work-diary-assistant');
+    try { fsx.mkdirSync(cwd, { recursive: true }); } catch { /* 이미 있음 */ }
+    const args = ['-p', prompt, '--system-prompt', systemPrompt(persona, ctx), '--tools', '', '--output-format', 'json',
+      '--model', 'haiku', '--no-session-persistence', '--strict-mcp-config'];
+    execFile(bin, args, { cwd, timeout: 90_000, maxBuffer: 4 * 1024 * 1024, env: { ...process.env, PATH: `${pathx.dirname(bin)}:${process.env.PATH || ''}` } }, (err, out, errOut) => {
+      let j = null;
+      try { j = JSON.parse(out); } catch { /* 아래에서 처리 */ }
+      if (j && !j.is_error && typeof j.result === 'string') return resolve(j.result.trim());
+      const msg = (j && j.result) || errOut || (err && err.message) || '';
+      if (/log ?in|auth|credential|401/i.test(msg)) return reject(Object.assign(new Error(msg), { friendly: 'Claude Code에 로그인이 필요해요. 터미널에서 claude 를 한 번 실행해 로그인해 주세요.' }));
+      if (/limit|usage|rate/i.test(msg)) return reject(Object.assign(new Error(msg), { friendly: 'Claude 사용 한도에 걸렸어요. 조금 뒤에 다시 해 주세요.' }));
+      reject(Object.assign(new Error(msg || 'cli failed'), { friendly: 'Claude가 대답하지 못했어요. 잠시 뒤 다시 해 주세요.' }));
+    });
+  }));
+}
+
 async function ask(apiKey, persona, ctx, history, userText) {
   const client = new Anthropic({ apiKey, maxRetries: 2, timeout: 60_000 });
   const messages = toMessages([...history, { role: 'user', text: userText }]);
@@ -131,8 +176,10 @@ async function ask(apiKey, persona, ctx, history, userText) {
 
 // 정시 체크 / "지금 확인해줘"
 async function generate(apiKey, persona, ctx, history = []) {
-  if (!apiKey) return fallbackMessage(ctx, persona);
-  const raw = await ask(apiKey, persona, ctx, history, CHECK_PROMPT);
+  let raw;
+  if (apiKey) raw = await ask(apiKey, persona, ctx, history, CHECK_PROMPT);
+  else if (await findClaudeCli()) raw = await askViaCli(persona, ctx, history, CHECK_PROMPT);
+  else return fallbackMessage(ctx, persona);
   if (!raw) return fallbackMessage(ctx, persona);
   const { text, mood } = splitMood(raw);
   return { text, mood, source: 'claude', name: persona.name };
@@ -140,10 +187,10 @@ async function generate(apiKey, persona, ctx, history = []) {
 
 // 사용자가 직접 말 걸기
 async function chat(apiKey, persona, ctx, history, userText) {
-  if (!apiKey) {
-    return { text: '대화하려면 ⚙ 설정 > 연결에서 Anthropic API 키를 넣어 줘. 키가 없을 땐 정시 체크만 기본 문장으로 해 줄 수 있어.', source: 'local', name: persona.name };
-  }
-  const raw = await ask(apiKey, persona, ctx, history, userText);
+  let raw;
+  if (apiKey) raw = await ask(apiKey, persona, ctx, history, userText);
+  else if (await findClaudeCli()) raw = await askViaCli(persona, ctx, history, userText);
+  else return { text: '대화하려면 Claude Code 설치(구독 그대로 사용) 또는 Anthropic API 키가 필요해요. 사용설명서 4장을 봐 주세요.', source: 'local', name: persona.name };
   const { text, mood } = splitMood(raw);
   return { text: text || '그 질문에는 답하기 어렵습니다. 다른 걸 물어봐 주세요.', mood, source: 'claude', name: persona.name };
 }
@@ -156,4 +203,4 @@ function friendlyError(e) {
   return '비서가 잠깐 자리를 비웠어요. (연결 오류)';
 }
 
-module.exports = { splitMood, generate, chat, buildContext, fallbackMessage, friendlyError, toMessages, CHECK_PROMPT, MODEL };
+module.exports = { findClaudeCli, resetCli, splitMood, generate, chat, buildContext, fallbackMessage, friendlyError, toMessages, CHECK_PROMPT, MODEL };

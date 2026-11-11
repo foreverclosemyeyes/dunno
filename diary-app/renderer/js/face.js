@@ -51,7 +51,7 @@
   function scheduleBlink() {
     clearTimeout(blinkTimer);
     blinkTimer = setTimeout(() => {
-      if (img && !talking && mood === 'base' && faces().closed) {
+      if (false && img && !talking && mood === 'base' && faces().closed) { // 깜빡임 끔
         show('closed');
         setTimeout(() => { if (!talking && mood === 'base') show('base'); }, 140);
       }

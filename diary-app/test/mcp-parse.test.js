@@ -86,3 +86,16 @@ const again = parseMarkdown(md2, 'P', '2026-11-09');
 assert.strictEqual(again.days['2026-11-11'][1].id, id);
 assert.strictEqual(again.days['2026-11-11'][1].checked, true);
 console.log('✓ 노션 로그인(MCP) 마크다운 파싱 테스트 통과');
+
+// 지우기: 하위 항목까지 함께, 다른 날 같은 이름은 그대로
+{
+  const { days: d2, anchors: a2 } = parseMarkdown(md, 'P', '2026-11-09');
+  const parent = d2['2026-11-11'][2]; // 찰리께 정기행사 문의 (+ 하위 2개)
+  const x = a2.get(parent.id);
+  const after = md.replace(x.delOld, x.delNew);
+  const r = parseMarkdown(after, 'P', '2026-11-09');
+  assert.strictEqual(r.days['2026-11-11'].length, 2);
+  assert.ok(!after.includes('드라이브 권한 요청'));
+  assert.strictEqual(r.days['2026-11-12'][0].text, '뉴스기사 큐레이션');
+  console.log('✓ 체크리스트 지우기 테스트 통과');
+}

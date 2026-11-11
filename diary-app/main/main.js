@@ -79,7 +79,7 @@ function snapshot() {
     today: state.today,
     quests: (() => { const hid = new Set((store.get('settings', {}).hiddenQuests) || []); return state.quests.filter((q) => !hid.has(String(q.id).replace(/-/g, ''))); })(),
     events: state.events,
-    weeks: state.weeks.map(({ days: _d, ...rest }) => rest),
+    weeks: state.weeks.map(({ days: _d, meta: _m, adders: _a, ...rest }) => rest),
     days,
     lastSync: state.lastSync,
     syncing: state.syncing,
@@ -160,11 +160,12 @@ async function doSync(force) {
         (p.start <= state.selected && (p.end || p.start) >= state.selected);
       // 오늘/보고 있는 주는 매번 새로 읽고, 나머지는 노션에서 바뀌었을 때만 다시 읽음
       if (!force && !active && old && old.lastEdited === p.lastEdited && old.days) {
-        weeks.push({ ...p, days: old.days });
+        weeks.push({ ...p, days: old.days, meta: old.meta });
         continue;
       }
       const tree = await client.getBlockTree(p.id);
-      weeks.push({ ...p, days: notion.parseChecklist(tree, p.start) });
+      const meta = {};
+      weeks.push({ ...p, days: notion.parseChecklist(tree, p.start, meta), meta });
     }
     state.weeks = weeks;
     applyPending();
@@ -234,7 +235,7 @@ async function syncViaMcp() {
       }
       const parsed = parseMarkdown(cached.md, p.id, p.start);
       parsed.anchors.forEach((v, k) => anchors.set(k, v));
-      weeks.push({ ...p, days: parsed.days });
+      weeks.push({ ...p, days: parsed.days, adders: parsed.adders });
     }
     mcpAnchors = anchors;
     state.weeks = weeks;
@@ -374,6 +375,70 @@ function setLocalTodo(blockId, checked) {
   return false;
 }
 function applyPending() { for (const [id, c] of pendingTodos) setLocalTodo(id, c); }
+
+// ---------- 체크박스 지우기 ----------
+async function deleteTodo(id) {
+  const removeLocal = () => {
+    const walk = (items) => { const k = (items || []).findIndex((x) => x.id === id); if (k >= 0) { items.splice(k, 1); return true; } return (items || []).some((x) => walk(x.children)); };
+    for (const w of state.weeks) for (const items of Object.values(w.days || {})) if (walk(items)) return;
+  };
+  if (process.env.DIARY_DEMO) { removeLocal(); pushData(); return { ok: true }; }
+  try {
+    const token = secrets.get('notion');
+    if (token) await new notion.NotionClient(token).deleteBlock(id);
+    else if (mcp && mcp.loggedIn()) {
+      const a = mcpAnchors.get(id);
+      if (!a) throw Object.assign(new Error('no anchor'), { friendly: '잠시 후 다시 해 주세요.' });
+      await mcp.replaceText(a.pageId, a.delOld, a.delNew);
+      const cur = mcpPages.get(a.pageId); if (cur) cur.md = cur.md.replace(a.delOld, a.delNew);
+    } else throw Object.assign(new Error('no notion'), { friendly: '노션이 연결되지 않았어요.' });
+    removeLocal(); pushData();
+    sync(true);
+    return { ok: true };
+  } catch (e) {
+    console.error('[delete todo]', e);
+    return { ok: false, message: e.friendly || '노션에서 지우지 못했어요.' };
+  }
+}
+
+// ---------- 새 체크박스 추가 ----------
+async function addTodo(date, text) {
+  text = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 300);
+  if (!text) return { ok: false, message: '내용을 적어 주세요.' };
+  const w = state.weeks.find((x) => x.days && (x.days[date] || (x.meta && x.meta[date]) || (x.adders && x.adders[date])));
+  if (process.env.DIARY_DEMO) {
+    const wk = state.weeks.find((x) => x.start <= date && (x.end || x.start) >= date);
+    if (!wk) return { ok: false, message: '이 날짜의 운영성 업무 페이지가 없어요.' };
+    (wk.days[date] = wk.days[date] || []).push({ id: 'n' + Date.now(), text, checked: false, children: [] });
+    pushData();
+    return { ok: true };
+  }
+  if (!w) return { ok: false, message: '이 날짜가 있는 운영성 업무 페이지를 못 찾았어요. 노션 페이지에 날짜 제목(예: 11/12 (목))이 있는지 확인해 주세요.' };
+  try {
+    const token = secrets.get('notion');
+    if (token && w.meta && w.meta[date]) {
+      await new notion.NotionClient(token).addTodo(w.meta[date].parentId, w.meta[date].afterId, text);
+    } else if (!token && mcp && mcp.loggedIn() && w.adders && w.adders[date]) {
+      const old = w.adders[date];
+      const lines = old.split('\n');
+      const last = lines[lines.length - 1];
+      const md = text.replace(/([\\*_`~\[\]])/g, '\\$1');
+      const neu = /^\s*- \[ \]\s*$/.test(last)
+        ? [...lines.slice(0, -1), last.replace(/- \[ \]\s*$/, `- [ ] ${md}`)].join('\n') // 비어 있는 체크박스 채우기
+        : `${old}${/^\s*#/.test(last) ? '\n' : ''}\n- [ ] ${md}`;
+      await mcp.replaceText(w.id, old, neu);
+      const cur = mcpPages.get(w.id);
+      if (cur) cur.md = cur.md.replace(old, neu);
+    } else {
+      return { ok: false, message: '노션이 연결되지 않았어요.' };
+    }
+    await sync(true);
+    return { ok: true };
+  } catch (e) {
+    console.error('[add todo]', e);
+    return { ok: false, message: e.friendly || '노션에 추가하지 못했어요.' };
+  }
+}
 
 async function toggleTodo(blockId, checked) {
   setLocalTodo(blockId, checked);
@@ -558,12 +623,12 @@ function saveAsset(buffer, originalName) {
 }
 
 function registerIpc() {
-  ipcMain.handle('init', () => ({
+  ipcMain.handle('init', async () => { await claudeReady.catch(() => null); return ({
     platform: process.platform,
     settings: store.get('settings', {}),
     notionCfg: cfg(),
     notionLogin: !!(mcp && mcp.loggedIn()),
-    hasKeys: { notion: secrets.has('notion') || !!process.env.DIARY_DEMO || !!(mcp && mcp.loggedIn()), anthropic: secrets.has('anthropic'), github: secrets.has('github') },
+    hasKeys: { notion: secrets.has('notion') || !!process.env.DIARY_DEMO || !!(mcp && mcp.loggedIn()), anthropic: secrets.has('anthropic') || !!claudeCli, github: secrets.has('github') },
     version: app.getVersion(),
     update: updateState,
     theme: store.get('theme', null),
@@ -573,7 +638,7 @@ function registerIpc() {
     chat: store.get('chat', []),
     data: snapshot(),
     isPackaged: app.isPackaged,
-  }));
+  }); });
   ipcMain.handle('settings:set', (_e, partial) => setSettings(partial));
   ipcMain.handle('notionCfg:set', (_e, partial) => {
     store.set('notionCfg', { ...store.get('notionCfg', {}), ...partial });
@@ -586,7 +651,7 @@ function registerIpc() {
     secrets.set(name, (value || '').trim());
     if (name === 'notion') sync(true);
     if (name === 'github') setTimeout(checkUpdate, 500);
-    return { notion: secrets.has('notion'), anthropic: secrets.has('anthropic'), github: secrets.has('github') };
+    return { notion: secrets.has('notion') || !!(mcp && mcp.loggedIn()), anthropic: secrets.has('anthropic') || !!claudeCli, github: secrets.has('github') };
   });
   ipcMain.handle('notion:test', async () => {
     const token = secrets.get('notion');
@@ -613,6 +678,7 @@ function registerIpc() {
     return true;
   });
   ipcMain.handle('update:check', () => checkUpdate());
+  ipcMain.handle('claude:detect', async () => ({ path: await detectClaude() }));
   ipcMain.handle('notion:login', async () => {
     try { await mcp.login(); sync(true); return { ok: true, loggedIn: true }; }
     catch (e) { log('notion login', e); return { ok: false, message: e.friendly || '노션 로그인에 실패했어요. 다시 해 주세요.' }; }
@@ -622,6 +688,8 @@ function registerIpc() {
   ipcMain.handle('assistant:ask', () => runAssistant({ notify: false }));
   ipcMain.handle('assistant:chat', (_e, text) => chatWithAssistant(text));
   ipcMain.handle('chat:clear', () => { store.set('chat', []); push('chat', []); return []; });
+  ipcMain.handle('todo:delete', (_e, id) => deleteTodo(String(id)));
+  ipcMain.handle('todo:add', (_e, date, text) => addTodo(String(date), String(text)));
   ipcMain.handle('todo:toggle', (_e, id, checked) => toggleTodo(String(id), !!checked));
   ipcMain.handle('theme:save', (_e, theme) => { store.set('theme', theme); return true; });
   ipcMain.handle('themes:save', (_e, list) => { store.set('themes', list); return true; });
@@ -666,6 +734,15 @@ function registerIpc() {
       return [];
     }
   });
+}
+
+let claudeCli = null;
+let claudeReady = Promise.resolve(null);
+async function detectClaude() {
+  if (process.env.DIARY_DEMO) return null;
+  assistant.resetCli();
+  claudeCli = await assistant.findClaudeCli().catch(() => null);
+  return claudeCli;
 }
 
 // ---------- 업데이트 ----------
@@ -739,6 +816,7 @@ app.whenReady().then(() => {
   session.defaultSession.setPermissionCheckHandler((_wc, perm) => allowed.includes(perm));
 
   registerIpc();
+  claudeReady = detectClaude();
   createTray();
 
   const settings = store.get('settings', null);

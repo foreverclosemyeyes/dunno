@@ -262,6 +262,15 @@
     row.append(h('span', 'box', item.checked ? '✓' : ''));
     row.append(S('checklist', item.text, 'txt'));
     row.querySelector('.txt').title = item.text;
+    const del = h('button', 'todo-del', '×'); del.title = '이 체크리스트 지우기 (노션에서도 지워져요)';
+    del.onclick = async (e) => {
+      e.stopPropagation();
+      if (!confirm(`"${item.text}"${item.children && item.children.length ? ' (하위 항목 포함)' : ''}을(를) 지울까요?\n노션에서도 지워져요.`)) return;
+      row.classList.add('busy');
+      const r = await window.diary.deleteTodo(item.id);
+      if (!r.ok) { row.classList.remove('busy'); toast(r.message, 5000); }
+    };
+    row.append(del);
     row.title = item.checked ? '눌러서 체크 풀기 (노션에도 반영)' : '눌러서 완료 체크 (노션에도 반영)';
     row.onclick = async () => {
       row.classList.add('busy');
@@ -757,6 +766,15 @@
     $('#mc-prev').onclick = () => shiftMonth(-1);
     $('#mc-next').onclick = () => shiftMonth(1);
     document.querySelectorAll('.nb-tabs button').forEach((b) => { b.onclick = () => { if (b.dataset.tab === 'params' && state.theme.layout.mode === 'bigcal') { openParams(); return; } $('#record').dataset.tab = b.dataset.tab; }; });
+    $('#todo-add').onsubmit = async (e) => {
+      e.preventDefault();
+      const inp = $('#todo-add-input');
+      const text = inp.value.trim(); if (!text) return;
+      inp.disabled = true;
+      const r = await window.diary.addTodo(state.selected, text);
+      inp.disabled = false;
+      if (r.ok) { inp.value = ''; inp.focus(); } else toast(r.message, 5000);
+    };
     $('#bc-prev').onclick = () => shiftMonth(-1);
     $('#bc-next').onclick = () => shiftMonth(1);
     document.fonts.ready.then(fitBigCal);
