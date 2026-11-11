@@ -646,3 +646,35 @@ body.dialog-angular #chat-input { transform: none; color: #fff; border-bottom: 2
 /* 레퍼런스 색감: 숫자는 회색, 헤더는 밝은 회백 */
 body.layout-bigcal .bc-d { color: color-mix(in srgb, var(--main-solid) 68%, var(--bg)); }
 body.layout-bigcal .bc-h { color: var(--main); }
+
+/* ---------- 노트: 레퍼런스처럼 (오른쪽 구멍 + 뒷장) ---------- */
+.nb-back, .nb-holes { display: none; }
+body.layout-bigcal #record::before { display: none; }
+body.layout-bigcal #record { padding-right: 70px; transform: rotate(-3deg); }
+/* 오른쪽 가장자리 구멍 줄 */
+body.layout-bigcal .nb-holes {
+  display: block; position: absolute; right: 18px; top: 26px; bottom: 26px; width: 18px; z-index: 2; pointer-events: none;
+  background: repeating-linear-gradient(to bottom, #0b0b0b 0 30px, transparent 30px 50px);
+  transform: skewY(-12deg);
+}
+/* 뒤로 살짝 보이는 뒷장 */
+body.layout-bigcal .nb-back {
+  display: block; position: absolute; top: 3%; bottom: 5%; right: -58px; width: 64px; z-index: -1;
+  background: color-mix(in srgb, var(--card-solid) 88%, #000); border: 6px solid #0b0b0b; border-left: 0;
+  transform: skewY(-4deg);
+}
+/* 탭 = 앞장과 뒷장을 잇는 검은 고리 */
+body.layout-bigcal .nb-tabs { right: -64px; top: 12%; gap: 26px; z-index: 3; }
+body.layout-bigcal .nb-tabs button {
+  writing-mode: horizontal-tb; min-height: 0; width: 82px; height: 30px; padding: 0 10px 0 22px; font-size: 12px; letter-spacing: .06em;
+  background: #0b0b0b; color: #fff; opacity: 1; clip-path: polygon(0 18%, 100% 0, 100% 100%, 0 82%); text-align: right;
+}
+body.layout-bigcal .nb-tabs button:hover { background: #333; }
+body.layout-bigcal #record[data-tab="log"] .nb-tabs button[data-tab="log"],
+body.layout-bigcal #record[data-tab="quests"] .nb-tabs button[data-tab="quests"],
+body.layout-bigcal #record[data-tab="params"] .nb-tabs button[data-tab="params"] { background: var(--accent); }
+body.layout-bigcal #record::after { right: 40px; width: 42%; height: 34%; opacity: .5; }
+body.layout-bigcal #right { padding-right: 60px; }
+/* 달력 숫자 사이 살짝 띄우기 */
+body.layout-bigcal .bc-d { margin: 0 0; padding-left: 2px; padding-right: 2px; }
+body.layout-bigcal #record-sync { white-space: nowrap; font-size: 10px; }
