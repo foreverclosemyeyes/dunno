@@ -757,3 +757,11 @@ body.layout-bigcal .empty { padding: 14px 0; }
 /* 진행 중 업무 종이도 촘촘하게 */
 body.layout-bigcal #right > #quests .quest { padding: 4px 2px; gap: 0 10px; }
 body.layout-bigcal #right > #quests .quest .meta { font-size: 10.5px; }
+
+/* 줄 간격 = 체크리스트 글씨 크기 × 2, 하위 항목도 같은 크기 */
+body.layout-bigcal #record-list { --rule: inherit; }
+body.layout-bigcal .todo, body.layout-bigcal .todo-children .todo { font-size: var(--cl-size); padding-bottom: calc(var(--rule) * .14); }
+body.layout-bigcal .todo-children .el-checklist { font-size: 1em; }
+body.layout-bigcal .todo .box, body.layout-bigcal .todo-children .box { width: 1.1em; height: 1.1em; font-size: inherit; border-width: 2px; line-height: 1; }
+body.layout-bigcal .todo .box { font-size: .85em; width: 1.3em; height: 1.3em; }
+body.layout-bigcal .todo-children { margin-left: 1.9em; }
