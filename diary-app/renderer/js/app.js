@@ -304,7 +304,7 @@
     }
     // 기록 화면 아래: 진행 중 업무 (마감 가까운 순 5개)
     const rq = $('#record-quests'); rq.innerHTML = '';
-    const qs = state.data.quests || [];
+    const qs = visibleQuests();
     if (qs.length) {
       const head = h('div', 'rq-head');
       const more = h('button', 'rq-more', `ALL ${qs.length} →`);
@@ -340,15 +340,27 @@
     $('#btn-today').hidden = isToday && state.viewMonth === state.today.slice(0, 7);
   }
 
+  const hiddenIds = () => new Set(state.settings.hiddenQuests || []);
+  const visibleQuests = () => { const hid = hiddenIds(); return (state.data.quests || []).filter((q) => !hid.has(String(q.id).replace(/-/g, ''))); };
+  D.visibleQuests = visibleQuests;
+  async function hideQuest(q) {
+    const list = [...hiddenIds(), String(q.id).replace(/-/g, '')];
+    const names = { ...(state.settings.hiddenQuestNames || {}), [String(q.id).replace(/-/g, '')]: q.name };
+    state.settings = await window.diary.setSettings({ hiddenQuests: list, hiddenQuestNames: names });
+    renderQuests(); renderRecord();
+    toast(`"${q.name}" 숨김 · SETTING > 연결 > 숨긴 업무에서 되돌릴 수 있어요`, 3500);
+  }
+
   function renderQuests() {
+    const quests = visibleQuests();
     const head = $('#quest-title'); head.innerHTML = '';
-    head.append(S('section', '진행 중 업무'), h('small', null, `${state.data.quests.length}개`));
+    head.append(S('section', '진행 중 업무'), h('small', null, `${quests.length}개`));
     const list = $('#quest-list'); list.innerHTML = '';
-    if (!state.data.quests.length) {
+    if (!quests.length) {
       const e = h('div', 'empty'); e.append(S('body', state.data.needsSetup ? '노션 연결 후 표시돼요.' : '진행 중인 업무가 없어요.'));
       list.append(e);
     }
-    for (const q of state.data.quests) {
+    for (const q of quests) {
       const d = dday(q);
       const row = h('div', 'quest' + (d !== null && d <= 3 ? ' soon' : '') + (d !== null && d < 0 ? ' over' : ''));
       row.append(S('quest', q.name));
@@ -358,6 +370,9 @@
       row.append(h('div', 'dd', d === null ? '—' : d === 0 ? 'D-DAY' : d > 0 ? `D-${d}` : `D+${-d}`));
       row.title = '노션에서 열기';
       row.onclick = () => window.diary.open(q.url);
+      const x = h('button', 'q-hide', '×'); x.title = '이 업무 숨기기 (휴지통에 있는 업무 등)';
+      x.onclick = (e) => { e.stopPropagation(); hideQuest(q); };
+      row.append(x);
       list.append(row);
     }
   }

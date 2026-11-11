@@ -1095,3 +1095,8 @@ body.layout-bigcal #right > #quests .quest .el-quest { font-size: 14px; }
 /* D-day: 굵은 글씨체로 */
 .quest .dd, .rq-dd { font-family: "Gasoek One", sans-serif !important; font-weight: 400 !important; letter-spacing: .02em; }
 body.layout-bigcal .quest .dd { font-size: 17px; padding: 1px 8px; }
+
+.quest { position: relative; }
+.q-hide { position: absolute; right: -6px; top: -4px; width: 20px; height: 20px; border: 0; border-radius: 50%; background: #0b0b0b; color: #fff; font-size: 13px; line-height: 1; padding: 0; opacity: 0; transition: opacity .12s; cursor: pointer; }
+.quest:hover .q-hide { opacity: 1; }
+.q-hide:hover { background: var(--accent); }

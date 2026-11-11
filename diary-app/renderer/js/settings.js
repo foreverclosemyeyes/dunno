@@ -230,7 +230,18 @@
     );
     g.body.append(note('창을 닫아도(✕) 앱은 메뉴 막대/트레이에 남아 정시 알림을 보내요. 완전히 끄려면 트레이 아이콘 → "완전히 종료".'));
     if (!state.settings.isPackaged) { /* 개발 실행에서는 자동 실행이 등록되지 않음 */ }
-    body.append(n.el, a.el, up.el, g.el, ids.el);
+    const hq = C.section(`숨긴 업무 (${(state.settings.hiddenQuests || []).length})`);
+    const names = state.settings.hiddenQuestNames || {};
+    if (!(state.settings.hiddenQuests || []).length) hq.body.append(note('진행 중 업무 줄에 마우스를 올려 <b>×</b>를 누르면 여기로 숨겨져요. (휴지통에 넣은 노션 업무가 보일 때 쓰세요)'));
+    for (const id of state.settings.hiddenQuests || []) {
+      const r = h('div', 'row-inline');
+      r.append(h('span', 'file-name', names[id] || id), btn('다시 보이기', 'sm', async () => {
+        state.settings = await window.diary.setSettings({ hiddenQuests: (state.settings.hiddenQuests || []).filter((x) => x !== id) });
+        D.renderAll(); render();
+      }));
+      hq.body.append(r);
+    }
+    body.append(n.el, a.el, hq.el, up.el, g.el, ids.el);
   }
 
   // ---------- 글씨 ----------

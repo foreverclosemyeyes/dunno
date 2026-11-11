@@ -77,7 +77,7 @@ function snapshot() {
   }
   return {
     today: state.today,
-    quests: state.quests,
+    quests: (() => { const hid = new Set((store.get('settings', {}).hiddenQuests) || []); return state.quests.filter((q) => !hid.has(String(q.id).replace(/-/g, ''))); })(),
     events: state.events,
     weeks: state.weeks.map(({ days: _d, ...rest }) => rest),
     days,
