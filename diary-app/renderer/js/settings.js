@@ -555,6 +555,14 @@
     hide.body.append(hc, bkr, note('• 위쪽 🙈 버튼이나 ⌘/Ctrl+Shift+H: 캐릭터만 숨기기/보이기<br>• 위 단축키: 어떤 프로그램을 쓰고 있든 업무다이어리 창 전체를 바로 숨기고, 한 번 더 누르면 다시 보여요.'));
     img.body.append(note('말풍선 글씨는 "글씨" 탭 > 비서 말풍선에서 꾸밀 수 있어요. AI 키는 "연결" 탭에서 넣어요.'));
 
+    const mdl = C.section('렌이 쓰는 Claude 모델', true);
+    const ms = h('select');
+    [['opus', 'Opus 5.5 (가장 똑똑함 · 기본)'], ['sonnet', 'Sonnet 5.5 (빠르고 똑똑함)'], ['haiku', 'Haiku 5.5 (가장 빠르고 가벼움)']].forEach(([v, t]) => { const o = h('option', null, t); o.value = v; ms.append(o); });
+    ms.value = state.settings.aiModel || 'opus';
+    ms.onchange = async () => { state.settings = await window.diary.setSettings({ aiModel: ms.value }); D.toast('모델을 바꿨어요.'); };
+    const mr = h('div', 'ctl'); mr.append(h('label', 'ctl-label', '모델'), ms, h('span'));
+    mdl.body.append(mr, note('Claude 구독으로 쓰면 고른 모델의 구독 사용량이 쓰여요. Opus는 대답이 조금 느릴 수 있어요(10~30초).'));
+    body.append(mdl.el);
     const cl = C.section('업무비서 지침 · Claude 채팅 연결', true);
     const ins = h('textarea'); ins.value = state.settings.assistantInstructions || '';
     ins.placeholder = 'Claude의 "업무비서" 프로젝트 지침(또는 채팅에서 정해 둔 규칙)을 그대로 붙여 넣으세요.\n예: 나는 경영지원 담당이고, 매주 월요일엔 자금일보를 먼저 챙긴다…';

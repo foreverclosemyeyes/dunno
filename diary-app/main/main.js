@@ -272,7 +272,7 @@ function persona() {
   const t = store.get('theme', null);
   const a = (t && t.assistant) || {};
   const st = store.get('settings', {});
-  return { name: a.name || '업무비서', tone: a.tone || '차분하고 간결한 존댓말', instructions: st.assistantInstructions || '' };
+  return { name: a.name || '업무비서', tone: a.tone || '차분하고 간결한 존댓말', instructions: st.assistantInstructions || '', model: st.aiModel || 'opus' };
 }
 
 function currentContext() {

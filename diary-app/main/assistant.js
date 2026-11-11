@@ -3,7 +3,10 @@
 'use strict';
 const Anthropic = require('@anthropic-ai/sdk').default;
 
-const MODEL = 'claude-haiku-5-5';
+const MODEL = 'claude-haiku-5-5'; // 능력치 분류처럼 가벼운 일
+// 렌 대화용 모델 (설정 > 비서에서 고름). 기본: Opus 5.5
+const CHAT_MODELS = { opus: { cli: 'opus', api: 'claude-opus-5-5' }, sonnet: { cli: 'sonnet', api: 'claude-sonnet-5-5' }, haiku: { cli: 'haiku', api: 'claude-haiku-5-5' } };
+const chatModel = (persona) => CHAT_MODELS[persona.model] || CHAT_MODELS.opus;
 const HISTORY_TURNS = 30; // 대화 기억: 최근 30개 메시지
 
 function flatten(items, out = [], parent = null) {
@@ -147,8 +150,8 @@ function askViaCli(persona, ctx, history, userText) {
     const cwd = pathx.join(osx.tmpdir(), 'work-diary-assistant');
     try { fsx.mkdirSync(cwd, { recursive: true }); } catch { /* 이미 있음 */ }
     const args = ['-p', prompt, '--system-prompt', systemPrompt(persona, ctx), '--tools', '', '--output-format', 'json',
-      '--model', 'haiku', '--no-session-persistence', '--strict-mcp-config'];
-    execFile(bin, args, { cwd, timeout: 90_000, maxBuffer: 4 * 1024 * 1024, env: { ...process.env, PATH: `${pathx.dirname(bin)}:${process.env.PATH || ''}` } }, (err, out, errOut) => {
+      '--model', chatModel(persona).cli, '--no-session-persistence', '--strict-mcp-config'];
+    execFile(bin, args, { cwd, timeout: 180_000, maxBuffer: 4 * 1024 * 1024, env: { ...process.env, PATH: `${pathx.dirname(bin)}:${process.env.PATH || ''}` } }, (err, out, errOut) => {
       let j = null;
       try { j = JSON.parse(out); } catch { /* 아래에서 처리 */ }
       if (j && !j.is_error && typeof j.result === 'string') return resolve(j.result.trim());
@@ -164,7 +167,7 @@ async function ask(apiKey, persona, ctx, history, userText) {
   const client = new Anthropic({ apiKey, maxRetries: 2, timeout: 60_000 });
   const messages = toMessages([...history, { role: 'user', text: userText }]);
   const res = await client.messages.create({
-    model: MODEL,
+    model: chatModel(persona).api,
     max_tokens: 3000,
     output_config: { effort: 'low' },
     system: systemPrompt(persona, ctx),
