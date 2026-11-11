@@ -549,10 +549,15 @@
     bk.value = state.settings.bossKey ?? 'CommandOrControl+Shift+X';
     bk.onchange = async () => { state.settings = await window.diary.setSettings({ bossKey: bk.value }); D.toast(bk.value ? '단축키를 바꿨어요.' : '단축키를 껐어요.'); };
     const bkr = h('div', 'ctl'); bkr.append(h('label', 'ctl-label', '앱 창 바로 숨기기'), bk, h('span'));
+    const ck = h('select');
+    [['alt+h', 'Option + H (추천)'], ['alt+z', 'Option + Z'], ['backquote', '` (숫자 1 왼쪽 키)'], ['f8', 'F8'], ['mod+shift+h', '⌘ + Shift + H']].forEach(([v, t]) => { const o = h('option', null, t); o.value = v; ck.append(o); });
+    ck.value = state.settings.charKey || 'alt+h';
+    ck.onchange = async () => { state.settings = await window.diary.setSettings({ charKey: ck.value }); D.toast('캐릭터 숨기기 키를 바꿨어요.'); };
+    const ckr = h('div', 'ctl'); ckr.append(h('label', 'ctl-label', '캐릭터 숨기기 키'), ck, h('span'));
     const hc = h('div', 'ctl'); const hl = h('label', 'switch'); const hcb = h('input'); hcb.type = 'checkbox'; hcb.checked = !!state.settings.hideChar;
     hcb.onchange = async () => { state.settings = await window.diary.setSettings({ hideChar: hcb.checked }); D.renderAll(); };
     hl.append(hcb, h('span')); hc.append(h('label', 'ctl-label', '캐릭터 숨기기'), hl, h('span'));
-    hide.body.append(hc, bkr, note('• 위쪽 🙈 버튼이나 ⌘/Ctrl+Shift+H: 캐릭터만 숨기기/보이기<br>• 위 단축키: 어떤 프로그램을 쓰고 있든 업무다이어리 창 전체를 바로 숨기고, 한 번 더 누르면 다시 보여요.'));
+    hide.body.append(hc, ckr, bkr, note('• 위쪽 HIDE 버튼이나 위에서 고른 키(기본 Option + H): 캐릭터만 숨기기/보이기<br>• 위 단축키: 어떤 프로그램을 쓰고 있든 업무다이어리 창 전체를 바로 숨기고, 한 번 더 누르면 다시 보여요.'));
     img.body.append(note('말풍선 글씨는 "글씨" 탭 > 비서 말풍선에서 꾸밀 수 있어요. AI 키는 "연결" 탭에서 넣어요.'));
 
     const mdl = C.section('렌이 쓰는 Claude 모델', true);

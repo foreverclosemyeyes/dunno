@@ -820,7 +820,14 @@
     $('#btn-pin').onclick = () => window.diary.setSettings({ alwaysOnTop: !state.settings.alwaysOnTop });
     const toggleChar = () => window.diary.setSettings({ hideChar: !state.settings.hideChar });
     $('#btn-hidechar').onclick = toggleChar;
-    window.addEventListener('keydown', (e) => { if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'h') { e.preventDefault(); toggleChar(); } });
+    // 캐릭터 숨기기 단축키 (설정에서 고름, 기본: Option + H)
+    const CHAR_KEYS = { 'alt+h': (e) => e.altKey && !e.metaKey && !e.ctrlKey && e.code === 'KeyH', 'alt+z': (e) => e.altKey && !e.metaKey && !e.ctrlKey && e.code === 'KeyZ',
+      'backquote': (e) => !e.altKey && !e.metaKey && !e.ctrlKey && e.code === 'Backquote', 'f8': (e) => e.code === 'F8', 'mod+shift+h': (e) => (e.metaKey || e.ctrlKey) && e.shiftKey && e.code === 'KeyH' };
+    window.addEventListener('keydown', (e) => {
+      const k = state.settings.charKey || 'alt+h';
+      if (k === 'backquote' && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+      if ((CHAR_KEYS[k] || CHAR_KEYS['alt+h'])(e)) { e.preventDefault(); toggleChar(); }
+    });
 
     // 자정 대비 2중 장치 + 배경 시간표(요일별/일정 시간마다)
     let lastBgKey = '';
