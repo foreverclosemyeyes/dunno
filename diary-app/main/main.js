@@ -349,7 +349,9 @@ function updateStats() {
       if (i.checked && i.text) doneItems.push({ id: i.id, text: i.text, date });
       walk(i.children, date);
     });
-    for (const w of state.weeks) for (const [date, items] of Object.entries(w.days || {})) { loadedDates.add(date); walk(items, date); }
+    if (!store.get('statsStart')) store.set('statsStart', state.today); // 이 날부터 끝낸 일만 점수
+    const since = store.get('statsStart');
+    for (const w of state.weeks) for (const [date, items] of Object.entries(w.days || {})) { if (date < since) continue; loadedDates.add(date); walk(items, date); }
     const stats = store.get('stats', {});
     const awards = store.get('statAwards', {});
     const changes = await statsAuto.award({ doneItems, awards, stats, apiKey: secrets.get('anthropic'), loadedDates });
@@ -694,6 +696,7 @@ function registerIpc() {
   ipcMain.handle('theme:save', (_e, theme) => { store.set('theme', theme); return true; });
   ipcMain.handle('themes:save', (_e, list) => { store.set('themes', list); return true; });
   ipcMain.handle('stats:save', (_e, stats) => { store.set('stats', stats); return true; });
+  ipcMain.handle('stats:reset', () => { store.set('stats', {}); store.set('statAwards', {}); store.set('statsStart', state.today); return {}; });
   ipcMain.handle('open', (_e, url) => {
     if (/^https:\/\/(www\.|app\.)?notion\.(so|com)\//.test(url) || /^https:\/\/(console\.anthropic\.com|www\.notion\.so|platform\.claude\.com|claude\.ai|github\.com)\//.test(url)) shell.openExternal(url);
   });

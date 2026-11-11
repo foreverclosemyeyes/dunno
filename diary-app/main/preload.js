@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld('diary', {
   saveTheme: (t) => ipcRenderer.invoke('theme:save', t),
   saveThemes: (l) => ipcRenderer.invoke('themes:save', l),
   saveStats: (s) => ipcRenderer.invoke('stats:save', s),
+  resetStats: () => ipcRenderer.invoke('stats:reset'),
   open: (url) => ipcRenderer.invoke('open', url),
   pickAsset: (kind) => ipcRenderer.invoke('asset:pick', kind),
   readAsset: (id) => ipcRenderer.invoke('asset:read', id),

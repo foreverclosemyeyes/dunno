@@ -228,6 +228,11 @@
       sw('alwaysOnTop', '항상 다른 창 위에 띄우기'),
       sw('autoStats', '인간 파라미터 자동으로 올리기', '체크리스트를 완료하면 일의 성격을 보고 파라미터 +1'),
     );
+    g.body.append(h('div', 'row-inline'));
+    g.body.lastChild.append(btn('인간 파라미터 처음부터 다시', 'danger', async () => {
+      if (!confirm('인간 파라미터 점수를 모두 0으로 되돌릴까요?\n오늘부터 끝낸 일만 다시 쌓여요.')) return;
+      state.stats = await window.diary.resetStats(); D.renderAll(); D.toast('처음부터 다시 시작해요.');
+    }));
     g.body.append(note('창을 닫아도(✕) 앱은 메뉴 막대/트레이에 남아 정시 알림을 보내요. 완전히 끄려면 트레이 아이콘 → "완전히 종료".'));
     if (!state.settings.isPackaged) { /* 개발 실행에서는 자동 실행이 등록되지 않음 */ }
     const hq = C.section(`숨긴 업무 (${(state.settings.hiddenQuests || []).length})`);

@@ -441,21 +441,21 @@
   }
 
   // 인간 파라미터: 큰 별 + 다섯 꼭짓점 이름표 + 등급 이름
-  const LV = [0, 3, 8, 15, 25]; // Lv1~Lv5 기준 (달 누적)
+  const LV = [0, 20, 60, 130, 250]; // Lv1~Lv5 기준 (처음부터 쌓은 전체 누적)
   const lvOf = (v) => (v >= LV[4] ? 5 : v >= LV[3] ? 4 : v >= LV[2] ? 3 : v >= LV[1] ? 2 : 1);
-  const RANKS = { // 페르소나 5 로열의 등급 이름
-    지식: ['Oblivious', 'Learned', 'Scholarly', 'Encyclopedic', 'Erudite'],
-    배짱: ['Milquetoast', 'Bold', 'Staunch', 'Dauntless', 'Lionhearted'],
-    손재주: ['Bumbling', 'Decent', 'Skilled', 'Masterful', 'Transcendent'],
-    친절: ['Inoffensive', 'Considerate', 'Empathetic', 'Selfless', 'Angelic'],
-    매력: ['Existent', 'Head-turning', 'Suave', 'Charismatic', 'Debonair'],
+  const RANKS = { // 페르소나 5 로열 등급 이름을 우리말로 옮긴 것
+    지식: ['무지한', '배운', '학자다운', '백과사전급', '박학다식'],
+    배짱: ['소심한', '대담한', '굳건한', '두려움 없는', '사자의 심장'],
+    손재주: ['서툰', '쓸 만한', '능숙한', '달인', '경지에 이른'],
+    친절: ['무난한', '사려 깊은', '공감하는', '헌신적인', '천사 같은'],
+    매력: ['존재감 있는', '눈길 가는', '세련된', '카리스마', '댄디한'],
   };
   D.paramRank = (s, lv) => RANKS[s][lv - 1];
-  function monthTotals(dateISO) {
-    const month = dateISO.slice(0, 7);
+  function monthTotals(dateISO) { // 이름은 그대로지만 이제 처음부터 dateISO 까지의 전체 누적
+    const month = '';
     const totals = Object.fromEntries(STATS.map((s) => [s, 0]));
     for (const [date, v] of Object.entries(state.stats)) {
-      if (!date.startsWith(month)) continue;
+      if (date > dateISO) continue;
       STATS.forEach((s) => { totals[s] += v[s] || 0; });
     }
     return totals;
@@ -512,7 +512,7 @@
     const head = $('#stats-title'); head.innerHTML = '';
     const sel = parse(state.selected);
     const lg = h('small', 'stats-legend');
-    lg.textContent = `${sel.getMonth() + 1}월 누적`;
+    lg.textContent = '전체 누적';
     head.append(S('section', '인간 파라미터'), lg);
     const totals = monthTotals(state.selected);
     const today = state.stats[state.selected] || {};
@@ -584,7 +584,7 @@
     box.onclick = () => box.remove();
     document.body.append(box);
     requestAnimationFrame(() => box.classList.add('in'));
-    setTimeout(() => { box.classList.add('out'); setTimeout(() => box.remove(), 600); }, rankUps.length ? 4500 : 3200);
+    setTimeout(() => { box.classList.add('out'); setTimeout(() => box.remove(), 400); }, rankUps.length ? 2600 : 1800);
   }
   D.pointUp = pointUp;
 
@@ -639,7 +639,7 @@
     });
     scr.append(stage);
     const head = h('div', 'ps2-head');
-    head.append(h('b', null, '인간 파라미터'), h('span', null, `${parse(state.today).getMonth() + 1}월 누적`));
+    head.append(h('b', null, '인간 파라미터'), h('span', null, '전체 누적 · 다음 랭크까지 꾸준히'));
     scr.append(head);
     const close = h('button', 'ps2-close', '닫기');
     close.onclick = () => scr.remove();
