@@ -1143,3 +1143,9 @@ body.layout-bigcal .nb-holes, body.layout-bigcal #right > #quests::before {
   width: 26px; right: 12px; transform: none;
   background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='26' height='150' viewBox='0 0 26 150'><g fill='%230b0b0b'><polygon points='7,2 19,6 17,34 5,31'/><polygon points='9,46 21,49 18,66 6,64'/><polygon points='6,80 18,83 17,118 4,114'/><polygon points='10,128 20,130 19,146 8,144'/></g></svg>") center top / 26px 150px repeat-y;
 }
+/* POINT UP: 조금 더 천천히 */
+.pup { transition: opacity .4s; }
+.pup.out { transition: opacity .6s; }
+.pup-burst { transition: transform .7s cubic-bezier(.3,1.5,.4,1); }
+.pup-title span { transition: transform .55s calc(var(--d) * 2) cubic-bezier(.3,1.6,.4,1), opacity .35s calc(var(--d) * 2); }
+.pup-line { transition: .5s .6s; }

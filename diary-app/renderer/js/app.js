@@ -584,7 +584,7 @@
     box.onclick = () => box.remove();
     document.body.append(box);
     requestAnimationFrame(() => box.classList.add('in'));
-    setTimeout(() => { box.classList.add('out'); setTimeout(() => box.remove(), 400); }, rankUps.length ? 2600 : 1800);
+    setTimeout(() => { box.classList.add('out'); setTimeout(() => box.remove(), 600); }, rankUps.length ? 4500 : 3200);
   }
   D.pointUp = pointUp;
 
