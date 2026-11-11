@@ -111,18 +111,20 @@
             <div id="chat-list" class="scroll"></div>
           </div>
           <div id="asst-figure"></div>
+          <div id="asst-col">
           <div id="asst-bubble">
             <svg class="dlg-bg" viewBox="0 0 600 160" preserveAspectRatio="none" aria-hidden="true">
-              <polygon class="dlg-shadow" points="40,30 598,14 586,160 24,150"/>
-              <polygon class="dlg-fill" points="26,18 592,4 578,150 10,138"/>
-              <polygon class="dlg-inner" points="16,10 598,-4 584,158 2,146"/>
+              <polygon class="dlg-fill" points="14,10 596,0 586,156 2,148"/>
+              <polygon class="dlg-inner" points="26,20 584,11 575,145 15,138"/>
             </svg>
-            <svg class="dlg-tail" viewBox="0 0 92 72" aria-hidden="true">
-              <polygon class="t-fill" points="92,16 48,26 57,34 2,56 64,44 55,38 92,44"/>
-              <polyline class="t-line" points="86,17.4 48,26 57,34 2,56 64,44 55,38 86,42.7"/>
+            <svg class="dlg-tail" viewBox="0 0 90 80" aria-hidden="true">
+              <polygon class="t-fill" points="90,40 52,34 58,24 0,8 46,46 38,52 90,64"/>
+              <polyline class="t-line" points="86,39.4 52,34 58,24 0,8 46,46 38,52 86,61.2"/>
             </svg>
             <div id="asst-name"></div>
             <div id="asst-text"></div>
+          </div>
+            <div id="asst-controls">
             <form id="chat-form" autocomplete="off">
               <input id="chat-input" type="text" placeholder="비서에게 말하기… (Enter)">
               <button type="submit" class="chip dark-on-main">보내기</button>
@@ -133,6 +135,7 @@
               <button id="btn-claude" class="chip" hidden>Claude에서 열기 ↗</button>
               <label class="switch"><input type="checkbox" id="chk-hourly"><span></span><em class="el-body">매시간 체크</em></label>
               <span id="asst-meta" class="muted"></span>
+            </div>
             </div>
           </div>
         </div>

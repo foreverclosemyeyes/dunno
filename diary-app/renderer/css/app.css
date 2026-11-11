@@ -845,3 +845,28 @@ body.layout-bigcal #asst-figure:not([hidden]) ~ #asst-bubble { margin-left: calc
 body.layout-bigcal #bigcal { margin-bottom: 40px; }
 body.layout-bigcal #bigcal { margin-bottom: 62px; }
 body.layout-bigcal #asst-figure { bottom: -34px; }
+
+/* ---------- 말풍선 v3: 말만 담고, 조작은 아래로 ---------- */
+#asst-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+body.dialog-angular #asst-bubble { margin: 0 0 0 26px; padding: 26px 34px 20px 30px; transform: rotate(-1.5deg); min-height: 92px; display: flex; flex-direction: column; justify-content: center; }
+.dlg-fill { fill: #101010; stroke: #fff; stroke-width: 5; }
+.dlg-inner { fill: none; stroke: #fff; stroke-width: 1.3; opacity: .85; }
+body.dialog-angular .dlg-tail { left: -72px; top: -6px; width: 90px; height: 80px; }
+body.dialog-angular #asst-name { left: 22px; top: -14px; font-size: 14px; padding: 4px 20px 5px 14px; }
+body.dialog-angular #asst-text { font-size: inherit; min-height: 0; max-height: 4.6em; }
+body.dialog-angular #asst-text .el-bubble { font-size: 16px; }
+#asst-controls { margin-left: 34px; display: flex; flex-direction: column; gap: 6px; }
+#asst-controls #chat-form { margin: 0; }
+#asst-controls #chat-input { border: 0; border-bottom: 2px solid color-mix(in srgb, var(--main-solid) 40%, transparent); border-radius: 0; background: transparent; color: var(--main); padding: 4px 2px; }
+#asst-controls .asst-actions { margin: 0; }
+#asst-controls .chip { clip-path: polygon(6% 0, 100% 0, 94% 100%, 0 100%); border: 0; border-radius: 0; background: #2a2a2a; color: #fff; padding: 4px 16px; transform: none; }
+#asst-controls .chip.accent { background: var(--accent); }
+#asst-controls .chip.dark-on-main { background: #fff; color: #111; }
+body.layout-bigcal #asst-figure:not([hidden]) ~ #asst-col { margin-left: calc(var(--asst-size) * .62); }
+body.layout-bigcal #asst-figure:not([hidden]) ~ #asst-bubble { margin-left: 26px; }
+/* 버튼이 캐릭터에 가리지 않게 */
+#asst-col { position: relative; z-index: 3; }
+/* 위 노트와 아래 종이가 겹치지 않게 */
+body.layout-bigcal #record { margin-bottom: 26px; }
+body.layout-bigcal #right > #quests { margin-top: 0; transform: rotate(1.2deg); }
+body.layout-bigcal .nb-sheet-back { transform: rotate(3deg) translate(6px, 2px); }
