@@ -1408,3 +1408,8 @@ body.skin-has-mask .brand::before { content: ''; display: inline-block; width: 4
 .cut.pop .cut-dagger { opacity: 1; translate: 0 0; }
 .q-tag { top: auto; bottom: 3px; right: 78px; height: 21px; transform: rotate(-4deg); }
 .cut-dagger { left: 48%; top: -8%; width: 95%; rotate: -52deg; transform-origin: 0 50%; translate: 20vh -30vh; }
+/* 컷 숫자(달력 시트의 원본 숫자): 속 색만 있는 그림에 흰 테두리 + 검은 바깥선을 둘러 줌 */
+.cut .cut-num.img { filter: drop-shadow(1.3vh 0 0 #fff) drop-shadow(-1.3vh 0 0 #fff) drop-shadow(0 1.3vh 0 #fff) drop-shadow(0 -1.3vh 0 #fff)
+          drop-shadow(.45vh 0 0 #0b0b0b) drop-shadow(-.45vh 0 0 #0b0b0b) drop-shadow(0 .45vh 0 #0b0b0b) drop-shadow(0 -.45vh 0 #0b0b0b); }
+.cut .cut-num.img img { height: 17vh; margin: 0 .2vh; }
+.cut .cut-wd.img { margin-top: -.6vh; }
