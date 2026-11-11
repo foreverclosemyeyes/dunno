@@ -3,6 +3,7 @@
   // 색 조합 (설정 > 색·배치 > 색 조합에서 한 번에 바꾸기)
   const P = (bg, main, accent, card, cardText, sun, sat, panel, param, event) => ({ bg, main, accent, card, cardText, sun, sat, panel, param, event: event || main });
   const PALETTES = [
+    ['레퍼런스', P('#140202', '#D6D2D3', '#E3170A', '#FDFDFD', '#000000', '#9C0C01', '#007C94', '#B5B5B5', '#FFCF34', '#D6D2D3')],
     ['블랙 레드', P('#0D0D0F', '#EDEDED', '#E3241B', '#FAFAF7', '#111111', '#E3241B', '#2F9BD6', '#C7C7C9', '#F5C518')],
     ['모노크롬', P('#111111', '#F2F2F2', '#FF3B30', '#FFFFFF', '#0A0A0A', '#FF3B30', '#8E8E93', '#E5E5E5', '#FF3B30')],
     ['미드나잇 옐로', P('#0E1726', '#E8EDF5', '#FFC629', '#FFFFFF', '#0E1726', '#FF6B5B', '#5FB3FF', '#C9D3E0', '#FFC629')],
@@ -43,15 +44,15 @@
   const T = (o) => ({ ...JSON.parse(JSON.stringify(textBase)), ...o });
 
   const bg = (o = {}) => ({
-    type: 'theme', // theme = 색 탭의 '배경' 색 그대로
+    type: 'gradient', // theme = 색 탭의 '배경' 색 그대로
     solid: { c: '#151515', a: 1 },
     grad: {
       kind: 'linear',
-      angle: 155,
+      angle: 200,
       stops: [
-        { c: '#1a1a1a', a: 1, p: 0 },
-        { c: '#101010', a: 1, p: 60 },
-        { c: '#2a1a14', a: 1, p: 100 },
+        { c: '#3A0909', a: 1, p: 0 },
+        { c: '#1A0303', a: 1, p: 45 },
+        { c: '#0B0000', a: 1, p: 100 },
       ],
     },
     media: null,
@@ -69,7 +70,7 @@
   });
 
   const DEFAULT_THEME = {
-    version: 3,
+    version: 4,
     colors: toColors(PALETTES[0][1]),
     layout: {
       mode: 'bigcal', // bigcal = 큰 달력 + 노트 카드, classic = 큰 날짜 숫자 + 이번 주 띠
@@ -100,7 +101,7 @@
       body: T({ size: 13, weight: 400 }),
       calNum: T({ font: 'Gasoek One', size: 92, tracking: -4, lineHeight: 0.9 }),
       calHead: T({ font: 'Gasoek One', size: 30, tracking: -1, lineHeight: 1, upper: true }),
-      stamp: T({ font: 'Gasoek One', size: 64, tracking: -2, lineHeight: 0.9, rotate: -14, color: { c: '#E3241B', a: 1 } }),
+      stamp: T({ font: 'Gasoek One', size: 64, tracking: -2, lineHeight: 0.9, rotate: -14, color: { c: '#E3170A', a: 1 } }),
     },
     background: {
       mode: 'single', // single | weekday | rotate
@@ -152,8 +153,18 @@
     t.version = 3;
     return true;
   };
+  const V3 = { bg: '#0D0D0F', main: '#EDEDED', accent: '#E3241B', card: '#FAFAF7', cardText: '#111111', sun: '#E3241B', sat: '#2F9BD6', panel: '#C7C7C9', param: '#F5C518', event: '#EDEDED' };
+  const migrate4 = (t) => {
+    if ((t.version || 1) >= 4) return false;
+    for (const k in V3) if (t.colors[k] && t.colors[k].c && t.colors[k].c.toUpperCase() === V3[k].toUpperCase()) t.colors[k] = { ...DEFAULT_THEME.colors[k] };
+    if (t.text.stamp && t.text.stamp.color && ['#E3241B', '#D8231B', '#FF4A1C'].includes(t.text.stamp.color.c)) t.text.stamp.color.c = DEFAULT_THEME.colors.accent.c;
+    if (t.background && t.background.base && t.background.base.type === 'theme') t.background.base = JSON.parse(JSON.stringify(DEFAULT_THEME.background.base));
+    t.version = 4;
+    return true;
+  };
   D.migrateTheme = (t) => {
-    if ((t.version || 1) >= 2) return migrate3(t);
+    if ((t.version || 1) >= 3) return migrate4(t);
+    if ((t.version || 1) >= 2) { migrate3(t); return migrate4(t) || true; }
     for (const k in OLD) if (t.colors[k] && t.colors[k].c && t.colors[k].c.toUpperCase() === OLD[k].toUpperCase()) t.colors[k] = { ...DEFAULT_THEME.colors[k] };
     if (t.layout.panelOpacity === 12) t.layout.panelOpacity = 100;
     if (t.layout.stripeOn === true && t.layout.stripeAngle === -24) t.layout.stripeOn = false;
@@ -161,6 +172,7 @@
     if (t.background && t.background.base && t.background.base.type === 'gradient' && t.background.base.grad.stops[0].c === '#1a1a1a') t.background.base.type = 'theme';
     t.version = 2;
     migrate3(t);
+    migrate4(t);
     return true;
   };
   D.clone = (o) => JSON.parse(JSON.stringify(o));

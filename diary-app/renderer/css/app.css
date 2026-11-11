@@ -642,3 +642,7 @@ body.dialog-angular #asst-bubble .chip.accent { background: var(--accent); color
 body.dialog-angular #asst-bubble .chip.dark-on-main { background: #fff; color: #111; }
 body.dialog-angular #chat-input { transform: none; color: #fff; border-bottom: 2px solid #ffffff55; }
 #asst-figure img { filter: var(--asst-outline); }
+
+/* 레퍼런스 색감: 숫자는 회색, 헤더는 밝은 회백 */
+body.layout-bigcal .bc-d { color: color-mix(in srgb, var(--main-solid) 68%, var(--bg)); }
+body.layout-bigcal .bc-h { color: var(--main); }
