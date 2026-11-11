@@ -880,7 +880,7 @@ body.dialog-angular #asst-bubble { transform: none; margin: 0; padding: 26px 34p
 body.dialog-angular #asst-bubble { min-height: 150px; padding: 34px 40px 28px 34px; }
 body.dialog-angular #asst-text { max-height: 6.2em; }
 /* 말풍선 글씨 조금 크게 */
-body.dialog-angular #asst-text .el-bubble { font-size: 17px; }
+
 /* ---------- 0/5 DONE: 스티커 느낌 ---------- */
 body.layout-bigcal #record-count { display: flex; align-items: flex-end; gap: 2px; transform: rotate(-6deg); line-height: .8; margin-top: -6px; }
 body.layout-bigcal #record-count .big { font-family: "Gasoek One", sans-serif; font-weight: 400; font-size: 66px; letter-spacing: -3px; color: #0b0b0b; text-shadow: 4px 4px 0 var(--accent); }
@@ -938,9 +938,11 @@ body.layout-bigcal #record-count .slash { height: 34px; width: 7px; margin: 0 4p
 body.layout-bigcal #record-count .of { font-size: 30px; margin-bottom: 8px; }
 body.layout-bigcal #record-count .lbl { font-size: 13px; bottom: -2px; }
 /* 대사 글씨 아주 살짝 얇게 (배경색 외곽선으로 가장자리만 깎음) */
-body.dialog-angular #asst-text .el-bubble { -webkit-text-stroke: .45px #101010; }
-#chat-input { -webkit-text-stroke: .45px #0b0b0b; }
-.msg.user { -webkit-text-stroke: .45px #0b0b0b; }
 /* 말풍선 높이 줄이기 */
 body.dialog-angular #asst-bubble { min-height: 96px; padding: 28px 38px 20px 32px; }
 body.layout-bigcal #record-count { right: 36px; }
+
+/* 작은 글씨 전부 나눔고딕, 깔끔하게 (외곽선 없음) */
+#chat-input, .msg, .rq-row, .rq-head b, .pn-rank, .quest .meta, #record-events .ev-chip, .chip, .tb-btn ~ .sync { font-family: "Nanum Gothic", "Noto Sans KR Variable", sans-serif; }
+#chat-input { font-size: 15px; letter-spacing: .3px; }
+.mc-nav { font-family: "Noto Sans KR Variable", sans-serif !important; font-weight: 900 !important; }

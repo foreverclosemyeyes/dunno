@@ -70,7 +70,7 @@
   });
 
   const DEFAULT_THEME = {
-    version: 10,
+    version: 11,
     colors: toColors(PALETTES[0][1]),
     layout: {
       mode: 'bigcal', // bigcal = 큰 달력 + 노트 카드, classic = 큰 날짜 숫자 + 이번 주 띠
@@ -95,10 +95,10 @@
       bigDate: T({ font: 'Gasoek One', size: 168, tracking: -5, lineHeight: 0.82, skew: 10 }),
       monthDay: T({ font: 'Gasoek One', size: 30, tracking: 1, lineHeight: 1.05, upper: true }),
       section: T({ font: 'Gasoek One', size: 22, tracking: 0.5, lineHeight: 1.1, upper: true }),
-      checklist: T({ size: 13, weight: 400, lineHeight: 1.45, tracking: -0.5 }),
-      quest: T({ size: 14, weight: 600, lineHeight: 1.35, tracking: -0.5 }),
-      bubble: T({ font: 'Nanum Gothic', size: 17, weight: 700, lineHeight: 1.55, tracking: 0.5 }),
-      body: T({ size: 13, weight: 500, tracking: -0.3 }),
+      checklist: T({ font: 'Nanum Gothic', size: 13, weight: 700, lineHeight: 1.4, tracking: 0 }),
+      quest: T({ font: 'Nanum Gothic', size: 14, weight: 700, lineHeight: 1.3, tracking: 0 }),
+      bubble: T({ font: 'Nanum Gothic', size: 16, weight: 700, lineHeight: 1.45, tracking: 0.3 }),
+      body: T({ font: 'Nanum Gothic', size: 13, weight: 700, tracking: 0 }),
       calNum: T({ font: 'Gasoek One', size: 92, tracking: -4, lineHeight: 0.9 }),
       calHead: T({ font: 'Gasoek One', size: 30, tracking: -1, lineHeight: 1, upper: true }),
       stamp: T({ font: 'Gasoek One', size: 64, tracking: -2, lineHeight: 0.9, rotate: -14, color: { c: '#E3170A', a: 1 } }),
@@ -162,6 +162,18 @@
     t.version = 4;
     return true;
   };
+  // 11판: 작은 글씨 전부 나눔고딕, 말풍선 줄간격 살짝 좁게
+  const migrate11 = (t) => {
+    if ((t.version || 1) >= 11) return false;
+    for (const k of ['checklist', 'quest', 'body']) {
+      const x = t.text[k];
+      if (x && x.font === 'Noto Sans KR') Object.assign(x, { font: 'Nanum Gothic', weight: 700, tracking: 0, lineHeight: DEFAULT_THEME.text[k].lineHeight });
+    }
+    const b = t.text.bubble;
+    if (b && b.font === 'Nanum Gothic' && b.size === 17 && b.lineHeight === 1.55) Object.assign(b, { size: 16, lineHeight: 1.45, tracking: 0.3 });
+    t.version = 11;
+    return true;
+  };
   // 10판: 대화 글씨 나눔고딕
   const migrate10 = (t) => {
     if ((t.version || 1) >= 10) return false;
@@ -208,14 +220,15 @@
     return true;
   };
   D.migrateTheme = (t) => {
-    if ((t.version || 1) >= 9) return migrate10(t);
-    if ((t.version || 1) >= 8) { migrate9(t); migrate10(t); return true; }
-    if ((t.version || 1) >= 7) { migrate8(t); migrate9(t); migrate10(t); return true; }
-    if ((t.version || 1) >= 6) { migrate7(t); migrate8(t); migrate9(t); migrate10(t); return true; }
-    if ((t.version || 1) >= 5) { migrate6(t); migrate7(t); migrate8(t); migrate9(t); migrate10(t); return true; }
-    if ((t.version || 1) >= 4) { migrate5(t); migrate6(t); migrate7(t); migrate8(t); migrate9(t); migrate10(t); return true; }
-    if ((t.version || 1) >= 3) { migrate4(t); migrate5(t); migrate6(t); migrate7(t); migrate8(t); migrate9(t); migrate10(t); return true; }
-    if ((t.version || 1) >= 2) { migrate3(t); migrate4(t); migrate5(t); migrate6(t); migrate7(t); migrate8(t); migrate9(t); migrate10(t); return true; }
+    if ((t.version || 1) >= 10) return migrate11(t);
+    if ((t.version || 1) >= 9) { migrate10(t); migrate11(t); return true; }
+    if ((t.version || 1) >= 8) { migrate9(t); migrate10(t); migrate11(t); return true; }
+    if ((t.version || 1) >= 7) { migrate8(t); migrate9(t); migrate10(t); migrate11(t); return true; }
+    if ((t.version || 1) >= 6) { migrate7(t); migrate8(t); migrate9(t); migrate10(t); migrate11(t); return true; }
+    if ((t.version || 1) >= 5) { migrate6(t); migrate7(t); migrate8(t); migrate9(t); migrate10(t); migrate11(t); return true; }
+    if ((t.version || 1) >= 4) { migrate5(t); migrate6(t); migrate7(t); migrate8(t); migrate9(t); migrate10(t); migrate11(t); return true; }
+    if ((t.version || 1) >= 3) { migrate4(t); migrate5(t); migrate6(t); migrate7(t); migrate8(t); migrate9(t); migrate10(t); migrate11(t); return true; }
+    if ((t.version || 1) >= 2) { migrate3(t); migrate4(t); migrate5(t); migrate6(t); migrate7(t); migrate8(t); migrate9(t); migrate10(t); migrate11(t); return true; }
     for (const k in OLD) if (t.colors[k] && t.colors[k].c && t.colors[k].c.toUpperCase() === OLD[k].toUpperCase()) t.colors[k] = { ...DEFAULT_THEME.colors[k] };
     if (t.layout.panelOpacity === 12) t.layout.panelOpacity = 100;
     if (t.layout.stripeOn === true && t.layout.stripeAngle === -24) t.layout.stripeOn = false;
@@ -230,6 +243,7 @@
     migrate8(t);
     migrate9(t);
     migrate10(t);
+    migrate11(t);
     return true;
   };
   D.clone = (o) => JSON.parse(JSON.stringify(o));
