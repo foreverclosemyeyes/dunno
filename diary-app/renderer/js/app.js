@@ -383,11 +383,15 @@
     // 렌(캐릭터)은 키가 없어도 보이고, 말풍선·답하는 칸은 Claude 키가 있을 때만
     const fc = a.faces || {};
     const hasFace = !!(a.image || Object.values(fc).some(Boolean));
-    $('#assistant').hidden = !state.hasKeys.anthropic && !hasFace;
-    $('#asst-col').hidden = !state.hasKeys.anthropic;
-    document.body.classList.toggle('char-only', !state.hasKeys.anthropic && hasFace);
+    const free = !state.hasKeys.anthropic; // 무료 모드: 정해진 문장, 대화창 대신 Claude 열기
+    $('#assistant').hidden = false;
+    $('#asst-col').hidden = false;
+    document.body.classList.toggle('free-mode', free);
+    document.body.classList.remove('char-only');
+    $('#chat-form').hidden = free;
+    $('#btn-chatlog').hidden = free;
+    $('#btn-claude').textContent = free ? 'Claude 채팅 열기 ↗' : 'Claude에서 열기 ↗';
     D.face.mount();
-    if (!state.hasKeys.anthropic) { $('#btn-hidechar').classList.toggle('on', !!state.settings.hideChar); return; }
     $('#btn-hidechar').classList.toggle('on', !!state.settings.hideChar);
 
     $('#asst-name').textContent = a.name;
@@ -398,15 +402,15 @@
     if (!span) { span = S('bubble', ''); text.replaceChildren(span); }
     if (msg && msg.thinking) { span.textContent = '생각하는 중…'; D.face.setMood('closed'); }
     else if (!D.face.onMessage(msg, span) && !D.face.isTyping()) {
-      text.replaceChildren(S('bubble', msg ? msg.text : '오늘 업무를 같이 확인해 드릴게요. "지금 확인해줘"를 누르거나 아래에 물어보세요.'));
+      text.replaceChildren(S('bubble', msg ? msg.text : (state.hasKeys.anthropic ? '오늘 업무를 같이 확인해 드릴게요. "지금 확인해줘"를 누르거나 아래에 물어보세요.' : '"지금 확인해줘"를 누르면 오늘 할 일을 짚어 드릴게요.')));
     }
     const meta = $('#asst-meta');
     if (msg && msg.at && !msg.thinking) {
       const t = new Date(msg.at);
-      meta.textContent = `${pad(t.getHours())}:${pad(t.getMinutes())}${msg.source === 'claude' ? '' : ' 연결 안 됨'}${msg.note ? ' — ' + msg.note : ''}`;
+      meta.textContent = `${pad(t.getHours())}:${pad(t.getMinutes())}${msg.note ? ' — ' + msg.note : ''}`;
     } else meta.textContent = '';
     $('#chk-hourly').checked = !!state.settings.hourly;
-    $('#btn-claude').hidden = !state.settings.claudeUrl;
+    $('#btn-claude').hidden = !(state.settings.claudeUrl || !state.hasKeys.anthropic);
   }
 
   function renderChat() {
@@ -793,7 +797,7 @@
     $('#btn-chatlog').onclick = () => openChat($('#chat-log').hidden);
     $('#btn-chat-close').onclick = () => openChat(false);
     $('#btn-chat-clear').onclick = async () => { if (confirm('비서와의 대화 기록을 지울까요?')) state.chat = await window.diary.clearChat(); renderChat(); };
-    $('#btn-claude').onclick = () => state.settings.claudeUrl && window.diary.open(state.settings.claudeUrl);
+    $('#btn-claude').onclick = () => window.diary.open(state.settings.claudeUrl || 'https://claude.ai/new');
     $('#chk-hourly').onchange = (e) => window.diary.setSettings({ hourly: e.target.checked });
     $('#btn-pin').onclick = () => window.diary.setSettings({ alwaysOnTop: !state.settings.alwaysOnTop });
     const toggleChar = () => window.diary.setSettings({ hideChar: !state.settings.hideChar });

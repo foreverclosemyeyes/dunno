@@ -294,7 +294,7 @@ function addChat(...msgs) {
 }
 
 async function runAssistant({ notify }) {
-  if (!secrets.get('anthropic')) return null; // Claude 키가 없으면 비서는 쉬어요
+  // 키가 없으면 무료 모드(정해진 문장)로 말함
   const ctx = currentContext();
   push('assistant', { thinking: true });
   let msg;

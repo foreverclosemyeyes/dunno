@@ -198,7 +198,7 @@
     a.body.append(keyField('anthropic', 'Anthropic API 키', 'sk-ant- 로 시작하는 키 붙여넣기'));
     a.body.append(h('div', 'row-inline'));
     a.body.lastChild.append(linkBtn('키 발급 페이지 ↗', 'https://console.anthropic.com/settings/keys'), btn('지금 확인해줘', '', () => window.diary.askAssistant()));
-    a.body.append(note('쓴 만큼 요금이 나가요(선불 크레딧). 가볍고 빠른 <b>Claude Haiku 5.5</b>를 쓰고, 매시간 체크를 켜도 한 달에 보통 <b>몇십 원~몇백 원</b> 수준이에요. 키를 넣으면 아래쪽에 비서 칸(대화창)이 나타나고, 키가 없으면 비서 칸과 매시간 알림이 꺼져 있어요.'));
+    a.body.append(note('쓴 만큼 요금이 나가요(선불 크레딧). 가볍고 빠른 <b>Claude Haiku 5.5</b>를 쓰고, 매시간 체크를 켜도 한 달에 보통 <b>몇십 원~몇백 원</b> 수준이에요. 키가 없어도 <b>무료 모드</b>로 렌이 정해진 문장으로 오늘 할 일·마감을 알려 주고 매시간 알림도 와요. 자유 대화(답하는 칸)는 키를 넣었을 때만 돼요. 키 없이 대화하려면 <b>Claude 채팅 열기</b> 버튼으로 claude.ai에서 하세요.'));
 
     const up = C.section('업데이트', true);
     const u = state.update || {};

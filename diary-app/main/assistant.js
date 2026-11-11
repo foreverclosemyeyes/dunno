@@ -44,14 +44,35 @@ function contextText(ctx) {
   ].join('\n');
 }
 
+// 무료 모드: AI 없이 상황에 맞춰 고르는 문장 (말투 설정에 '반말'이 있으면 반말)
 function fallbackMessage(ctx, persona) {
   const name = persona.name || '비서';
+  const casual = /반말/.test(persona.tone || '');
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const T = casual ? {
+    done: (n) => pick([`오늘 ${n}개 끝냈네.`, `벌써 ${n}개 처리했구나.`, `${n}개 끝. 나쁘지 않아.`]),
+    next: (t) => pick([`다음은 "${t}".`, `"${t}"부터 하자.`, `지금은 "${t}" 차례야.`]),
+    over: (q) => `"${q.name}" 마감 ${q.dday}… 이건 먼저 챙기자.`,
+    soon: (q) => `"${q.name}" 마감이 ${q.dday}야. 잊지 마.`,
+    clear: () => pick(['오늘 할 일은 끝. 수고했어.', '전부 끝냈네. 오늘은 여기까지 하자.']),
+    none: () => '오늘 체크리스트는 아직 없네.',
+  } : {
+    done: (n) => pick([`오늘 ${n}건 완료하셨습니다.`, `벌써 ${n}건 처리하셨네요.`]),
+    next: (t) => pick([`다음은 "${t}"부터 하시면 됩니다.`, `지금은 "${t}" 차례입니다.`]),
+    over: (q) => `"${q.name}" 마감이 ${q.dday}입니다. 먼저 확인해 주세요.`,
+    soon: (q) => `"${q.name}" 마감이 ${q.dday}입니다.`,
+    clear: () => pick(['오늘 체크리스트는 모두 끝났습니다. 수고하셨습니다.', '오늘 할 일은 다 끝났습니다.']),
+    none: () => '오늘 체크리스트는 아직 없습니다.',
+  };
   const parts = [];
-  if (ctx.done.length) parts.push(`오늘 ${ctx.done.length}건 완료했습니다.`);
-  if (ctx.left.length) parts.push(`다음은 "${ctx.left[0]}"부터 하시면 됩니다.`);
-  if (ctx.urgent.length) parts.push(`"${ctx.urgent[0].name}" 마감이 ${ctx.urgent[0].dday}입니다.`);
-  if (!ctx.left.length) parts.push('오늘 체크리스트는 모두 끝났습니다.');
-  return { text: parts.slice(0, 4).join(' '), source: 'local', name };
+  let mood = '기본';
+  const urgent = ctx.urgent[0];
+  if (ctx.done.length) { parts.push(T.done(ctx.done.length)); mood = '웃음'; }
+  if (urgent) { parts.push(/지남/.test(urgent.dday) ? T.over(urgent) : T.soon(urgent)); mood = '진지'; }
+  if (ctx.left.length) parts.push(T.next(ctx.left[0]));
+  else if (ctx.done.length) { parts.push(T.clear()); if (!urgent) mood = '눈감음'; }
+  else parts.push(T.none());
+  return { text: parts.slice(0, 3).join(' '), mood, source: 'local', name };
 }
 
 function systemPrompt(persona, ctx) {
