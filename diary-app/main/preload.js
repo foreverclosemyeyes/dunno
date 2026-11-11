@@ -36,4 +36,7 @@ contextBridge.exposeInMainWorld('diary', {
   onSettings: on('settings'),
   onChat: on('chat'),
   onStats: on('stats'),
+  onUpdate: on('update'),
+  checkUpdate: () => ipcRenderer.invoke('update:check'),
+  installUpdate: () => ipcRenderer.invoke('update:install'),
 });

@@ -15,6 +15,7 @@ const { Secrets } = require('./secrets');
 const notion = require('./notion');
 const assistant = require('./assistant');
 const statsAuto = require('./stats');
+const updater = require('./updater');
 
 // ---------- 오류 기록 (문제가 생기면 원인을 알 수 있게) ----------
 let logFile = null;
@@ -473,7 +474,9 @@ function registerIpc() {
     platform: process.platform,
     settings: store.get('settings', {}),
     notionCfg: cfg(),
-    hasKeys: { notion: secrets.has('notion') || !!process.env.DIARY_DEMO, anthropic: secrets.has('anthropic') },
+    hasKeys: { notion: secrets.has('notion') || !!process.env.DIARY_DEMO, anthropic: secrets.has('anthropic'), github: secrets.has('github') },
+    version: app.getVersion(),
+    update: updateState,
     theme: store.get('theme', null),
     themes: store.get('themes', []),
     stats: store.get('stats', {}),
@@ -490,10 +493,11 @@ function registerIpc() {
     return cfg();
   });
   ipcMain.handle('secret:set', (_e, name, value) => {
-    if (!['notion', 'anthropic'].includes(name)) return false;
+    if (!['notion', 'anthropic', 'github'].includes(name)) return false;
     secrets.set(name, (value || '').trim());
     if (name === 'notion') sync(true);
-    return { notion: secrets.has('notion'), anthropic: secrets.has('anthropic') };
+    if (name === 'github') setTimeout(checkUpdate, 500);
+    return { notion: secrets.has('notion'), anthropic: secrets.has('anthropic'), github: secrets.has('github') };
   });
   ipcMain.handle('notion:test', async () => {
     const token = secrets.get('notion');
@@ -515,6 +519,8 @@ function registerIpc() {
     if (month && month !== before) sync(false);
     return true;
   });
+  ipcMain.handle('update:check', () => checkUpdate());
+  ipcMain.handle('update:install', () => installUpdate());
   ipcMain.handle('assistant:ask', () => runAssistant({ notify: false }));
   ipcMain.handle('assistant:chat', (_e, text) => chatWithAssistant(text));
   ipcMain.handle('chat:clear', () => { store.set('chat', []); push('chat', []); return []; });
@@ -523,7 +529,7 @@ function registerIpc() {
   ipcMain.handle('themes:save', (_e, list) => { store.set('themes', list); return true; });
   ipcMain.handle('stats:save', (_e, stats) => { store.set('stats', stats); return true; });
   ipcMain.handle('open', (_e, url) => {
-    if (/^https:\/\/(www\.|app\.)?notion\.(so|com)\//.test(url) || /^https:\/\/(console\.anthropic\.com|www\.notion\.so|platform\.claude\.com|claude\.ai)\//.test(url)) shell.openExternal(url);
+    if (/^https:\/\/(www\.|app\.)?notion\.(so|com)\//.test(url) || /^https:\/\/(console\.anthropic\.com|www\.notion\.so|platform\.claude\.com|claude\.ai|github\.com)\//.test(url)) shell.openExternal(url);
   });
 
   ipcMain.handle('asset:pick', async (_e, kind) => {
@@ -562,6 +568,34 @@ function registerIpc() {
       return [];
     }
   });
+}
+
+// ---------- 업데이트 ----------
+let updateState = { current: app.getVersion(), available: false };
+async function checkUpdate() {
+  if (!app.isPackaged) { updateState = { current: app.getVersion(), available: false, note: '개발용 실행' }; push('update', updateState); return updateState; }
+  try {
+    updateState = { ...(await updater.check({ app, token: secrets.get('github') })), checkedAt: new Date().toISOString() };
+  } catch (e) {
+    log('update check', e);
+    updateState = { current: app.getVersion(), available: false, error: e.friendly || e.message };
+  }
+  push('update', updateState);
+  return updateState;
+}
+async function installUpdate() {
+  try {
+    push('update', { ...updateState, installing: true, progress: 0 });
+    const r = await updater.install({ app, token: secrets.get('github'), workDir: path.join(app.getPath('userData'), 'update'),
+      onProgress: (p) => push('update', { ...updateState, installing: true, progress: p }) });
+    if (r.quit) { store.saveNow(); cache.saveNow(); quitting = true; setTimeout(() => app.quit(), 300); }
+    return { ok: true };
+  } catch (e) {
+    log('update install', e);
+    updateState = { ...updateState, installing: false, error: e.friendly || e.message };
+    push('update', updateState);
+    return { ok: false, message: updateState.error };
+  }
 }
 
 // ---------- 시작 ----------
@@ -615,6 +649,8 @@ app.whenReady().then(() => {
 
   sync(true);
   setInterval(tick, 15 * 1000);
+  setTimeout(checkUpdate, 8000);
+  setInterval(checkUpdate, 6 * 60 * 60 * 1000);
   powerMonitor.on('resume', () => setTimeout(tick, 3000));
   powerMonitor.on('unlock-screen', () => setTimeout(tick, 3000));
 });

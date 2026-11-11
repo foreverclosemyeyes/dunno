@@ -281,7 +281,7 @@
   function renderRecord() {
     const sel = parse(state.selected);
     const isToday = state.selected === state.today;
-    const titleEl = S('section', isToday ? '오늘의 기록' : `${sel.getMonth() + 1}/${sel.getDate()} (${WD[sel.getDay()]})의 기록`);
+    const titleEl = S('section', isToday ? '오늘의 기록' : '그날의 기록'); // 날짜는 오른쪽 위 날짜표에만
     // 레퍼런스의 'Daily Log' 처럼 한 글자에 회색 블록
     if (!state.theme.text.section.perChar) {
       const t = titleEl.textContent, k = t.lastIndexOf('기');
@@ -289,7 +289,7 @@
     }
     $('#record-title').replaceChildren(titleEl);
     const info = dayInfo(state.selected);
-    $('#record-sub').replaceChildren(info ? '' : S('body', `${sel.getMonth() + 1}월 ${sel.getDate()}일 ${WD[sel.getDay()]}요일`));
+    $('#record-sub').replaceChildren();
     const c = count(info && info.items);
     const rc = $('#record-count'); rc.innerHTML = '';
     if (c.total) {
@@ -460,16 +460,9 @@
     }
     el('polygon', { points: poly(148, 148 * ratio), class: 'ps-big-edge' });
     // 가운데서 꼭짓점으로 점선
-    for (let k = 0; k < 10; k += 2) { const a = pt(k, 140, 0); el('line', { x1: C, y1: CY, x2: a[0], y2: a[1], class: 'ps-ray' }); }
     // 겹 별 + 꼭짓점 점
     [104, 82, 60].forEach((R, i) => {
       el('polygon', { points: poly(R, R * ratio), class: 'ps-ring ps-ring' + i });
-      for (let k = 0; k < 10; k++) { const p = pt(k, R + (k % 2 ? 0 : 6), R * ratio + 4); el('circle', { cx: p[0], cy: p[1], r: 1.7, class: 'ps-dot' }); }
-    });
-    // 각 방향 레벨 표시 (켜진 것만)
-    STATS.forEach((s, i) => {
-      const lv = lvOf(totals[s]);
-      for (let k = 1; k <= lv; k++) { const p = pt(i * 2, 44 + k * 14, 0); el('polygon', { points: `${p[0]},${p[1] - 4} ${p[0] + 4},${p[1]} ${p[0]},${p[1] + 4} ${p[0] - 4},${p[1]}`, class: 'ps-pip' }); }
     });
     // 가운데 별: 평균 등급만큼 커짐, 면을 나눠 입체로
     const avg = STATS.reduce((n, s) => n + lvOf(totals[s]), 0) / STATS.length;
@@ -494,7 +487,7 @@
     const wrap = h('div', 'pwrap');
     wrap.append(starSvg(totals));
     // 꼭짓점 위치 (%): 위, 오른쪽, 오른쪽 아래, 왼쪽 아래, 왼쪽
-    const POS = [[50, 4], [94, 37], [77, 92], [23, 92], [6, 37]];
+    const POS = [[50, 4], [84, 36], [72, 92], [28, 92], [16, 36]];
     STATS.forEach((s, i) => {
       const lv = lvOf(totals[s]);
       const box = h('div', 'plabel');
@@ -641,6 +634,7 @@
     const init = await window.diary.init();
     document.body.classList.toggle('mac', init.platform === 'darwin');
     state.platform = init.platform;
+    state.version = init.version;
     state.settings = init.settings || {};
     state.notionCfg = init.notionCfg;
     state.hasKeys = init.hasKeys;
@@ -684,6 +678,21 @@
       const ups = changes.filter((c) => c.delta > 0 && c.date && c.date.slice(0, 7) === state.today.slice(0, 7));
       if (ups.length && ups.length <= 5) pointUp(ups);
     });
+    const showUpdate = (u) => {
+      state.update = u || {};
+      const b = $('#btn-update');
+      b.hidden = !(u && (u.available || u.installing));
+      b.textContent = u && u.installing ? `UPDATING ${u.progress || 0}%` : `UPDATE ${u && u.latest ? 'v' + u.latest : ''}`;
+      b.disabled = !!(u && u.installing);
+      if (D.settings && D.settings.refresh) D.settings.refresh();
+    };
+    showUpdate(init.update);
+    window.diary.onUpdate(showUpdate);
+    $('#btn-update').onclick = async () => {
+      if (!confirm(`새 버전(v${state.update.latest})으로 업데이트할까요?\n앱이 잠깐 꺼졌다가 다시 켜져요. 설정과 기록은 그대로예요.`)) return;
+      const r = await window.diary.installUpdate();
+      if (!r.ok) toast(r.message, 6000);
+    };
     window.diary.onChat((list) => { state.chat = list; if (!$('#chat-log').hidden) renderChat(); });
     $('#chat-form').onsubmit = async (e) => {
       e.preventDefault();

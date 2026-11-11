@@ -1,6 +1,6 @@
 # 업무다이어리 설치 파일 자동 만들기
 # - diary-app 폴더가 바뀌어 올라오면: Mac(.dmg)·Windows(.exe) 설치 파일을 만들어 "Artifacts"에 올림
-# - Actions 탭에서 "Run workflow" 버튼을 누르면: 위와 같이 만들고 "Releases"에도 올림 (다운로드가 더 쉬움)
+# - 매번 "Releases"에도 올림 (버전 1.0.빌드번호) → 앱 안 UPDATE 버튼이 여기서 새 버전을 받아 감
 name: 업무다이어리 설치 파일 만들기
 
 on:
@@ -37,7 +37,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - name: 설치 파일 만들기
-        run: npx electron-builder ${{ matrix.target }} --publish never
+        run: npx electron-builder ${{ matrix.target }} --publish never -c.extraMetadata.version=1.0.${{ github.run_number }}
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       - name: Mac에서 실제로 켜 보기 (서명 확인 + 30초 실행)
@@ -70,11 +70,11 @@ jobs:
           name: WorkDiary-${{ runner.os }}
           path: |
             diary-app/dist/*.dmg
+            diary-app/dist/*.zip
             diary-app/dist/*.exe
           if-no-files-found: error
 
   release:
-    if: github.event_name == 'workflow_dispatch'
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -83,14 +83,14 @@ jobs:
         with:
           path: out
           merge-multiple: true
-      - name: 버전 읽기
-        id: v
-        run: echo "version=$(node -p "require('./diary-app/package.json').version")" >> "$GITHUB_OUTPUT"
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: diary-v${{ steps.v.outputs.version }}-${{ github.run_number }}
-          name: 업무다이어리 ${{ steps.v.outputs.version }} (빌드 ${{ github.run_number }})
+          make_latest: true
+          target_commitish: ${{ github.sha }}
+          tag_name: diary-v1.0.${{ github.run_number }}
+          name: 업무다이어리 v1.0.${{ github.run_number }}
           body: |
+            앱 안의 UPDATE 버튼으로 자동으로 받아져요. 처음 설치할 때만 아래 파일을 받으세요.
             Mac: Apple 칩(M1~M4) → `WorkDiary-...-mac-arm64.dmg`, 인텔 Mac → `WorkDiary-...-mac-x64.dmg`
             Windows: `WorkDiary-...-win-x64.exe`
           files: out/*

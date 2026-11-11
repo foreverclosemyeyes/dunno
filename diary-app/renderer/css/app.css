@@ -1021,3 +1021,26 @@ body.layout-bigcal #record-stamp { top: auto !important; bottom: 74px !important
 /* 요일: 레퍼런스처럼 일곱 개 모두 밝은 회색 (일/토도 같은 색) */
 body.layout-bigcal .bc-h, body.layout-bigcal .bc-h.sun, body.layout-bigcal .bc-h.sat { color: #D4D0D1 !important; opacity: 1 !important; }
 body.layout-bigcal .bc-h .el-calHead { color: #D4D0D1 !important; }
+
+.tb-btn.upd { background: #F2C230; color: #0b0b0b; animation: updpulse 1.6s ease-in-out infinite; }
+.tb-btn.upd:disabled { animation: none; opacity: .8; }
+@keyframes updpulse { 50% { filter: brightness(1.25); } }
+/* UPDATE 버튼: 다른 버튼과 같은 검은 딱지 + 빨간 점 */
+.tb-btn.upd { background: #0b0b0b; color: #fff; animation: none; }
+.tb-btn.upd::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); margin-right: 2px; animation: updpulse 1.4s ease-in-out infinite; }
+@keyframes updpulse { 50% { opacity: .25; } }
+
+/* ---------- 정리: 날짜 한 번만, 안내 글, 별, 넘침 ---------- */
+body.layout-bigcal #record-sub { display: none; }
+body.layout-bigcal #record-list .empty { text-align: left; padding: 0 0 0 2px; line-height: var(--rule); font-size: var(--cl-size); white-space: pre-line; }
+body.layout-bigcal #record-list .empty .el-body { line-height: inherit; font-size: inherit; }
+.pwrap::before { display: none !important; }
+.pstar { filter: none; }
+.pnext { display: none; }
+body.layout-bigcal .nb-pane[data-pane="params"] { overflow-y: auto; scrollbar-width: none; }
+body.layout-bigcal .nb-pane[data-pane="params"]::-webkit-scrollbar { display: none; }
+.pwrap { width: min(100%, 360px); }
+.pname { font-family: "Nanum Gothic", sans-serif !important; font-weight: 800; font-size: 15px; }
+body.layout-bigcal .prank { color: #0b0b0b !important; text-shadow: none !important; font-family: "Nanum Gothic", sans-serif; font-weight: 800; }
+/* 달력 숫자: 검은 외곽선 없음 */
+body.layout-bigcal .bc-d .el-calNum, body.layout-bigcal .bc-d.today .el-calNum, body.layout-bigcal .bc-d.sel .el-calNum { -webkit-text-stroke: 0 !important; }

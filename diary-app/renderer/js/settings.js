@@ -183,6 +183,18 @@
     a.body.lastChild.append(linkBtn('키 발급 페이지 ↗', 'https://console.anthropic.com/settings/keys'), btn('지금 확인해줘', '', () => window.diary.askAssistant()));
     a.body.append(note('쓴 만큼 요금이 나가요(선불 크레딧). 가볍고 빠른 <b>Claude Haiku 5.5</b>를 쓰고, 매시간 체크를 켜도 한 달에 보통 <b>몇십 원~몇백 원</b> 수준이에요. 키를 넣으면 아래쪽에 비서 칸(대화창)이 나타나고, 키가 없으면 비서 칸과 매시간 알림이 꺼져 있어요.'));
 
+    const up = C.section('업데이트', true);
+    const u = state.update || {};
+    up.body.append(note(`지금 버전: <b>v${state.version || '?'}</b>${u.latest ? ` · 최신: <b>v${u.latest}</b>` : ''}${u.available ? ' · <b style="color:#c62d0d">새 버전 있음</b>' : u.latest ? ' · 최신이에요' : ''}${u.error ? `<br>⚠ ${u.error}` : ''}`));
+    up.body.append(keyField('github', 'GitHub 열쇠 (저장소가 비공개일 때만)', 'github_pat_ 로 시작하는 토큰 붙여넣기'));
+    up.body.append(h('div', 'row-inline'));
+    up.body.lastChild.append(
+      btn('지금 확인', '', async () => { await window.diary.checkUpdate(); render(); }),
+      ...(u.available ? [btn(`v${u.latest} 로 업데이트`, 'primary', () => document.getElementById('btn-update').click())] : []),
+      linkBtn('열쇠 만들기 페이지 ↗', 'https://github.com/settings/personal-access-tokens/new'),
+    );
+    up.body.append(note('새 버전이 있으면 위쪽에 <b>UPDATE</b> 버튼이 떠요. 누르면 받아서 바꿔 끼우고 다시 켜져요. 앱은 <b>응용 프로그램 폴더</b>에 있어야 해요.'));
+    body.append(up.el);
     const g = C.section('일반', true);
     const sw = (key, label, desc) => {
       const r = h('div', 'ctl');
@@ -654,5 +666,5 @@
     window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.body.classList.contains('settings-open')) close(); });
   }
 
-  D.settings = { init, open, close, refreshFontOptions, refresh: () => { if (document.body.classList.contains('settings-open') && tab === 'connect') render(); } };
+  D.settings = { init, open, close, refreshFontOptions, refresh: () => { if (document.body.classList.contains('settings-open') && tab === 'connect' && !document.activeElement.matches('input')) render(); } };
 })();
