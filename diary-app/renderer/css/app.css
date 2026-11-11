@@ -170,7 +170,7 @@ body.mac #topbar { padding-left: 86px; }
 .stats-legend { font-size: 10px; opacity: .6; display: inline-flex; gap: 10px; margin-left: 10px; font-weight: 600; }
 .stats-legend i { display: inline-block; width: 9px; height: 9px; margin-right: 4px; vertical-align: -1px; }
 
-#toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 30px); opacity: 0; background: #111; color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 13px; z-index: 100; pointer-events: none; transition: .2s; max-width: 80vw; }
+#toast { white-space: pre-line; position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 30px); opacity: 0; background: #111; color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 13px; z-index: 100; pointer-events: none; transition: .2s; max-width: 80vw; }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
 
 @media (max-width: 1080px) {
@@ -251,14 +251,12 @@ body.layout-bigcal .todo-children .todo { min-height: 30px; }
 @keyframes stamp { from { transform: scale(2.2); opacity: 0; } to { transform: none; opacity: 1; } }
 
 /* 일정 점 · 선 (여러 날 일정은 점—점) */
-.bc-ev { position: absolute; left: 0; right: 0; height: 18px; pointer-events: none; }
-.bc-ev::before { content: ''; position: absolute; top: 50%; height: 6px; transform: translateY(-50%); background: var(--ev, var(--event)); }
-.bc-ev.mid::before { left: 0; right: 0; }
-.bc-ev.start::before { left: 50%; right: 0; }
-.bc-ev.end::before { left: 0; right: 50%; }
-.bc-ev.single::before { display: none; }
-.bc-ev.start::after, .bc-ev.end::after, .bc-ev.single::after { content: ''; position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; border-radius: 50%; transform: translate(-50%, -50%); background: var(--bg); box-shadow: inset 0 0 0 5px var(--ev, var(--event)); }
-.bc-ev.meet { --ev: var(--accent); }
+.bc-evlayer { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+#bc-grid { position: relative; }
+.ev-line { position: absolute; height: 6px; margin-top: -3px; background: var(--event); border-radius: 3px; }
+.ev-dot { position: absolute; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; background: var(--bg); box-shadow: inset 0 0 0 5px var(--event); }
+.ev-line.meet { background: var(--accent); }
+.ev-dot.meet { box-shadow: inset 0 0 0 5px var(--accent); }
 .bc-more { position: absolute; right: 0; top: -6px; font-size: 20px; font-weight: 900; opacity: .7; }
 .mc-d.has-ev span { box-shadow: inset 0 -2px 0 var(--event); }
 #record-events { display: flex; flex-wrap: wrap; gap: 5px; margin: 0 0 6px; }

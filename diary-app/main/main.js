@@ -14,6 +14,7 @@ const { JsonStore } = require('./store');
 const { Secrets } = require('./secrets');
 const notion = require('./notion');
 const assistant = require('./assistant');
+const statsAuto = require('./stats');
 
 // ---------- 오류 기록 (문제가 생기면 원인을 알 수 있게) ----------
 let logFile = null;
@@ -115,6 +116,7 @@ async function doSync(force) {
     Object.assign(state, require('../test/demo-data.js')(state.today), { lastSync: new Date().toISOString(), error: null });
     lastSyncAt = Date.now();
     pushData();
+    updateStats();
     return;
   }
   const token = secrets.get('notion');
@@ -165,6 +167,7 @@ async function doSync(force) {
     applyPending();
     state.lastSync = new Date().toISOString();
     state.error = null;
+    updateStats();
     cache.set('snapshot', { quests: state.quests, events: state.events, weeks: state.weeks, lastSync: state.lastSync });
   } catch (e) {
     state.error = e.friendly || e.message;
@@ -245,6 +248,29 @@ async function chatWithAssistant(text) {
   return msg;
 }
 
+// ---------- 능력치 자동 올리기 ----------
+let statsBusy = Promise.resolve();
+function updateStats() {
+  statsBusy = statsBusy.then(async () => {
+    if (store.get('settings', {}).autoStats === false) return;
+    const doneItems = [];
+    const loadedDates = new Set();
+    const walk = (items, date) => (items || []).forEach((i) => {
+      if (i.checked && i.text) doneItems.push({ id: i.id, text: i.text, date });
+      walk(i.children, date);
+    });
+    for (const w of state.weeks) for (const [date, items] of Object.entries(w.days || {})) { loadedDates.add(date); walk(items, date); }
+    const stats = store.get('stats', {});
+    const awards = store.get('statAwards', {});
+    const changes = await statsAuto.award({ doneItems, awards, stats, apiKey: secrets.get('anthropic'), loadedDates });
+    if (!changes.length) return;
+    store.set('stats', stats);
+    store.set('statAwards', awards);
+    push('stats', { stats, changes: changes.slice(-5) });
+  }).catch((e) => console.error('[stats]', e));
+  return statsBusy;
+}
+
 // ---------- 체크박스 → 노션 ----------
 const pendingTodos = new Map(); // blockId → checked (노션에 쓰는 중)
 function setLocalTodo(blockId, checked) {
@@ -264,12 +290,13 @@ async function toggleTodo(blockId, checked) {
   setLocalTodo(blockId, checked);
   pendingTodos.set(blockId, checked);
   pushData();
-  if (process.env.DIARY_DEMO) { pendingTodos.delete(blockId); return { ok: true }; }
+  if (process.env.DIARY_DEMO) { pendingTodos.delete(blockId); updateStats(); return { ok: true }; }
   try {
     const token = secrets.get('notion');
     if (!token) throw Object.assign(new Error('no key'), { friendly: '노션 키가 없어요.' });
     await new notion.NotionClient(token).setTodo(blockId, checked);
     pendingTodos.delete(blockId);
+    updateStats();
     cache.set('snapshot', { quests: state.quests, events: state.events, weeks: state.weeks, lastSync: state.lastSync });
     return { ok: true };
   } catch (e) {

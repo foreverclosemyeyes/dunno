@@ -35,4 +35,5 @@ contextBridge.exposeInMainWorld('diary', {
   onAssistant: on('assistant'),
   onSettings: on('settings'),
   onChat: on('chat'),
+  onStats: on('stats'),
 });

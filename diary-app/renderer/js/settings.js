@@ -185,7 +185,7 @@
     const g = C.section('일반', true);
     const sw = (key, label, desc) => {
       const r = h('div', 'ctl');
-      const l = h('label', 'switch'); const cb = h('input'); cb.type = 'checkbox'; cb.checked = !!state.settings[key];
+      const l = h('label', 'switch'); const cb = h('input'); cb.type = 'checkbox'; cb.checked = key === 'autoStats' ? state.settings[key] !== false : !!state.settings[key];
       cb.onchange = async () => { state.settings = await window.diary.setSettings({ [key]: cb.checked }); };
       l.append(cb, h('span'));
       const lab = h('label', 'ctl-label', label);
@@ -197,6 +197,7 @@
       sw('autoLaunch', '컴퓨터 켜면 자동 실행', '로그인할 때 트레이에 조용히 켜져요'),
       sw('hourly', '매시간 체크 (평일 9~19시 정시)'),
       sw('alwaysOnTop', '항상 다른 창 위에 띄우기'),
+      sw('autoStats', '능력치 자동으로 올리기', '체크리스트를 완료하면 일의 성격을 보고 능력치 +1'),
     );
     g.body.append(note('창을 닫아도(✕) 앱은 메뉴 막대/트레이에 남아 정시 알림을 보내요. 완전히 끄려면 트레이 아이콘 → "완전히 종료".'));
     if (!state.settings.isPackaged) { /* 개발 실행에서는 자동 실행이 등록되지 않음 */ }

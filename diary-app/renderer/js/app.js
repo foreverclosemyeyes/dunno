@@ -148,7 +148,9 @@
     const last = new Date(y, m, 0);
     const lead = first.getDay();
     const MAX_LANES = 3;
-    const lanes = assignLanes((state.data.events || []).filter((e) => e.end >= iso(first) && e.start <= iso(last)));
+    const monthEvents = (state.data.events || []).filter((e) => e.end >= iso(first) && e.start <= iso(last));
+    const lanes = assignLanes(monthEvents);
+    const cellOf = new Map();
     const rows = Math.ceil((lead + last.getDate()) / 7);
     for (let r = 0; r < rows; r++) {
       let todayCol = -1;
@@ -165,16 +167,9 @@
         const j = jitter(di, J);
         cell.style.transform = `translateY(${j.dy.toFixed(1)}px) rotate(${j.rot.toFixed(1)}deg)`;
         cell.append(S('calNum', String(dayNum)));
+        cellOf.set(di, { cell, row: r, col: c });
         const evs = eventsOn(di);
-        let hidden = 0;
-        for (const e of evs) {
-          const lane = lanes.get(e.id);
-          if (lane >= MAX_LANES) { hidden++; continue; }
-          const kind = e.start === e.end ? 'single' : e.start === di ? 'start' : e.end === di ? 'end' : 'mid';
-          const mk = h('i', `bc-ev ${kind}${isMeet(e) ? ' meet' : ''}`);
-          mk.style.top = `${-10 + lane * 17}px`;
-          cell.append(mk);
-        }
+        const hidden = evs.filter((e) => lanes.get(e.id) >= MAX_LANES).length;
         if (hidden) cell.append(h('b', 'bc-more', `+${hidden}`));
         if (evs.length) cell.title = evs.map((e) => `• ${e.name}`).join('\n');
         const cnt = count(dayInfo(di) && dayInfo(di).items);
@@ -188,7 +183,48 @@
         grid.append(line);
       }
     }
+    drawEventLines(monthEvents, lanes, cellOf, MAX_LANES, y, m);
     fitBigCal();
+  }
+
+  // 일정 선: 칸이 흔들려 있어도 끊기지 않게 주(줄)마다 한 번에 곧게 그림
+  function drawEventLines(evs, lanes, cellOf, maxLanes, y, m) {
+    const grid = $('#bc-grid');
+    const layer = h('div', 'bc-evlayer');
+    grid.append(layer);
+    const rowsInfo = new Map(); // row → {left, right, top}
+    for (const { cell, row } of cellOf.values()) {
+      const info = rowsInfo.get(row) || { left: Infinity, right: -Infinity, top: Infinity };
+      info.left = Math.min(info.left, cell.offsetLeft);
+      info.right = Math.max(info.right, cell.offsetLeft + cell.offsetWidth);
+      info.top = Math.min(info.top, cell.offsetTop);
+      rowsInfo.set(row, info);
+    }
+    const center = (cell) => cell.offsetLeft + cell.offsetWidth / 2;
+    const first = iso(new Date(y, m - 1, 1)), last = iso(new Date(y, m, 0));
+    for (const e of evs) {
+      const lane = lanes.get(e.id);
+      if (lane >= maxLanes) continue;
+      const s0 = e.start < first ? first : e.start, e0 = e.end > last ? last : e.end;
+      // 이 일정이 걸친 날짜를 주(줄)별로 나눔
+      const byRow = new Map();
+      for (let d = parse(s0); iso(d) <= e0; d.setDate(d.getDate() + 1)) {
+        const c = cellOf.get(iso(d)); if (!c) continue;
+        const list = byRow.get(c.row) || []; list.push({ ...c, date: iso(d) }); byRow.set(c.row, list);
+      }
+      for (const [row, list] of byRow) {
+        const info = rowsInfo.get(row);
+        const a = list[0], b = list[list.length - 1];
+        const isStart = a.date === e.start, isEnd = b.date === e.end;
+        const x1 = isStart ? center(a.cell) : info.left - 6;
+        const x2 = isEnd ? center(b.cell) : info.right + 6;
+        const top = info.top - 8 + lane * 17;
+        const cls = isMeet(e) ? ' meet' : '';
+        if (x2 > x1) { const ln = h('i', 'ev-line' + cls); Object.assign(ln.style, { left: `${x1}px`, width: `${x2 - x1}px`, top: `${top}px` }); layer.append(ln); }
+        if (isStart) { const d = h('i', 'ev-dot' + cls); Object.assign(d.style, { left: `${x1}px`, top: `${top}px` }); layer.append(d); }
+        if (isEnd && e.end !== e.start) { const d = h('i', 'ev-dot' + cls); Object.assign(d.style, { left: `${x2}px`, top: `${top}px` }); layer.append(d); }
+      }
+    }
   }
   function fitBigCal() {
     const box = $('#bigcal'), inner = $('#bc-inner');
@@ -329,7 +365,7 @@
     const head = $('#stats-title'); head.innerHTML = '';
     const sel = parse(state.selected);
     const lg = h('small', 'stats-legend');
-    lg.innerHTML = `<span><i style="background:var(--main)"></i>${sel.getMonth() + 1}월 누적</span><span><i style="background:var(--accent)"></i>${sel.getMonth() + 1}/${sel.getDate()}</span>`;
+    lg.innerHTML = `<span>${state.settings.autoStats === false ? '' : '완료하면 자동 +1 · '}</span><span><i style="background:var(--main)"></i>${sel.getMonth() + 1}월 누적</span><span><i style="background:var(--accent)"></i>${sel.getMonth() + 1}/${sel.getDate()}</span>`;
     head.append(S('section', '능력치'), lg);
     const month = state.selected.slice(0, 7);
     const totals = Object.fromEntries(STATS.map((s) => [s, 0]));
@@ -447,6 +483,12 @@
     $('#bc-next').onclick = () => shiftMonth(1);
     document.fonts.ready.then(fitBigCal);
     $('#btn-ask').onclick = () => window.diary.askAssistant();
+    window.diary.onStats(({ stats, changes }) => {
+      state.stats = stats;
+      renderStats();
+      const ups = changes.filter((c) => c.delta > 0);
+      if (ups.length) toast(ups.map((c) => `${c.stat} +1 · ${c.text}`).slice(-3).join('\n'), 3500);
+    });
     window.diary.onChat((list) => { state.chat = list; if (!$('#chat-log').hidden) renderChat(); });
     $('#chat-form').onsubmit = async (e) => {
       e.preventDefault();

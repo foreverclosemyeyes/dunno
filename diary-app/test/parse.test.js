@@ -53,3 +53,20 @@ const ny = parseChecklist([cols(col(h4('12/31 (목)'), todo('a', false)), col(h4
 assert.deepStrictEqual(Object.keys(ny), ['2026-12-31', '2027-01-01']);
 
 console.log('✓ 체크리스트 파싱 테스트 통과');
+
+// 능력치 자동 분류 (키 없을 때 규칙)
+(async () => {
+  const st = require('../main/stats');
+  assert.strictEqual(st.ruleClassify('뉴스기사 큐레이션'), '지식');
+  assert.strictEqual(st.ruleClassify('커피 주문'), '매력');
+  const stats = {}, awards = {};
+  const items = [{ id: 'a', text: '조직도 수정', date: '2026-11-09' }, { id: 'b', text: '커피 주문', date: '2026-11-10' }];
+  let ch = await st.award({ doneItems: items, awards, stats, apiKey: '', loadedDates: new Set(['2026-11-09', '2026-11-10']) });
+  assert.strictEqual(ch.length, 2);
+  assert.strictEqual(stats['2026-11-09']['손재주'], 1);
+  ch = await st.award({ doneItems: items, awards, stats, apiKey: '', loadedDates: new Set(['2026-11-09', '2026-11-10']) });
+  assert.strictEqual(ch.length, 0, '같은 항목은 한 번만');
+  ch = await st.award({ doneItems: [items[0]], awards, stats, apiKey: '', loadedDates: new Set(['2026-11-09', '2026-11-10']) });
+  assert.strictEqual(stats['2026-11-10']['매력'], 0, '체크 풀면 되돌림');
+  console.log('✓ 능력치 자동 올리기 테스트 통과');
+})().catch((e) => { console.error(e); process.exit(1); });
