@@ -810,3 +810,22 @@ body.layout-bigcal .ev-dot, body.layout-bigcal .ev-dot.meet {
 }
 body.layout-bigcal .ev-line, body.layout-bigcal .ev-line.meet { height: 7px; margin-top: -3.5px; border-radius: 4px; }
 body.layout-bigcal .ev-dot, body.layout-bigcal .ev-dot.meet { width: 18px; height: 18px; margin: -9px 0 0 -9px; }
+
+/* ---------- 비율: 달력은 왼쪽을 꽉, 노트가 주인공 ---------- */
+body.layout-bigcal #layout { grid-template-columns: minmax(460px, 1.55fr) minmax(400px, 1fr); }
+body.layout-bigcal #record { flex: 2.2 1 0; }
+body.layout-bigcal #right > #quests { flex: 1 1 0; min-height: 130px; margin-top: -6px; }
+body.layout-bigcal #bigcal { min-height: 0; }
+
+/* ---------- 꽉 차게 ---------- */
+body.layout-bigcal #layout { padding: 0 26px 10px 16px; gap: 6px 30px; }
+body.layout-bigcal #left { padding-top: 0; }
+body.layout-bigcal #bc-bar { flex-wrap: nowrap; padding: 0 0 0 26px; gap: 8px; }
+body.layout-bigcal #bc-month-label .el-calHead { transform: scale(1.2) rotate(-2deg); margin: 0 16px; }
+body.layout-bigcal #bc-tag { padding: 5px 18px 5px 16px; margin-right: -26px; font-size: 12px; }
+body.layout-bigcal #right { gap: 0; padding-right: 54px; }
+body.layout-bigcal #record { margin: 10px 0 6px 6px; }
+body.layout-bigcal #right > #quests { margin: 0 6px 6px 18px; }
+body.layout-bigcal #bottom { margin-top: -10px; }
+body.layout-bigcal #assistant { min-height: 0; }
+body.layout-bigcal #asst-bubble { margin-bottom: 0; }

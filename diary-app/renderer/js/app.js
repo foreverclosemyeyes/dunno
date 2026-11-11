@@ -246,10 +246,12 @@
     const t = state.theme.layout.calTilt;
     const rad = Math.abs(t) * Math.PI / 180; // 기울인 만큼 커지는 크기도 계산
     const rw = iw * Math.cos(rad) + ih * Math.sin(rad), rh = iw * Math.sin(rad) + ih * Math.cos(rad);
-    const f = Math.min((bw * 1.06) / rw, bh / rh) * 0.98; // 옆으로 살짝 넘쳐도 크게
+    // 가로는 폭에 맞추고, 세로는 남는 높이만큼 최대 35%까지 길쭉하게 늘려서 왼쪽을 꽉 채움
+    const fx = Math.min((bw * 1.04) / rw, bh / rh * 1.6);
+    const fy = Math.min(bh / rh, fx * 1.9); // 왼쪽 높이를 꽉 채움
     inner.style.transformOrigin = '50% 50%';
-    const ty = (rh * f - ih) / 2 + 4; // 위쪽에 붙임
-    inner.style.transform = `translate(${(bw - iw) / 2}px, ${ty}px) scale(${f}) rotate(${t}deg)`;
+    const ty = (rh * fy - ih) / 2 + 2;
+    inner.style.transform = `translate(${(bw - iw) / 2}px, ${ty}px) scale(${(fx * 0.99).toFixed(4)}, ${(fy * 0.99).toFixed(4)}) rotate(${t}deg)`;
   }
   window.addEventListener('resize', () => fitBigCal());
 
