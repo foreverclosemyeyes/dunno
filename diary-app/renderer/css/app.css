@@ -699,3 +699,18 @@ body.layout-bigcal #record-list { flex: 1 1 auto; min-height: 90px; }
 .rq-row.soon .rq-name { color: var(--accent); font-weight: 700; }
 .rq-row.soon .rq-dd { background: var(--accent); color: #fff; transform: rotate(-3deg); }
 .rq-row.over .rq-dd { background: #0b0b0b; color: #fff; }
+/* 노트 구멍: 동그랗게 */
+body.layout-bigcal .nb-holes {
+  transform: none; width: 20px; right: 16px;
+  background: radial-gradient(circle at 50% 50%, #0b0b0b 0 7.5px, color-mix(in srgb, var(--card-text-solid) 35%, transparent) 8px 9px, transparent 9.5px) center top / 20px 40px repeat-y;
+}
+
+/* 노트 반으로: 위 = 오늘의 기록, 아래 = 진행 중 업무 */
+body.layout-bigcal .nb-pane[data-pane="log"] { display: none; }
+body.layout-bigcal #record[data-tab="log"] .nb-pane[data-pane="log"] { display: flex; }
+body.layout-bigcal #record-list { flex: 1 1 0; min-height: 0; }
+body.layout-bigcal #record-quests { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; margin-top: 10px; padding-top: 8px; border-top: 5px solid #0b0b0b; }
+body.layout-bigcal .rq-head b { font-size: 21px; letter-spacing: -.5px; }
+body.layout-bigcal .rq-list { flex: 1; min-height: 0; overflow-y: auto; }
+body.layout-bigcal .rq-row { padding: 7px 2px; font-size: 14px; border-bottom-color: color-mix(in srgb, var(--card-text-solid) 18%, transparent); }
+body.layout-bigcal .rq-dd { font-size: 13px; }
