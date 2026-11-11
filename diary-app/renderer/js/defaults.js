@@ -70,7 +70,7 @@
   });
 
   const DEFAULT_THEME = {
-    version: 5,
+    version: 6,
     colors: toColors(PALETTES[0][1]),
     layout: {
       mode: 'bigcal', // bigcal = 큰 달력 + 노트 카드, classic = 큰 날짜 숫자 + 이번 주 띠
@@ -95,7 +95,7 @@
       bigDate: T({ font: 'Gasoek One', size: 168, tracking: -5, lineHeight: 0.82, skew: 10 }),
       monthDay: T({ font: 'Gasoek One', size: 30, tracking: 1, lineHeight: 1.05, upper: true }),
       section: T({ font: 'Gasoek One', size: 22, tracking: 0.5, lineHeight: 1.1, upper: true }),
-      checklist: T({ size: 15, weight: 500, lineHeight: 1.45 }),
+      checklist: T({ size: 15, weight: 400, lineHeight: 1.45 }),
       quest: T({ size: 14, weight: 500, lineHeight: 1.35 }),
       bubble: T({ size: 15, weight: 500, lineHeight: 1.55 }),
       body: T({ size: 13, weight: 400 }),
@@ -162,6 +162,13 @@
     t.version = 4;
     return true;
   };
+  // 6판: 체크리스트 글씨 살짝 얇게
+  const migrate6 = (t) => {
+    if ((t.version || 1) >= 6) return false;
+    if (t.text.checklist && t.text.checklist.weight === 500) t.text.checklist.weight = 400;
+    t.version = 6;
+    return true;
+  };
   // 5판: 배경만 더 어둡고 채도 낮게
   const migrate5 = (t) => {
     if ((t.version || 1) >= 5) return false;
@@ -172,9 +179,10 @@
     return true;
   };
   D.migrateTheme = (t) => {
-    if ((t.version || 1) >= 4) return migrate5(t);
-    if ((t.version || 1) >= 3) { migrate4(t); migrate5(t); return true; }
-    if ((t.version || 1) >= 2) { migrate3(t); migrate4(t); migrate5(t); return true; }
+    if ((t.version || 1) >= 5) return migrate6(t);
+    if ((t.version || 1) >= 4) { migrate5(t); migrate6(t); return true; }
+    if ((t.version || 1) >= 3) { migrate4(t); migrate5(t); migrate6(t); return true; }
+    if ((t.version || 1) >= 2) { migrate3(t); migrate4(t); migrate5(t); migrate6(t); return true; }
     for (const k in OLD) if (t.colors[k] && t.colors[k].c && t.colors[k].c.toUpperCase() === OLD[k].toUpperCase()) t.colors[k] = { ...DEFAULT_THEME.colors[k] };
     if (t.layout.panelOpacity === 12) t.layout.panelOpacity = 100;
     if (t.layout.stripeOn === true && t.layout.stripeAngle === -24) t.layout.stripeOn = false;
@@ -184,6 +192,7 @@
     migrate3(t);
     migrate4(t);
     migrate5(t);
+    migrate6(t);
     return true;
   };
   D.clone = (o) => JSON.parse(JSON.stringify(o));

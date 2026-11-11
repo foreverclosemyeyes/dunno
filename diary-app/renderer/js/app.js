@@ -293,6 +293,24 @@
       chip.onclick = () => window.diary.open(e.url);
       evBox.append(chip);
     }
+    // 기록 화면 아래: 진행 중 업무 (마감 가까운 순 5개)
+    const rq = $('#record-quests'); rq.innerHTML = '';
+    const qs = state.data.quests || [];
+    if (qs.length) {
+      const head = h('div', 'rq-head');
+      const more = h('button', 'rq-more', `전체 ${qs.length}개 →`);
+      more.onclick = () => { $('#record').dataset.tab = 'quests'; };
+      head.append(h('b', null, '진행 중 업무'), more);
+      rq.append(head);
+      for (const q of qs.slice(0, 5)) {
+        const d = dday(q);
+        const row = h('div', 'rq-row' + (d !== null && d <= 3 ? ' soon' : '') + (d !== null && d < 0 ? ' over' : ''));
+        row.append(h('span', 'rq-name', q.name), h('span', 'rq-dd', d === null ? '—' : d === 0 ? 'D-DAY' : d > 0 ? `D-${d}` : `D+${-d}`));
+        row.title = '노션에서 열기';
+        row.onclick = () => window.diary.open(q.url);
+        rq.append(row);
+      }
+    }
     const stamp = $('#record-stamp');
     const allDone = c.total > 0 && c.done === c.total;
     if (allDone && stamp.hidden) { stamp.replaceChildren(S('stamp', state.theme.layout.stampText || 'DONE!!')); stamp.hidden = false; }
