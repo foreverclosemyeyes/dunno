@@ -1501,3 +1501,11 @@ body.skin-bubble #chat-form { order: 2; width: 250px; min-height: 40px !importan
 body.skin-bubble #chat-input { font-size: 13px; min-width: 0; }
 
 #bc-month-label .el-calHead { text-transform: none !important; }
+
+/* 말풍선: 조금 더 위로, 가로는 살짝 좁게 */
+body.skin-bubble #asst-bubble { width: min(350px, 27vw); margin: 92px 0 96px 70px; }
+/* 답하는 칸: 오른쪽 꼬리가 잘 보이게 여유 */
+body.skin-bubble #chat-form { width: 270px; padding-right: 62px !important; margin-right: 26px !important; }
+body.skin-bubble #asst-bubble { margin-left: 34px; }
+body.skin-bubble #asst-controls { margin-left: -6px !important; }
+body.skin-bubble #chat-form { width: 236px; margin-right: 0 !important; }

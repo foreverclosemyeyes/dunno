@@ -119,7 +119,7 @@
       tone: '차분하고 간결한 존댓말. 과한 감탄·칭찬·이모지 없이 핵심만 짧게.',
       image: null,
       faces: { base: null, talk: null, smile: null, wink: null, serious: null, closed: null },
-      size: 300,
+      size: 400,
       outline: 4, // 캐릭터 검은 외곽선 두께(px)
       outlineColor: { c: '#0B0B0B', a: 1 },
       x: 0,

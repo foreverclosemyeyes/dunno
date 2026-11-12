@@ -779,6 +779,13 @@
       if (state.theme.assistant.name === '모모') state.theme.assistant.name = D.DEFAULT_THEME.assistant.name;
       window.diary.saveTheme(state.theme);
     }
+    // 캐릭터를 한 번 키워 줌 (기본 크기 그대로 쓰던 경우만)
+    if (!state.theme.sizeBumped) {
+      state.theme.sizeBumped = true;
+      if (state.theme.assistant.size === 300) state.theme.assistant.size = 400;
+      for (const c of Object.values(state.theme.cast || {})) if (c && c.size === 300) c.size = 400;
+      window.diary.saveTheme(state.theme);
+    }
     // 비서 4명 말투를 처음 한 번 맞춰 줌 (지금 비서 = 렌)
     if (!state.theme.castReady) {
       state.theme.castReady = true;
