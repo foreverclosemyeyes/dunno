@@ -1449,3 +1449,21 @@ body.skin-bubble #asst-name { left: -9%; top: -52%; }
 body.skin-bubble #asst-bubble { aspect-ratio: 4.45; min-height: 84px; box-sizing: border-box; }
 body.skin-bubble #asst-name { left: -4%; top: -55%; }
 body.skin-bubble #asst-name { top: -36%; }
+
+.cut-note.only-hall { padding: 10px 14px; }
+.cut-note.only-hall .cut-hall { margin: 0; font-size: 18px; }
+/* 단검: 더 빨리 '탁' */
+.cut-dagger { translate: 9vh -14vh; transition: translate .09s cubic-bezier(.7,0,1,.6), opacity .04s; }
+/* 스킨 말풍선: 그림에서 잰 검은 몸통(쐐기 모양) 한가운데에 글이 오게. 몸통이 오른쪽 아래로 기울어 있어 글도 2도 기울임 */
+body.skin-bubble #asst-bubble { aspect-ratio: auto; min-height: 66px; padding: 2px 10px !important; }
+body.skin-bubble #asst-bubble::before { inset: -134% -33.7% -73% -23%; }
+body.skin-bubble #asst-text { transform: rotate(2deg); transform-origin: 50% 50%; }
+body.skin-bubble #asst-name { left: 9.6%; top: -94%; transform: translate(-50%, -50%) rotate(-12deg) !important; white-space: nowrap; }
+/* 말풍선을 조금 더 아래로 */
+body.skin-bubble #asst-col { translate: 0 34px; }
+
+body.skin-bubble #asst-col { translate: none; }
+body.skin-bubble #asst-bubble { max-width: 430px; margin: 74px 0 44px 8%; }
+body.skin-bubble #asst-bubble { margin: 62px 0 38px 112px; }
+body.skin-bubble #asst-name { top: -76%; }
+body.skin-bubble #asst-name { top: -68%; }

@@ -116,7 +116,8 @@
     if (soon) lines.push(`마감 임박 ${soon}건`);
     note.append(h('b', null, `${today.getMonth() + 1}/${today.getDate()} ${WD_KO[today.getDay()]}요일`), h('span', null, lines.join('  /  ')));
     if (hall) note.append(h('span', 'cut-hall', 'TODAY: 올핸즈 타운홀 미팅'));
-    root.append(note);
+    // 오른쪽 아래 요약 메모는 안 띄움. 타운홀 날에만 한 줄 알림
+    if (hall) { note.replaceChildren(h('span', 'cut-hall', 'TODAY: 올핸즈 타운홀 미팅')); note.classList.add('only-hall'); root.append(note); }
     root.append(h('div', 'cut-skip', '누르면 넘어가요'));
 
     document.body.append(root);
@@ -143,7 +144,7 @@
       timers.push(setTimeout(() => root.classList.add('dates'), 700));
       timers.push(setTimeout(() => { layout(0); root.classList.add('advance', 'moving'); }, 1700)); // 오늘로 한 칸 이동
       timers.push(setTimeout(() => root.classList.remove('moving'), 2100));
-      timers.push(setTimeout(() => root.classList.add('pop'), 2200)); // 오늘 숫자 + 단검
+      timers.push(setTimeout(() => root.classList.add('pop'), 2000)); // 오늘 숫자 + 단검
       timers.push(setTimeout(() => root.classList.add('day'), 2500)); // 날이 밝음
       timers.push(setTimeout(() => root.classList.add('note-in'), 3000));
       timers.push(setTimeout(finish, 5600));

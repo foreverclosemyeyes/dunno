@@ -11,6 +11,7 @@
     col.style.transform = '';
     col.style.maxWidth = '';
     if (!document.body.classList.contains('layout-bigcal') || $('#assistant').hidden) return;
+    if (document.body.classList.contains('skin-bubble')) return; // 스킨 말풍선은 크니까 달력 옆으로 끌어올리지 않고 아래 자리에 둠
     const cells = [...document.querySelectorAll('#bc-grid .bc-d:not(.out)')];
     const last = cells[cells.length - 1];
     const left = $('#left');
