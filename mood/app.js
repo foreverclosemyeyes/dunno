@@ -160,9 +160,9 @@
     energy: ['Empty', 'Almost none', 'Drained', 'Tired', 'A bit low', 'Normal', 'A bit lively', 'Energetic', 'Overflowing', 'Very high', 'Hard to contain'],
     conf: ['Very withdrawn', 'Withdrawn', 'Unsure', 'A bit unsure', 'Slightly unsure', 'Normal', 'Slightly confident', 'Confident', 'Very confident', 'Can do anything', 'Unstoppable'],
   } : {
-    mood: ['아주 가라앉음', '많이 가라앉음', '가라앉음', '조금 가라앉음', '약간 처짐', '보통', '약간 좋음', '좋음', '들뜸', '많이 들뜸', '아주 들뜸'],
-    energy: ['바닥', '거의 없음', '많이 지침', '지침', '조금 처짐', '보통', '조금 활기', '활기참', '넘침', '많이 넘침', '주체하기 어려움'],
-    conf: ['아주 위축', '많이 위축', '위축', '조금 위축', '약간 자신 없음', '보통', '약간 자신 있음', '자신 있음', '자신만만', '뭐든 할 수 있을 듯', '못 할 게 없는 느낌'],
+    mood: ['바닥', '많이 우울', '우울', '가라앉음', '살짝 다운', '그럭저럭', '괜찮음', '좋음', '신남', '붕 뜸', '날아갈 듯'],
+    energy: ['방전', '녹초', '기진맥진', '축 처짐', '좀 피곤', '보통', '괜찮음', '쌩쌩', '기운 넘침', '가만 못 있음', '멈출 수 없음'],
+    conf: ['완전 쭈그러듦', '많이 위축', '주눅 듦', '소심해짐', '살짝 자신 없음', '보통', '할 만함', '자신 있음', '자신만만', '뭐든 될 것 같음', '무적'],
   };
   const nameOf = (key, v) => (v == null || !NAMES[key] ? '' : NAMES[key][Math.round(v)] || '');
   const SIGN_THRESHOLD = 7;
