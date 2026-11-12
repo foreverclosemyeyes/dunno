@@ -1518,3 +1518,23 @@ body.skin-bubble #asst-name { left: 12.8% !important; top: -67% !important; tran
 body.skin-bubble #asst-name span { display: inline-block; }
 body.skin-bubble #asst-name span.inv { background: #0b0b0b !important; color: #fff !important; padding: 0 1px; margin: 0 1px; transform: rotate(4deg); letter-spacing: 0; }
 #asst-name span.inv { color: inherit; }
+
+/* ===== 대화 구도 2차: 말풍선은 화면 맨 아래(꼬리가 입 높이), 답하는 칸·버튼은 말풍선 위 오른쪽 ===== */
+body.skin-bubble #asst-col { flex-direction: column-reverse; align-items: flex-start; }
+body.skin-bubble #asst-bubble { width: clamp(360px, 31vw, 600px); min-height: clamp(66px, 5.6vw, 104px); margin: 0 0 22px 64px; }
+/* 글은 몸통 안에서 조금 더 오른쪽 (그림 속 안전 영역: 왼 19% · 오른 20%) */
+body.skin-bubble #asst-bubble::before { inset: -134% -32.8% -73% -31.1%; }
+body.skin-bubble #asst-text .el-bubble { font-size: clamp(15px, 1.25vw, 22px) !important; }
+/* 이름표: 대사와 같은 고딕, 판 기울기 그대로 */
+body.skin-bubble #asst-name { left: 6.4% !important; font-weight: 700 !important; font-size: clamp(14px, 1.15vw, 20px) !important; letter-spacing: .1em !important; }
+/* 답하는 칸 + 버튼: 말풍선 위, 이름표 오른쪽에 두 줄 */
+body.skin-bubble #asst-controls { flex-direction: column !important; align-items: flex-end; gap: 6px; margin: 0 0 14px 0 !important; align-self: flex-end; padding-right: 4%; }
+body.skin-bubble #asst-controls .asst-actions { order: 2; }
+body.skin-bubble #chat-form { order: 1; width: 250px; }
+/* 캐릭터가 달력을 가리지 않게: 창 높이의 46% 까지만 */
+body.skin-bubble #asst-figure { width: min(var(--asst-size), 46vh); height: min(var(--asst-size), 46vh); }
+body.skin-bubble #asst-bubble { margin-left: 26px; }
+body.skin-bubble #asst-controls { margin-bottom: 34px !important; padding-right: 0; }
+/* 꼬리 끝이 얼굴이 아니라 턱·목 옆에 오도록: 말풍선 폭에 비례해 오른쪽으로 */
+body.skin-bubble #asst-bubble { margin-left: calc(clamp(360px, 31vw, 600px) * .311 - 22px); margin-bottom: 14px; }
+body.skin-bubble #asst-bubble { margin-left: calc(clamp(360px, 31vw, 600px) * .311 - 22px + max(0px, (100vw - 1280px) * .08)); }
