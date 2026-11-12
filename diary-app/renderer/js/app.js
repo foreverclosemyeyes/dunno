@@ -254,7 +254,7 @@
     const rw = iw * Math.cos(rad) + ih * Math.sin(rad), rh = iw * Math.sin(rad) + ih * Math.cos(rad);
     // 가로는 폭에 맞추고, 세로는 남는 높이만큼 최대 35%까지 길쭉하게 늘려서 왼쪽을 꽉 채움
     const fx = Math.min((bw * 1.04) / rw, bh / rh * 1.6);
-    const tall = 1.6; // 세로로 넉넉히 늘려 레퍼런스처럼 길쭉하게
+    const tall = 1.25; // 세로로 살짝만 늘림 (줄 간격이 벌어지지 않게)
     void 0; // 스킨 대화 구도에선 달력을 더 길쭉하게 해서 말풍선 위 빈자리를 채움
     const fy = Math.min(bh / rh, fx * tall); // 세로로 너무 늘어나지 않게
     inner.style.transformOrigin = '50% 50%';
@@ -306,6 +306,30 @@
       const r = await window.diary.deleteTodo(item.id);
       if (!r.ok) { row.classList.remove('busy'); toast(r.message, 5000); }
     };
+    // 글 고치기: ✎ 를 누르면 그 자리에서 고침 (Enter 저장, Esc 취소)
+    const ed = h('button', 'todo-ed', '✎'); ed.title = '글 고치기';
+    ed.onclick = (e) => {
+      e.stopPropagation();
+      if (row.querySelector('.todo-edit')) return;
+      const txt = row.querySelector('.txt');
+      const inp = h('input', 'todo-edit'); inp.type = 'text'; inp.value = item.text; inp.maxLength = 300;
+      let done = false;
+      const finish = async (save) => {
+        if (done) return; done = true;
+        const v = inp.value.replace(/\s+/g, ' ').trim();
+        inp.replaceWith(txt);
+        if (!save || !v || v === item.text) return;
+        row.classList.add('busy');
+        const r = await window.diary.editTodo(item.id, v);
+        row.classList.remove('busy');
+        if (!r.ok) toast(r.message, 5000);
+      };
+      inp.onclick = (ev) => ev.stopPropagation();
+      inp.onkeydown = (ev) => { ev.stopPropagation(); if (ev.key === 'Enter') finish(true); else if (ev.key === 'Escape') finish(false); };
+      inp.onblur = () => finish(true);
+      txt.replaceWith(inp); inp.focus(); inp.select();
+    };
+    row.append(ed);
     // 다른 날짜로 넘기기 (안 끝난 것만)
     if (!item.checked) {
       const mv = h('button', 'todo-mv', '→'); mv.title = '다른 날짜로 넘기기';

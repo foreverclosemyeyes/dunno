@@ -1653,3 +1653,16 @@ body.layout-bigcal #record[data-tab="params"] .nb-tabs button[data-tab="params"]
 .mv-menu button:hover { background: var(--accent); }
 .mv-pick { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; font-weight: 700; padding: 4px 2px 0; }
 .mv-pick input { font: inherit; border: 2px solid #0b0b0b; padding: 2px 4px; background: #fff; }
+/* 달력 줄 간격을 다시 좁게 */
+body.layout-bigcal .bc-d { padding-bottom: 16px !important; }
+
+/* 체크리스트 글 고치기 */
+.todo-ed { margin-left: auto; flex: none; align-self: center; width: 18px; height: 18px; border: 0; border-radius: 50%; background: #0b0b0b; color: #fff;
+  font-size: 10px; line-height: 1; padding: 0; opacity: 0; cursor: pointer; }
+.todo:hover > .todo-ed { opacity: .8; }
+.todo-ed:hover { opacity: 1 !important; background: var(--accent); }
+.todo-ed + .todo-mv, .todo-ed + .todo-del { margin-left: 4px; }
+.todo-edit { flex: 1; min-width: 0; font: inherit; font-size: var(--cl-size, 13px); font-weight: 700; color: #0b0b0b; background: #fff; border: 2px solid #0b0b0b; padding: 1px 6px; margin: 0 6px 0 0; outline: 0; }
+/* 딱지: 바깥(오른쪽)으로 갈수록 넓어지는 사다리꼴 */
+body.layout-bigcal .nb-tabs button { clip-path: polygon(0 16%, 100% 0, 100% 100%, 0 84%) !important; }
+body.layout-bigcal .nb-tabs button::before { clip-path: polygon(0 15%, 100% 0, 100% 100%, 0 85%); }

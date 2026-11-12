@@ -133,6 +133,11 @@ class NotionClient {
   }
 
   // 체크박스 켜기/끄기 (통합에 "콘텐츠 업데이트" 권한 필요)
+  // 체크박스 글 바꾸기 (서식 없는 글로 다시 씀)
+  setTodoText(blockId, text) {
+    return this.request('PATCH', `/blocks/${blockId}`, { to_do: { rich_text: [{ type: 'text', text: { content: text } }] } });
+  }
+
   setTodo(blockId, checked) {
     return this.request('PATCH', `/blocks/${blockId}`, { to_do: { checked: !!checked } });
   }

@@ -403,6 +403,40 @@ async function deleteTodo(id) {
   }
 }
 
+// ---------- 체크리스트 글 고치기 ----------
+async function editTodo(id, text) {
+  text = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 300);
+  if (!text) return { ok: false, message: '내용을 적어 주세요.' };
+  const setLocal = () => {
+    const walk = (items) => (items || []).some((x) => (x.id === id ? ((x.text = text), true) : walk(x.children)));
+    for (const w of state.weeks) for (const items of Object.values(w.days || {})) if (walk(items)) return true;
+    return false;
+  };
+  if (process.env.DIARY_DEMO) { setLocal(); pushData(); return { ok: true }; }
+  try {
+    const token = secrets.get('notion');
+    if (token) await new notion.NotionClient(token).setTodoText(id, text);
+    else if (mcp && mcp.loggedIn()) {
+      const a = mcpAnchors.get(id);
+      if (!a) throw Object.assign(new Error('no anchor'), { friendly: '잠시 후 다시 해 주세요.' });
+      const lines = a.oldStr.split('\n');
+      const last = lines[lines.length - 1];
+      const md = text.replace(/([\\*_`~\[\]])/g, '\\$1');
+      const m = last.match(/^(\s*- \[(?: |x|X)\]\s*)/);
+      if (!m) throw Object.assign(new Error('bad line'), { friendly: '이 항목은 앱에서 고칠 수 없어요. 노션에서 고쳐 주세요.' });
+      const neu = [...lines.slice(0, -1), m[1] + md].join('\n');
+      await mcp.replaceText(a.pageId, a.oldStr, neu);
+      const cur = mcpPages.get(a.pageId); if (cur) cur.md = cur.md.replace(a.oldStr, neu);
+    } else throw Object.assign(new Error('no notion'), { friendly: '노션이 연결되지 않았어요.' });
+    setLocal(); pushData();
+    sync(true);
+    return { ok: true };
+  } catch (e) {
+    console.error('[edit todo]', e);
+    return { ok: false, message: e.friendly || '노션에서 고치지 못했어요.' };
+  }
+}
+
 // ---------- 체크리스트를 다른 날짜로 넘기기 ----------
 // 넘길 날짜에 먼저 적고(하위 항목 중 안 끝난 것도 같이), 다 적힌 뒤에 원래 것을 지움 → 중간에 실패해도 사라지지 않음
 async function moveTodo(id, toDate) {
@@ -724,6 +758,7 @@ function registerIpc() {
   ipcMain.handle('todo:delete', (_e, id) => deleteTodo(String(id)));
   ipcMain.handle('todo:add', (_e, date, text) => addTodo(String(date), String(text)));
   ipcMain.handle('todo:move', (_e, id, date) => moveTodo(String(id), String(date)));
+  ipcMain.handle('todo:edit', (_e, id, text) => editTodo(String(id), String(text)));
   ipcMain.handle('todo:toggle', (_e, id, checked) => toggleTodo(String(id), !!checked));
   ipcMain.handle('theme:save', (_e, theme) => { store.set('theme', theme); return true; });
   ipcMain.handle('themes:save', (_e, list) => { store.set('themes', list); return true; });
