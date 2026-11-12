@@ -1,9 +1,10 @@
 // 흐름 화면 (주 / 월)
-import { DISCLAIMER, nameOf } from '../constants.js';
+import { DISCLAIMER, LEVELS, nameOf } from '../constants.js';
 import { WD, addDays, ds, durText, longDate, md, monthTitle, parse, today, weekStart } from '../dates.js';
 import { app } from '../dom.js';
 import { EN, F, T } from '../i18n.js';
 import { IC } from '../icons.js';
+import { medsFor } from '../meds.js';
 import { trend } from '../state.js';
 import { db } from '../store.js';
 import { fontScale, moodFill, tone } from '../theme.js';
@@ -41,8 +42,8 @@ export function smoothPath(pts, yMin, yMax) {
 
 export function viewTrend() {
   const C = document.documentElement.dataset.theme === 'light'
-    ? { ink: '#0b0b0c', ring: '#fff', grid: 'rgba(0,0,0,.08)', muted: '#6b6b70', faint: '#a0a0a6', shade: ['rgba(0,0,0,.06)', '#c7c7cc', '#8e8e93', '#48484a', '#000'] }
-    : { ink: '#fff', ring: '#1c1c1e', grid: 'rgba(255,255,255,.1)', muted: '#9a9aa0', faint: '#6a6a70', shade: ['rgba(255,255,255,.08)', '#5a5a5e', '#8e8e93', '#c7c7cc', '#fff'] };
+    ? { ink: '#0b0b0c', ring: '#fff', grid: 'rgba(0,0,0,.08)', muted: '#6b6b70', faint: '#a0a0a6' }
+    : { ink: '#fff', ring: '#1c1c1e', grid: 'rgba(255,255,255,.1)', muted: '#9a9aa0', faint: '#6a6a70' };
   const t = today(), r = trendRange(trend.anchor), prev = trendRange(shiftAnchor(trend.anchor, -1));
   const days = rangeEntries(r), got = days.filter(Boolean), before = rangeEntries(prev).filter(Boolean);
   const isWeek = trend.mode === 'week';
@@ -58,14 +59,14 @@ export function viewTrend() {
   const FS = fontScale(), AX = Math.round(26 * FS), W = Math.max(160, Math.min(app.clientWidth, 480) - 28 - 32 - AX), col = W / r.n;
   const cx = (i) => col * (i + 0.5);
   const TOP = 8, BOT = 104, H = 124;
-  const xLabels = days.map((_, i) => {
+  const xLabelsAt = (y) => days.map((_, i) => {
     const d = addDays(r.start, i), dt = parse(d);
     if (!isWeek && (dt.getDate() - 1) % 7 !== 0) return '';
-    return `<text x="${cx(i).toFixed(1)}" y="${H - 4}" text-anchor="middle" font-size="${(10 * FS).toFixed(1)}" fill="${d === t ? C.ink : C.muted}">${isWeek ? WD()[dt.getDay()] : dt.getDate()}</text>`;
+    return `<text x="${cx(i).toFixed(1)}" y="${y}" text-anchor="middle" font-size="${(10 * FS).toFixed(1)}" fill="${d === t ? C.ink : C.muted}">${isWeek ? WD()[dt.getDay()] : dt.getDate()}</text>`;
   }).join('');
   const grid = (ticks, y) => ticks.map(([v, label]) => `<line x1="0" x2="${W}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="${C.grid}"/>
     <text x="${W + 6}" y="${(y(v) + 3.5).toFixed(1)}" font-size="${(10 * FS).toFixed(1)}" fill="${C.faint}">${label}</text>`).join('');
-  const plot = (inner) => `<div class="plot" data-n="${r.n}" data-w="${W}"><svg width="${W + AX}" height="${H}">${inner}${xLabels}</svg></div>`;
+  const plot = (inner) => `<div class="plot" data-n="${r.n}" data-w="${W}"><svg width="${W + AX}" height="${H}">${inner}${xLabelsAt(H - 4)}</svg></div>`;
 
   // 카드 머리: 평소에는 평균, 날짜를 누르면 그날 값
   const fmtSleep = (m) => `${Math.floor(m / 60)}<small>${T('시간')}</small> ${Math.round(m % 60)}<small>${T('분')}</small>`;
@@ -138,20 +139,43 @@ export function viewTrend() {
       <div class="mnote calkey"><span>${T('가라앉음')} ${scale} ${T('들뜸')}</span><span><i class="pdot"></i> ${T('생리')}</span></div></section>`;
   };
 
-  // 증상·생리·약: 날짜별 칸
-  const SHADE = ['${C.grid}', '#5a5a5e', C.muted, '#c7c7cc', C.ink];
-  const strip = (name, cell) => `<div class="srow"><svg width="${W}" height="18">${days.map((e, i) => (e ? cell(e, i) : '')).join('')}${
-    pick == null ? '' : `<rect x="${(col * pick).toFixed(1)}" y="0" width="${col.toFixed(1)}" height="18" rx="4" fill="none" stroke="${C.ink}"/>`}</svg><span>${name}</span></div>`;
-  const gap = isWeek ? 4 : 1.5;
-  const level = (key) => (e, i) => `<rect x="${(col * i + gap / 2).toFixed(1)}" y="2" width="${(col - gap).toFixed(1)}" height="14" rx="${isWeek ? 5 : 3}" fill="${SHADE[e[key] || 0]}"/>`;
-  const dot = (test) => (e, i) => (test(e) ? `<circle cx="${cx(i).toFixed(1)}" cy="9" r="${isWeek ? 4.5 : Math.min(3, col / 2 - 1)}" fill="${C.ink}"/>` : '');
+  // 증상 · 생리 · 약: 항목마다 한 줄. 증상은 막대 높이가 정도, 생리는 이어진 띠, 약은 점.
+  const RH = 30, bw = isWeek ? 20 : Math.max(3, col - 3);
+  const guide = (h) => (pick == null ? '' : `<line x1="${cx(pick).toFixed(1)}" x2="${cx(pick).toFixed(1)}" y1="0" y2="${h}" stroke="${C.muted}"/>`);
+  const inkAt = (i) => (pick == null || pick === i ? C.ink : C.faint);
+  const srow = (name, right, h, inner) => `<div class="srow"><div class="sh"><span>${name}</span><span>${right}</span></div><svg width="${W}" height="${h}">${inner}${guide(h)}</svg></div>`;
+  const symRow = (key, name) => {
+    const high = got.filter((e) => e[key] >= 3).length, max = Math.max(0, ...got.map((e) => e[key] || 0));
+    const right = pickDate ? (pickE ? LEVELS[pickE[key] || 0] : '–') : high ? F('높음 이상 {0}일', high) : max ? F('가장 높은 날 {0}', LEVELS[max]) : T('없음');
+    return srow(name, right, RH, days.map((e, i) => {
+      if (!e) return '';
+      const h = e[key] ? (e[key] / 4) * (RH - 2) : 2;   // 없음인 날은 바닥에 얇은 줄만
+      return `<rect x="${(cx(i) - bw / 2).toFixed(1)}" y="${(RH - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="${Math.min(bw / 2, 4, h / 2).toFixed(1)}" fill="${e[key] ? inkAt(i) : C.grid}"/>`;
+    }).join(''));
+  };
+  const periodRow = () => {
+    let out = '', n = 0;
+    for (let i = 0; i < r.n; i++) {
+      if (!(days[i] && days[i].period)) continue;
+      let j = i;
+      while (j + 1 < r.n && days[j + 1] && days[j + 1].period) j++;
+      out += `<rect x="${(col * i + 2).toFixed(1)}" y="4" width="${(col * (j - i + 1) - 4).toFixed(1)}" height="8" rx="4" fill="${C.ink}"/>`;
+      n += j - i + 1;
+      i = j;
+    }
+    return srow(T('생리'), pickDate ? (pickE && pickE.period ? T('생리 중') : '–') : n ? F('{0}일', n) : T('없음'), 16, out);
+  };
+  const medRow = () => {
+    const counts = days.map((_, i) => medsFor(addDays(r.start, i)).length), n = counts.filter(Boolean).length;
+    return srow(T('약'), pickDate ? (counts[pick] ? F('{0}번', counts[pick]) : '–') : n ? F('{0}일', n) : T('없음'), 16,
+      counts.map((c, i) => (c ? `<circle cx="${cx(i).toFixed(1)}" cy="8" r="${isWeek ? 4.5 : Math.max(1.5, Math.min(3, col / 2 - 1))}" fill="${inkAt(i)}"/>` : '')).join(''));
+  };
   const symptoms = `<section class="card mcard"><div class="mt">${IC.wave}${T('증상 · 생리 · 약')}</div>
     <div class="plot strips" data-n="${r.n}" data-w="${W}">
-      ${strip(T('우울'), level('dep'))}${strip(T('고조'), level('elev'))}${strip(T('불안'), level('anx'))}
-      <div style="height:8px"></div>
-      ${strip(T('생리'), dot((e) => e.period))}${strip(T('약'), dot((e) => e.meds && e.meds.length))}
-    </div>
-    <div class="mnote calkey"><span>${T('없음')} ${SHADE.map((c) => `<i style="background:${c}"></i>`).join('')} ${T('매우 높음')}</span></div></section>`;
+      ${symRow('dep', T('우울'))}${symRow('elev', T('고조'))}${symRow('anx', T('불안'))}
+      <svg width="${W}" height="18">${xLabelsAt(13)}</svg>
+      ${periodRow()}${medRow()}
+    </div></section>`;
 
   app.innerHTML = `
     <header class="top"><div><div class="over">${F('기록 {0}일 / {1}일', got.length, r.n)}</div><h1>${T('흐름')}</h1></div>

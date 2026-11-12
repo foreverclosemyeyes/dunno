@@ -36,15 +36,17 @@ export function medsText(list) {
 }
 
 // 약마다 한 줄: 먹은 시각들(고칠 수 있음)과 '먹었어요' 버튼. 오늘 화면과 기록 화면이 같이 쓴다.
+// 한 번 먹은 것까지는 한 줄에 들어가서 줄 높이가 안 바뀐다. 두 번째부터 아래 줄로 내려간다.
 export function doseRowsHtml(list) {
   const all = db.meds.concat(list.filter((m, i) => !db.meds.some((x) => medKey(x) === medKey(m)) && list.findIndex((y) => medKey(y) === medKey(m)) === i));
   return all.map((m) => {
     const key = medKey(m), doses = list.map((x, i) => [x, i]).filter(([x]) => medKey(x) === key);
-    return `<div class="li med-row">
-      <span class="lk">${IC.pill}${esc(m.name)}${m.dose ? `<small>${esc(m.dose)}</small>` : ''}</span>
+    return `<div class="li med-row${doses.length > 1 ? ' multi' : ''}">
+      <span class="lk">${IC.pill}<span class="mn">${esc(m.name)}${m.dose ? `<small>${esc(m.dose)}</small>` : ''}</span></span>
       <span class="doses">${doses.map(([x, i]) => `<span class="dose"><input type="time" class="dose-at" data-i="${i}" value="${esc(x.at || '')}" aria-label="${T('먹은 시각')}">
         <button type="button" data-act="doseDel" data-i="${i}" aria-label="${T('삭제')}">✕</button></span>`).join('')}
-        <button type="button" class="take" data-act="doseAdd" data-med="${esc(key)}">${doses.length ? T('+ 한 번 더') : T('먹었어요')}</button></span>
+        ${doses.length ? `<button type="button" class="take more" data-act="doseAdd" data-med="${esc(key)}" aria-label="${T('한 번 더')}">+</button>`
+    : `<button type="button" class="take" data-act="doseAdd" data-med="${esc(key)}">${T('먹었어요')}</button>`}</span>
     </div>`;
   }).join('');
 }
