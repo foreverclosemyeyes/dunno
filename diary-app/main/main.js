@@ -713,6 +713,20 @@ function registerIpc() {
     if (r.canceled) return [];
     return r.filePaths.map((p) => ({ ...saveAsset(fs.readFileSync(p), path.basename(p)), kind }));
   });
+  // 스킨 zip 을 압축 풀지 않고 바로: 파일 이름(cut-city.png …)이 자리 이름
+  ipcMain.handle('skin:importZip', async () => {
+    const { readZip } = require('./zip');
+    const r = await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: '스킨 zip', extensions: ['zip'] }] });
+    if (r.canceled) return null;
+    const z = readZip(fs.readFileSync(r.filePaths[0]));
+    const out = {};
+    for (const e of z.entries) {
+      const base = path.basename(e.name);
+      if (!/\.png$/i.test(base) || base.startsWith('._')) continue;
+      out[base.replace(/\.png$/i, '').toLowerCase()] = saveAsset(z.read(e), base).url;
+    }
+    return out;
+  });
   // 캐릭터 zip 하나로 표정 그림 6칸 채우기
   ipcMain.handle('cast:importZip', async () => {
     const { readZip, pickFaces, labelFromFile } = require('./zip');

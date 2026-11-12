@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld('diary', {
   open: (url) => ipcRenderer.invoke('open', url),
   pickAsset: (kind) => ipcRenderer.invoke('asset:pick', kind),
   importCastZip: () => ipcRenderer.invoke('cast:importZip'),
+  importSkinZip: () => ipcRenderer.invoke('skin:importZip'),
   readAsset: (id) => ipcRenderer.invoke('asset:read', id),
   writeAsset: (name, b64) => ipcRenderer.invoke('asset:write', name, b64),
   exportTheme: (json, name) => ipcRenderer.invoke('theme:export', json, name),
