@@ -1605,3 +1605,7 @@ body.layout-bigcal .bc-d, body.layout-bigcal #bc-grid .bc-h { padding-left: 2px 
 #bc-grid .bc-d .el-calNum { scale: .8 1; }
 /* 오늘의 기록 위쪽 검은 일정 띠(진행 중 업무와 겹치는 내용)는 숨김 */
 #record-events { display: none !important; }
+/* 캐릭터는 살짝 작게(말풍선과 비율 맞춤), 말풍선 크기는 그대로 → 달력 자리가 넓어짐 */
+body.skin-bubble #assistant { --fig: min(50vh, 31vw); --iw: min(calc(var(--fig) * 2.15), calc((55vw - var(--fig) * .7) / .86)); }
+body.skin-bubble #assistant { --lift: calc(var(--ih) * .2 + 50px); }
+body.skin-bubble #asst-figure { bottom: 0; }
