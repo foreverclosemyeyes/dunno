@@ -1538,3 +1538,6 @@ body.skin-bubble #asst-controls { margin-bottom: 34px !important; padding-right:
 /* 꼬리 끝이 얼굴이 아니라 턱·목 옆에 오도록: 말풍선 폭에 비례해 오른쪽으로 */
 body.skin-bubble #asst-bubble { margin-left: calc(clamp(360px, 31vw, 600px) * .311 - 22px); margin-bottom: 14px; }
 body.skin-bubble #asst-bubble { margin-left: calc(clamp(360px, 31vw, 600px) * .311 - 22px + max(0px, (100vw - 1280px) * .08)); }
+/* 큰 창에서 오른쪽 칸을 덮지 않게 폭 제한 */
+body.skin-bubble #asst-bubble { --bw: clamp(360px, 27vw, 500px); width: var(--bw); min-height: clamp(66px, 5vw, 92px);
+  margin-left: calc(var(--bw) * .311 - 22px + max(0px, (100vw - 1280px) * .08)); }
