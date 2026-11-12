@@ -1666,3 +1666,9 @@ body.layout-bigcal .bc-d { padding-bottom: 16px !important; }
 /* 딱지: 바깥(오른쪽)으로 갈수록 넓어지는 사다리꼴 */
 body.layout-bigcal .nb-tabs button { clip-path: polygon(0 16%, 100% 0, 100% 100%, 0 84%) !important; }
 body.layout-bigcal .nb-tabs button::before { clip-path: polygon(0 15%, 100% 0, 100% 100%, 0 85%); }
+
+/* 날짜표(11/12 (목) TODAY)는 노트 제목 바로 아래에: 이 기록이 어느 날 것인지 */
+body.layout-bigcal #record #bc-tag { display: inline-block; margin: 6px 0 0 2px !important; padding: 3px 12px 3px 10px !important; font-size: 12px !important; font-weight: 800;
+  background: #0b0b0b; color: #fff; clip-path: polygon(0 0, 100% 0, 96% 100%, 0 100%); transform: rotate(-1.5deg); letter-spacing: .04em; white-space: nowrap; }
+/* 위 노트를 조금 작게 → 진행 중 업무 칸이 넓어짐 */
+body.layout-bigcal #record { flex: 1.5 1 0 !important; margin: 30px 104px 30px 34px !important; }
