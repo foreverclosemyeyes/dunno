@@ -4,7 +4,6 @@ import { WD, addDays, ds, durText, longDate, md, monthTitle, parse, today, weekS
 import { app } from '../dom.js';
 import { EN, F, T } from '../i18n.js';
 import { IC } from '../icons.js';
-import { medsFor } from '../meds.js';
 import { trend } from '../state.js';
 import { db } from '../store.js';
 import { fontScale, moodFill, tone } from '../theme.js';
@@ -148,9 +147,8 @@ export function viewTrend() {
     return lineCard(key, name, 4, [[0, ''], [2, ''], [4, '']], `<div class="mt">${name}</div><div class="mv"><b>${big}</b><span>${pickDate ? pickLabel : T('높음 이상인 날')}</span></div>`);
   };
 
-  // 생리 · 약: 생리는 이어진 띠, 약은 먹은 날에 점
+  // 생리: 이어진 날들을 하나의 띠로
   const guide = (h) => (pick == null ? '' : `<line x1="${cx(pick).toFixed(1)}" x2="${cx(pick).toFixed(1)}" y1="0" y2="${h}" stroke="${C.muted}"/>`);
-  const inkAt = (i) => (pick == null || pick === i ? C.ink : C.faint);
   const srow = (name, right, h, inner) => `<div class="srow"><div class="sh"><span>${name}</span><span>${right}</span></div><svg width="${W}" height="${h}">${inner}${guide(h)}</svg></div>`;
   const periodRow = () => {
     let out = '', n = 0;
@@ -164,13 +162,8 @@ export function viewTrend() {
     }
     return srow(T('생리'), pickDate ? (pickE && pickE.period ? T('생리 중') : '–') : n ? F('{0}일', n) : T('없음'), 16, out);
   };
-  const medRow = () => {
-    const counts = days.map((_, i) => medsFor(addDays(r.start, i)).length), n = counts.filter(Boolean).length;
-    return srow(T('약'), pickDate ? (counts[pick] ? F('{0}번', counts[pick]) : '–') : n ? F('{0}일', n) : T('없음'), 16,
-      counts.map((c, i) => (c ? `<circle cx="${cx(i).toFixed(1)}" cy="8" r="${isWeek ? 4.5 : Math.max(1.5, Math.min(3, col / 2 - 1))}" fill="${inkAt(i)}"/>` : '')).join(''));
-  };
   const marks = `<section class="card mcard"><div class="plot strips" data-n="${r.n}" data-w="${W}">
-      ${periodRow()}${medRow()}
+      ${periodRow()}
       <svg width="${W}" height="18">${xLabelsAt(13)}</svg>
     </div></section>`;
 

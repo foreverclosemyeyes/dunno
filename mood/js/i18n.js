@@ -16,7 +16,6 @@ const DICT = {
   '한 번 더': 'Once more',
   '높음 이상인 날': 'days high or above',
   '{0}일': '{0} days',
-  '{0}번': '{0} times',
   '먹은 시각': 'Time taken',
   '먹음': 'Taken',
   '시각 넣기': 'Add time',
