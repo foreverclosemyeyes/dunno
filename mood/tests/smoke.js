@@ -113,6 +113,16 @@ function seed() {
   await page.click('[data-act=record]'); await page.click('.savebar [data-act=save]');
   const after = await store();
   check('기록하면 약 체크가 기록으로 옮겨짐', after.entries[today].meds.length === 2 && !after.taken[today]);
+  check('각성제는 시각이 자동으로 찍힘', /^\d\d:\d\d$/.test(after.entries[today].meds[0].at));
+
+  // 4-3. 그 밖의 약은 시각 없이 체크되고, 원하면 시각을 넣을 수 있다
+  await put({ version: 2, entries: {}, meds: [{ name: '브린텔릭스', dose: '15mg' }], taken: {}, settings: { hintClosed: true } });
+  await page.click('#app [data-act=doseAdd]');
+  check('시각 없이 먹음 체크', (await store()).taken[today][0].at === '' && (await text('#app .dose')).includes('먹음'));
+  await page.click('#app [data-act=doseTime]');
+  check('먹음을 누르면 시각이 들어감', /^\d\d:\d\d$/.test((await store()).taken[today][0].at) && await page.isVisible('#app .dose-at'));
+  await page.fill('#app .dose-at', '');
+  check('시각을 비우면 다시 시각 없는 기록', (await store()).taken[today][0].at === '' && (await page.$$('#app .dose-at')).length === 0);
 
   // 5. 쌓인 기록: 신호 · 인사이트 · 흐름
   await put(seed());

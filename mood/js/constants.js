@@ -40,6 +40,9 @@ export const CATALOG = [
 ];
 // 잠에 영향을 주는 약 (안정제·수면제). 전날 이 약을 체크했으면 그날 밤 잠은 '약 먹고 잔 밤'으로 본다.
 export const SEDATIVES = ['알프람', '자낙스', '아티반', '리보트릴', '바리움', '스틸녹스', '서카딘'];
+// 먹은 시각이 의미 있는 약 (각성제 + 안정제·수면제). 이 약들만 '먹었어요'를 누르면 시각이 자동으로 찍힌다.
+export const STIMULANTS = ['콘서타', '메디키넷', '페니드'];
+export const TIMED = SEDATIVES.concat(STIMULANTS);
 // 카페인은 마신 것을 개수로 적는다. mg는 대략적인 값 (제품·크기에 따라 다름).
 export const DRINKS = [['monster', T('몬스터'), 100], ['coffee', T('커피'), 150], ['cola', T('콜라'), 35]];
 export const cafMg = (dr) => DRINKS.reduce((sum, [k, , mg]) => sum + ((dr && dr[k]) || 0) * mg, 0);

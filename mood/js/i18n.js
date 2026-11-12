@@ -18,6 +18,8 @@ const DICT = {
   '{0}일': '{0} days',
   '{0}번': '{0} times',
   '먹은 시각': 'Time taken',
+  '먹음': 'Taken',
+  '시각 넣기': 'Add time',
   '수면은 적지 않기': 'Skip sleep',
   '오늘 있었던 일이나 느낀 점': 'What happened or how you felt today',
   '용량': 'Dose',

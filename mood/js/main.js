@@ -1,6 +1,6 @@
 // 시작점: 누르기·입력 처리와 앱 시작
 import { aiSummary } from './analysis.js';
-import { addDays, today } from './dates.js';
+import { addDays, nowTime, today } from './dates.js';
 import { $, app, closeSheet, enterApp, sheet, sheetOpen, toast } from './dom.js';
 import { exportData, giveFile, importData, makeIcs, remind } from './files.js';
 import { T } from './i18n.js';
@@ -30,6 +30,7 @@ const actions = {
   color: (el) => { db.settings.color = el.dataset.colorPick; save(); applyTheme(); render(); openSettings(); },
   theme: (el) => { db.settings.theme = el.dataset.themePick; save(); applyTheme(); render(); openSettings(); },
   doseAdd: (el) => { const list = doseList(); addDose(list, el.dataset.med); commitDoses(list, true); },
+  doseTime: (el) => { const list = doseList(); list[Number(el.dataset.i)].at = nowTime(); commitDoses(list, true); },
   doseDel: (el) => { const list = doseList(); list.splice(Number(el.dataset.i), 1); commitDoses(list, true); },
   ics: async () => {
     const r = remind();
@@ -130,7 +131,7 @@ document.addEventListener('change', (ev) => {
   if (!el.classList.contains('dose-at')) return;
   const list = doseList();
   list[Number(el.dataset.i)].at = el.value;
-  commitDoses(list, false);
+  commitDoses(list, !el.value);   // 시각을 비웠으면 '먹음' 표시로 다시 그린다
 });
 
 sheet.addEventListener('input', (ev) => {

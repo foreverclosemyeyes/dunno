@@ -145,6 +145,7 @@ textarea { display: block; font: inherit; font-size: calc(16px * var(--fs, 1.12)
 .dose { display: inline-flex; align-items: center; height: 34px; background: var(--card2); border-radius: 999px; padding-right: 2px; }
 .dose input[type=time] { background: transparent; padding: 5px 0 5px 10px; font-size: calc(14px * var(--fs, 1.12)); min-width: 0; }
 .dose button { width: 28px; height: 28px; color: var(--muted); font-size: 11px; text-align: center; }
+.dose .dose-now { width: auto; padding: 0 2px 0 12px; color: var(--text); font-size: calc(13px * var(--fs, 1.12)); font-weight: 600; }
 .take { height: 34px; font-size: calc(13px * var(--fs, 1.12)); font-weight: 600; background: var(--ink); color: var(--ink-inv); border-radius: 999px; padding: 0 14px; }
 .take.more { width: 34px; padding: 0; background: var(--card2); color: var(--text); font-size: 18px; font-weight: 400; text-align: center; }
 .med[aria-pressed=true] .chk { opacity: 1; }
