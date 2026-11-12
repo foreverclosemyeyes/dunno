@@ -463,7 +463,7 @@
     const fc = a.faces || {};
     const hasFace = !!(a.image || Object.values(fc).some(Boolean));
     const free = !state.hasKeys.anthropic; // 무료 모드: 정해진 문장, 대화창 대신 Claude 열기
-    $('#assistant').hidden = false;
+    $('#assistant').hidden = !!state.settings.hideChar; // HIDE: 캐릭터뿐 아니라 말풍선·답하는 칸까지 통째로 숨김
     $('#asst-col').hidden = false;
     document.body.classList.toggle('free-mode', free);
     document.body.classList.remove('char-only');

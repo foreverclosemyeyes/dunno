@@ -80,7 +80,7 @@
 
   // ---------- 패널 틀 ----------
   const TABS = [
-    ['connect', '연결'], ['text', '글씨'], ['look', '색·배치'], ['bg', '배경'], ['asst', '비서'], ['themes', '테마'],
+    ['connect', '연결'], ['look', '꾸미기'], ['asst', '비서'], // 글씨·배경·테마 탭과 세부 조정 칸은 뺌 (꾸며 둔 모양은 그대로 유지)
   ];
 
   function open() {
@@ -122,7 +122,8 @@
 
     const body = h('div', 'set-body scroll');
     panel.append(body);
-    ({ connect: renderConnect, text: renderText, look: renderLook, bg: renderBg, asst: renderAsst, themes: renderThemes })[tab](body);
+    if (!TABS.some(([k]) => k === tab)) tab = 'connect';
+    ({ connect: renderConnect, look: renderLook, asst: renderAsst })[tab](body);
     const secs = [...body.querySelectorAll('details.sec')];
     if (secs.length === openSecs.length) secs.forEach((d, i) => { d.open = openSecs[i]; });
     body.scrollTop = keep;
@@ -248,7 +249,7 @@
       }));
       hq.body.append(r);
     }
-    body.append(n.el, a.el, hq.el, up.el, g.el, ids.el);
+    body.append(n.el, hq.el, up.el, g.el);
   }
 
   // ---------- 글씨 ----------
@@ -330,7 +331,7 @@
       };
       pg.append(b);
     });
-    pal.body.append(pg, note('바꾼 뒤에 아래에서 색을 하나씩 더 고칠 수 있고, 실행 취소(↶)로 되돌릴 수 있어요.'));
+    pal.body.append(pg, note('마음에 안 들면 위쪽 실행 취소(↶)로 되돌릴 수 있어요.'));
     body.append(pal.el);
     const c = C.section('색 하나씩', true);
     c.body.append(
@@ -342,14 +343,10 @@
       C.colorA(ctx, 'colors.param', '인간 파라미터 별'),
       C.colorA(ctx, 'colors.event', '일정 점·선'),
     );
-    const mode = C.section('레이아웃', true);
-    mode.body.append(C.select(ctx, 'layout.mode', '화면 구성', [['bigcal', '큰 달력 + 노트 카드'], ['classic', '큰 날짜 숫자 + 이번 주 띠']], () => render()));
+    const mode = C.section('화면 · 연출 · 스킨', true);
+    if (false) mode.body.append(C.select(ctx, 'layout.mode', '화면 구성', [['bigcal', '큰 달력 + 노트 카드'], ['classic', '큰 날짜 숫자 + 이번 주 띠']], () => render()));
     if (state.theme.layout.mode === 'bigcal') {
       mode.body.append(
-        C.slider(ctx, 'layout.calJitter', '달력 숫자 흔들림', 0, 15, 0.5, '°'),
-        C.toggle(ctx, 'layout.panelOn', '오른쪽 사선 면'),
-        C.slider(ctx, 'layout.panelOpacity', '사선 면 진하기', 0, 100, 1, '%'),
-        C.slider(ctx, 'layout.panelAngle', '사선 면 기울기', -60, 60, 1),
         C.text(ctx, 'layout.stampText', '다 끝냈을 때 도장 글씨'),
         C.toggle(ctx, 'layout.cutOn', '하루 시작 컷 (날짜 바뀐 뒤 처음 켤 때)'),
         C.toggle(ctx, 'layout.fxOn', '화려한 연출 (등장·넘김·체크 효과)'),
@@ -382,7 +379,7 @@
       er.append(h('label', 'ctl-label', '달력 일정 점'), sel, h('span'));
       mode.body.append(er);
       mode.body.append(btn('하루 시작 컷 미리 보기', '', () => D.cutscene.play({ force: true })));
-      mode.body.append(note('일정은 노션 "기간"으로 표시돼요. 하루짜리는 ○, 여러 날은 ○—○ 로 이어져요. Tags에 meeting·seminar 가 있으면 포인트 색이에요. 큰 달력 숫자·요일·도장 글씨는 "글씨" 탭에서 꾸며요.'));
+      mode.body.append(note('일정은 노션 "기간"으로 표시돼요. 하루짜리는 ○, 여러 날은 ○—○ 로 이어져요. Tags에 meeting·seminar 가 있으면 포인트 색이에요.'));
     }
     const l = C.section('배치 · 기울기', true);
     l.body.append(
@@ -399,7 +396,7 @@
       C.toggle(ctx, 'layout.textureOn', '질감 보이기'),
       C.slider(ctx, 'layout.texture', '질감 세기', 0, 100, 1, '%'),
     );
-    body.append(mode.el, c.el, l.el, s.el);
+    body.append(mode.el);
   }
 
   // ---------- 배경 ----------
@@ -601,10 +598,7 @@
     }));
     img.body.append(grid, r,
       C.slider(ctx, 'assistant.size', '그림 크기', 40, 600, 1, 'px'),
-      C.slider(ctx, 'assistant.x', '가로 위치', -400, 400, 1, 'px'),
-      C.slider(ctx, 'assistant.y', '세로 위치', -400, 400, 1, 'px'),
       C.slider(ctx, 'assistant.outline', '외곽선 두께', 0, 12, 0.5, 'px'),
-      C.colorA(ctx, 'assistant.outlineColor', '외곽선 색'),
       C.toggle(ctx, 'assistant.flip', '좌우 뒤집기'),
     );
     img.body.append(note('투명 배경 PNG를 추천해요. 말할 때는 기본↔말하기가 번갈아 나오고, 가끔 눈감음으로 깜빡여요. Claude가 대답에 맞춰 웃음·윙크·진지 표정을 골라요. 그림은 이 컴퓨터에만 저장돼요.'));
@@ -623,7 +617,6 @@
     hcb.onchange = async () => { state.settings = await window.diary.setSettings({ hideChar: hcb.checked }); D.renderAll(); };
     hl.append(hcb, h('span')); hc.append(h('label', 'ctl-label', '캐릭터 숨기기'), hl, h('span'));
     hide.body.append(hc, ckr, bkr, note('• 위쪽 HIDE 버튼이나 위에서 고른 키(기본 Option + H): 캐릭터만 숨기기/보이기<br>• 위 단축키: 어떤 프로그램을 쓰고 있든 업무다이어리 창 전체를 바로 숨기고, 한 번 더 누르면 다시 보여요.'));
-    img.body.append(note('말풍선 글씨는 "글씨" 탭 > 비서 말풍선에서 꾸밀 수 있어요. AI 키는 "연결" 탭에서 넣어요.'));
 
     const mdl = C.section('렌이 쓰는 Claude 모델', true);
     const ms = h('select');
