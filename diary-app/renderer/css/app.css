@@ -621,16 +621,13 @@ body.skin-bubble #bigcal { position: relative; z-index: 2; }
 /* 내 말풍선(답하는 칸)은 크게 해서 말풍선 아래에, 버튼 세 개는 이름표 오른쪽(말풍선 위)에 */
 body.skin-bubble #asst-controls { align-self: flex-end; z-index: 4; margin: 0 !important; padding: 0; left: calc(var(--il) + var(--iw) * .16); top: calc(var(--it) + var(--ih) * .82 + 12px); flex-direction: row !important; align-items: center; gap: 8px; position: static; display: contents; }
 body.skin-bubble #chat-input { min-width: 0; font-size: 15px !important; }
-/* 버튼 세 개: 말풍선 위에서 오른쪽 위로 올라가는 한 줄. 줄 전체를 기울이고 딱지마다 조금씩만 어긋나게.
+/* 버튼 세 개: 말풍선 윗변 바로 위에, 윗변과 나란히 놓은 아주 작은 딱지 한 줄.
+   윗변은 말풍선 그림에서 (40%, 30.5%) → (80%, 22.4%) 를 지나는 직선이고, 지금 가로세로 비율(--ih)에서는 -3.6도.
    --u = 말풍선 폭에 비례하는 1px (창 크기 따라 같이 커지고 작아짐) */
-body.skin-bubble #asst-controls .asst-actions { order: 1; position: absolute; z-index: 4; left: calc(var(--il) + var(--iw) * .3); top: calc(var(--it) - var(--ih) * .14); --u: calc(var(--iw) / 571); margin: 0; flex-wrap: nowrap; gap: calc(var(--u) * 5); align-items: flex-end; rotate: -9deg; transform-origin: 0 100%; filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, .6)); }
-body.skin-bubble #asst-controls .asst-actions > * { transition: rotate .12s, scale .12s; transform-origin: 50% 60%; }
-body.skin-bubble #asst-controls .asst-actions > *:hover { scale: 1.12; z-index: 3; }
-body.skin-bubble #asst-controls .asst-actions .chip, body.skin-bubble #asst-controls .asst-actions .switch em { font-size: max(11px, calc(var(--u) * 14)); padding: calc(var(--u) * 7) calc(var(--u) * 18); white-space: nowrap; }
-body.skin-bubble #asst-controls #btn-ask { rotate: -2deg; font-size: max(12px, calc(var(--u) * 17)); padding: calc(var(--u) * 8) calc(var(--u) * 22); z-index: 2; }
-body.skin-bubble #asst-controls #btn-chatlog { rotate: 2deg; translate: 0 calc(var(--u) * -4); }
-body.skin-bubble #asst-controls #btn-claude { rotate: -1deg; translate: 0 calc(var(--u) * 2); }
-body.skin-bubble #asst-controls .asst-actions .switch { rotate: -2deg; translate: 0 calc(var(--u) * 3); }
+body.skin-bubble #asst-controls .asst-actions { order: 1; position: absolute; z-index: 4; left: calc(var(--il) + var(--iw) * .47); top: calc(var(--it) + var(--ih) * .291); --u: calc(var(--iw) / 571); margin: 0; flex-wrap: nowrap; gap: calc(var(--u) * 4); align-items: flex-end; translate: 0 calc(-100% - var(--u) * 4); rotate: -3.6deg; transform-origin: 0 100%; }
+body.skin-bubble #asst-controls .asst-actions > * { transition: scale .12s; transform-origin: 50% 100%; }
+body.skin-bubble #asst-controls .asst-actions > *:hover { scale: 1.15; z-index: 3; }
+body.skin-bubble #asst-controls .asst-actions .chip, body.skin-bubble #asst-controls .asst-actions .switch em { font-size: max(10px, calc(var(--u) * 11)); padding: calc(var(--u) * 3) calc(var(--u) * 11); white-space: nowrap; }
 body.skin-bubble #chat-form { transform: none !important; order: 2; position: absolute !important; z-index: 4; width: min(320px, calc(var(--iw) * .56)) !important; min-height: 48px !important; padding: 6px 54px 6px 22px !important; margin: 0 !important; top: calc(var(--it) + var(--ih) * 1.02 + 10px); left: calc(var(--il) + var(--iw) * .3); }
 body.skin-bubble #assistant { align-items: flex-end; --ih: calc(var(--iw) * .31); --il: calc(var(--fig) * .7); position: relative; display: block; min-height: 0; overflow: visible; --it: 14px; z-index: 3; height: calc(14px + var(--ih) * .82 + var(--lift)); --fig: min(50vh, 31vw); --iw: min(calc(var(--fig) * 2.15), calc((55vw - var(--fig) * .7) / .86)); --lift: calc(var(--ih) * .2 + 50px); }
 body.skin-bubble #asst-figure { position: absolute; left: 0; width: var(--fig); height: var(--fig); margin: 0; transform: translate(var(--asst-x), var(--asst-y)); z-index: 1; top: auto; pointer-events: none; bottom: 0; }
