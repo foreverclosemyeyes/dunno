@@ -713,6 +713,23 @@ function registerIpc() {
     if (r.canceled) return [];
     return r.filePaths.map((p) => ({ ...saveAsset(fs.readFileSync(p), path.basename(p)), kind }));
   });
+  // 캐릭터 zip 하나로 표정 그림 6칸 채우기
+  ipcMain.handle('cast:importZip', async () => {
+    const { readZip, pickFaces, labelFromFile } = require('./zip');
+    const r = await dialog.showOpenDialog(win, { properties: ['openFile', 'multiSelections'], filters: [{ name: '캐릭터 zip', extensions: ['zip'] }] });
+    if (r.canceled) return [];
+    const out = [];
+    for (const file of r.filePaths) {
+      try {
+        const z = readZip(fs.readFileSync(file));
+        const picked = pickFaces(z.entries);
+        const faces = {};
+        for (const [mood, e] of Object.entries(picked)) { const a = saveAsset(z.read(e), path.basename(e.name)); faces[mood] = { url: a.url, name: a.name }; }
+        out.push({ label: labelFromFile(path.basename(file)), faces, count: Object.keys(faces).length });
+      } catch (err) { out.push({ label: path.basename(file), error: String(err.message || err) }); }
+    }
+    return out;
+  });
   ipcMain.handle('asset:read', (_e, id) => {
     const file = path.join(assetsDir, path.basename(id));
     return fs.existsSync(file) ? fs.readFileSync(file).toString('base64') : null;

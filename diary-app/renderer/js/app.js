@@ -406,11 +406,13 @@
     D.face.mount();
     $('#btn-hidechar').classList.toggle('on', !!state.settings.hideChar);
 
-    $('#asst-name').textContent = a.name;
+    // 이름표: 레퍼런스처럼 한 글자만 검은 칸에 흰 글씨
+    { const chars = [...a.name], k = chars.length > 3 ? 2 : Math.max(0, chars.length - 1);
+      $('#asst-name').replaceChildren(...chars.map((ch, n) => h('span', n === k && ch.trim() ? 'inv' : null, ch))); }
     $('#asst-name').title = '눌러서 다음 비서로 바꾸기';
     $('#asst-name').style.cursor = 'pointer';
     $('#asst-name').onclick = () => {
-      const ids = D.CAST.map((c) => c[0]), cur = state.theme.castActive || 'ren';
+      const ids = D.castIds(state.theme), cur = state.theme.castActive || 'ren';
       D.castSwitch(state.theme, ids[(ids.indexOf(cur) + 1) % ids.length]);
       window.diary.saveTheme(state.theme); renderAll();
       toast(`비서: ${state.theme.assistant.name}`);

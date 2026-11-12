@@ -535,22 +535,20 @@
     // 캐릭터 고르기: 누르면 그 캐릭터의 이름·말투·그림으로 통째로 바뀜
     const who = C.section('비서 캐릭터 (누르면 바뀜 · 말풍선의 이름을 눌러도 다음 캐릭터로)', true);
     const row = h('div', 'cast-row');
-    for (const [id, label] of D.CAST) {
+    for (const id of D.castIds(state.theme)) {
       const on = (state.theme.castActive || 'ren') === id;
       const has = on ? !!(state.theme.assistant.faces || {}).base : !!((state.theme.cast || {})[id] && state.theme.cast[id].faces.base);
-      row.append(btn(label + (has ? '' : ' (그림 없음)'), on ? 'on' : '', () => { D.castSwitch(state.theme, id); commit(); D.renderAll(); render(); }));
+      row.append(btn(D.castName(state.theme, id) + (has ? '' : ' (그림 없음)'), on ? 'on' : '', () => { D.castSwitch(state.theme, id); commit(); D.renderAll(); render(); }));
     }
-    who.body.append(row, btn('캐릭터 그림 한꺼번에 불러오기 (파일 이름으로 자리 찾기: takemi-base.png …)', '', async () => {
-      const assets = await window.diary.pickAsset('image'); let n = 0;
-      for (const as of assets) {
-        const m = as.name.toLowerCase().match(/^(ren|takemi|caroline|morgana)-(base|talk|smile|wink|serious|closed)\./);
-        if (!m) continue;
-        const act = (state.theme.castActive || 'ren') === m[1];
-        const target = act ? state.theme.assistant : D.castGet(state.theme, m[1]);
-        target.faces = target.faces || {}; target.faces[m[2]] = { url: as.url, name: as.name }; n++;
-      }
-      if (!n) return D.toast('캐릭터 그림 이름이 아니에요. (takemi-base.png, morgana-smile.png …)', 5000);
-      commit(); D.renderAll(); render(); D.toast(`캐릭터 그림 ${n}장을 넣었어요.`);
+    who.body.append(row, btn('캐릭터 zip 넣기 (이름 · 말투 · 표정 6칸이 한 번에 세팅돼요. 여러 개도 가능)', '', async () => {
+      const res = await window.diary.importCastZip();
+      const ok = res.filter((r) => !r.error && r.count);
+      if (!ok.length) { if (res.length) D.toast(res[0].error || 'zip 안에서 그림(png)을 못 찾았어요.', 6000); return; }
+      let last = null;
+      for (const r of ok) last = D.castApplyZip(state.theme, r.label, r.faces);
+      D.castSwitch(state.theme, last.id);
+      commit(); D.renderAll(); render();
+      D.toast(`${ok.map((r) => D.castFromLabel(r.label).name).join(', ')} 세팅 끝!`, 4000);
     }));
     body.append(who.el);
     const a = C.section('이름 · 말투', true);

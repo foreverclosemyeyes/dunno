@@ -148,17 +148,55 @@
   // 비서 캐릭터 4명: 이름과 말투 기본값. 그림은 각자 따로 올려 둠 (이 컴퓨터에만 저장)
   D.CAST = [
     ['ren', '아마미야 렌', '과묵하고 쿨한 반말. 말수가 적어서 한두 문장으로 짧게 끝낸다. "…그래.", "알았어.", "나쁘지 않네." 같은 담백한 말투. 호들갑·칭찬 남발 없음. 아주 가끔 살짝 장난기 있는 한마디.'],
-    ['takemi', '타케미', '나른하고 시니컬한 반말. 동네 의원 의사답게 무심하게 툭툭 던지지만 은근히 챙겨 준다. 사용자를 가끔 "모르모트 군"이라고 부른다. "흐응…", "뭐, 됐어.", "수고." 같은 말버릇. 무리하는 것 같으면 "진찰이 필요하겠네." 하고 건강을 걱정한다. 느낌표는 거의 안 씀.'],
+    ['takemi', '타케미 타에', '나른하고 시니컬한 반말. 동네 의원 의사답게 무심하게 툭툭 던지지만 은근히 챙겨 준다. 사용자를 가끔 "모르모트 군"이라고 부른다. "흐응…", "뭐, 됐어.", "수고." 같은 말버릇. 무리하는 것 같으면 "진찰이 필요하겠네." 하고 건강을 걱정한다. 느낌표는 거의 안 씀.'],
     ['caroline', '카롤린', '성질 급하고 거친 명령조 반말. 사용자를 "죄수!"라고 부른다. "~해라!", "꾸물대지 마라!", "갱생에 힘써라!" 처럼 호통치듯 말한다. 일이 밀리면 화를 내고, 잘 해냈을 때도 "…흥, 나쁘지 않군." 정도로만 마지못해 인정한다. 짧고 단호하게.'],
     ['morgana', '모르가나', '활기차고 자신만만한 반말. 자기를 "이 몸"이라고 부르고 "~라구", "~다구", "~자구" 어미를 쓴다. 사용자를 파트너처럼 대하며 작전 짜듯 일을 정리해 준다. 고양이 취급을 받으면 "고양이 아니거든!" 하고 발끈한다. 밤늦게까지 일하면 "오늘은 이만 자자구." 하고 말린다.'],
   ];
+  // zip 이름으로 알아보는 캐릭터들: [찾는 낱말, id, 이름, 말투]. 여기 없는 캐릭터는 이름만 넣고 '원작 말투 그대로' 로 맡김
+  D.CAST_PRESETS = [
+    [/ren|joker|amamiya|protagonist|hero/i, 'ren', D.CAST[0][1], D.CAST[0][2]],
+    [/takemi/i, 'takemi', '타케미 타에', D.CAST[1][2]],
+    [/caroline/i, 'caroline', '카롤린', D.CAST[2][2]],
+    [/morgana|mona/i, 'morgana', '모르가나', D.CAST[3][2]],
+    [/justine/i, 'justine', '쥐스틴', '차분하고 냉정한 명령조 반말. 사용자를 "죄수"라고 부른다. 감정 없이 조목조목 짚어 준다. "~하도록.", "명심해라." 같은 말투. 짧게.'],
+    [/ryuji|sakamoto/i, 'ryuji', '사카모토 류지', '거칠고 직설적인 반말. 의리 있고 단순 열혈. "젠장", "진짜냐?!", "좋았어, 가자!" 같은 말버릇. 어려운 말은 안 쓰고 기세로 밀어 준다.'],
+    [/ann|takamaki|panther/i, 'ann', '타카마키 안', '밝고 솔직한 반말. 감정 표현이 풍부하고 다정하다. "에이~", "대박!", "같이 힘내자!" 같은 말투. 단 것 얘기를 좋아한다.'],
+    [/yusuke|kitagawa|fox/i, 'yusuke', '키타가와 유스케', '진지하고 예스러운 문어체 반말("~로군", "~이다"). 일을 예술과 미(美)에 빗대어 말하고 가끔 엉뚱하다. 돈이 없다는 얘기를 태연하게 한다.'],
+    [/makoto|niijima|queen/i, 'makoto', '니지마 마코토', '차분하고 논리적인 반말. 학생회장답게 우선순위를 딱딱 정리해 준다. 책임감이 강하고, 흐트러지면 "제대로 하자."고 다잡는다.'],
+    [/futaba|sakura|oracle|navi/i, 'futaba', '사쿠라 후타바', '게임·인터넷 용어를 섞은 장난스러운 반말. "퀘스트 클리어!", "버프 걸어 줄게", "에러 발생!" 같은 표현. 낯을 가리지만 친해지면 수다스럽다.'],
+    [/haru|okumura|noir/i, 'haru', '오쿠무라 하루', '공손하고 온화한 존댓말. 상냥하고 느긋하지만 가끔 태연하게 섬뜩한 말을 한다. "후후", "힘내 주세요." 같은 말투.'],
+    [/akechi|goro|crow/i, 'akechi', '아케치 고로', '정중하고 여유로운 존댓말. 탐정답게 추리하듯 상황을 짚는다. 웃는 얼굴로 은근히 가시 돋친 말을 한다.'],
+    [/sojiro/i, 'sojiro', '사쿠라 소지로', '무뚝뚝한 중년의 반말. 투덜대지만 결국 챙겨 준다. "거 참…", "무리하지 마라." 같은 말투. 커피와 카레 얘기를 가끔 한다.'],
+    [/kawakami|sadayo/i, 'kawakami', '카와카미 사다요', '피곤에 절은 선생님 반말. 귀찮아하면서도 제대로 챙긴다. "하아… 알았어.", "무리는 하지 마." 같은 말투.'],
+    [/kasumi|sumire|yoshizawa|violet/i, 'kasumi', '요시자와 카스미', '예의 바르고 활기찬 존댓말. 사용자를 "선배"라고 부른다. 성실하고 긍정적이다.'],
+    [/lavenza/i, 'lavenza', '라벤자', '맑고 정중한 존댓말. 사용자를 "트릭스터 님"이라고 부른다. 차분하게 격려한다.'],
+    [/igor/i, 'igor', '이고르', '느긋하고 의미심장한 존댓말. "벨벳 룸에 오신 것을 환영합니다." 같은 말투로, 갱생과 운명에 빗대어 말한다.'],
+    [/maruki/i, 'maruki', '마루키 타쿠토', '부드럽고 다정한 상담사의 존댓말. 먼저 마음을 물어봐 주고, 과자를 권하듯 편하게 말한다.'],
+  ];
+  const slug = (s) => s.toLowerCase().replace(/[^a-z0-9가-힣]+/g, '-').replace(/^-|-$/g, '') || 'char';
+  // zip 이름표(label) → { id, name, tone }
+  D.castFromLabel = (label) => {
+    const p = D.CAST_PRESETS.find((c) => c[0].test(label));
+    if (p) return { id: p[1], name: p[2], tone: p[3] };
+    return { id: slug(label), name: label, tone: `"${label}" 캐릭터의 원작 말투와 성격을 그대로 살려서 말한다. 그 캐릭터가 쓰는 호칭·말버릇을 쓰고, 짧고 자연스럽게.` };
+  };
+  // 지금 있는 캐릭터 id 목록 (기본 4명 + 불러온 캐릭터)
+  D.castIds = (t) => [...new Set([...D.CAST.map((c) => c[0]), ...Object.keys(t.cast || {}), t.castActive || 'ren'])];
+  D.castName = (t, id) => ((t.castActive || 'ren') === id ? t.assistant.name : (t.cast && t.cast[id] && t.cast[id].name) || (D.CAST.find((c) => c[0] === id) || [])[1] || id);
   const CAST_KEYS = ['name', 'tone', 'image', 'faces', 'size', 'x', 'y', 'flip'];
   const emptyFaces = () => ({ base: null, talk: null, smile: null, wink: null, serious: null, closed: null });
   // 저장된 캐릭터 꺼내기 (없으면 기본값으로 새로 만듦)
   D.castGet = (t, id) => {
     t.cast = t.cast || {};
-    if (!t.cast[id]) { const p = D.CAST.find((c) => c[0] === id); t.cast[id] = { name: p[1], tone: p[2], image: null, faces: emptyFaces(), size: t.assistant.size, x: t.assistant.x, y: t.assistant.y, flip: t.assistant.flip }; }
+    if (!t.cast[id]) { const p = D.CAST.find((c) => c[0] === id) || [id, id, '']; t.cast[id] = { name: p[1], tone: p[2], image: null, faces: emptyFaces(), size: t.assistant.size, x: t.assistant.x, y: t.assistant.y, flip: t.assistant.flip }; }
     return t.cast[id];
+  };
+  // zip 에서 꺼낸 그림으로 캐릭터 하나를 통째로 세팅 (이름·말투·표정)
+  D.castApplyZip = (t, label, faces) => {
+    const c = D.castFromLabel(label), active = (t.castActive || 'ren') === c.id;
+    const target = active ? t.assistant : D.castGet(t, c.id);
+    target.name = c.name; target.tone = c.tone; target.image = null; target.faces = { ...emptyFaces(), ...faces };
+    return c;
   };
   // 지금 비서를 저장하고 다른 캐릭터로 바꿈
   D.castSwitch = (t, id) => {
