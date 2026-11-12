@@ -434,6 +434,7 @@
     }
     const text = $('#asst-text');
     text.classList.toggle('thinking', !!(msg && msg.thinking));
+    { const n = msg && msg.text ? msg.text.length : 0; text.dataset.len = n > 90 ? 'long' : n > 45 ? 'mid' : 'short'; } // 긴 말은 글씨를 줄이고 말풍선을 키움
     let span = text.querySelector('.el-bubble');
     if (!span) { span = S('bubble', ''); text.replaceChildren(span); }
     if (msg && msg.thinking) { span.textContent = '생각하는 중…'; D.face.setMood('closed'); }
