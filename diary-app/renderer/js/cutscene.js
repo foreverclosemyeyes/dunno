@@ -39,7 +39,19 @@
       root.append(c);
     });
     const head = h('div', 'cut-head');
-    head.append(h('span', 'cut-year', String(today.getFullYear())), h('span', 'cut-month', `${today.getMonth() + 1}월`));
+    // 연·월: 스킨 숫자 그림이 있으면 그 숫자로 (레퍼런스의 '20XX 5月' 자리)
+    const digitRow = (txt, cls) => {
+      const us = [...txt].map((c) => skin['digit-' + c]);
+      if (!us.every(Boolean)) return null;
+      const el = h('span', cls + ' img');
+      us.forEach((u, k) => { const im = h('img'); im.src = u; im.style.rotate = `${[-3, 2, -2, 4][k % 4]}deg`; im.style.translate = `0 ${[0, 3, -2, 2][k % 4]}%`; el.append(im); });
+      return el;
+    };
+    const yEl = digitRow(String(today.getFullYear()), 'cut-year'), mEl = digitRow(String(today.getMonth() + 1), 'cut-month');
+    if (yEl && mEl) {
+      head.classList.add('img'); head.append(yEl, mEl);
+      if (skin.gatsu) { const g = h('img', 'cut-gatsu'); g.src = skin.gatsu; head.append(g); }
+    } else head.append(h('span', 'cut-year', String(today.getFullYear())), h('span', 'cut-month', `${today.getMonth() + 1}월`));
     root.append(head);
     const stage = h('div', 'cut-stage');
     root.append(stage);

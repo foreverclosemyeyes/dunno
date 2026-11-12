@@ -1412,3 +1412,12 @@ body.layout-bigcal .nb-holes { right: 24px !important; }
 body.layout-bigcal #right > #quests::before { right: 18px !important; }
 body.layout-bigcal .nb-sheet-back::after { right: 12px; }
 body.layout-bigcal .nb-holes, body.layout-bigcal .nb-sheet-back::after, body.layout-bigcal #right > #quests::before { background-size: 16px 299px !important; width: 16px !important; }
+
+/* 컷 왼쪽 위 연·월을 스킨 숫자로 */
+.cut-head.img { -webkit-text-stroke: 0; align-items: flex-end; gap: 1.6vh; left: 3.5vw; top: 5vh;
+  filter: drop-shadow(.7vh 0 0 #fff) drop-shadow(-.7vh 0 0 #fff) drop-shadow(0 .7vh 0 #fff) drop-shadow(0 -.7vh 0 #fff)
+          drop-shadow(.35vh 0 0 #0b0b0b) drop-shadow(-.35vh 0 0 #0b0b0b) drop-shadow(0 .35vh 0 #0b0b0b) drop-shadow(0 -.35vh 0 #0b0b0b); }
+.cut-head.img span { display: flex; align-items: flex-end; gap: .25vh; }
+.cut-head.img .cut-year img { height: 7.5vh; width: auto; }
+.cut-head.img .cut-month img { height: 10.5vh; width: auto; }
+.cut-head.img .cut-gatsu { height: 5.4vh; width: auto; margin-left: -.6vh; rotate: 6deg; filter: none; }
