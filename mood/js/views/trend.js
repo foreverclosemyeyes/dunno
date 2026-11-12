@@ -88,12 +88,12 @@ export function viewTrend() {
     return `<div class="mt">${icon}${name}</div><div class="mv"><b>${big}</b><span>${sub}</span></div>`;
   };
 
-  const lineCard = (key, icon, name) => {
-    const y = (v) => TOP + (1 - v / 10) * (BOT - TOP), ink = tone(key, 10) || C.ink;
+  const lineCard = (key, name, max, ticks, headHtml) => {
+    const y = (v) => TOP + (1 - v / max) * (BOT - TOP), ink = tone(key, 10) || C.ink;
     const pts = [];
     days.forEach((e, i) => { if (e && e[key] != null) pts.push([cx(i), y(e[key]), i]); });
     let out = `<defs><linearGradient id="g-${key}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${ink}" stop-opacity=".26"/><stop offset="1" stop-color="${ink}" stop-opacity="0"/></linearGradient></defs>`;
-    out += grid([[0, '0'], [5, '5'], [10, '10']], y);
+    out += grid(ticks, y);
     if (pts.length > 1) {
       const d = smoothPath(pts, TOP, BOT);
       out += `<path d="${d}L${pts[pts.length - 1][0].toFixed(1)},${BOT}L${pts[0][0].toFixed(1)},${BOT}Z" fill="url(#g-${key})"/>
@@ -105,8 +105,10 @@ export function viewTrend() {
       const p = pts.find((q) => q[2] === pick);
       if (p) out += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="5.5" fill="${ink}" stroke="${C.ring}" stroke-width="2.5"/>`;
     }
-    return `<section class="card mcard">${head(key, icon, name)}${plot(out)}</section>`;
+    return `<section class="card mcard">${headHtml}${plot(out)}</section>`;
   };
+  // 기분·에너지·자신감 (0~10)
+  const scoreCard = (key, icon, name) => lineCard(key, name, 10, [[0, '0'], [5, '5'], [10, '10']], head(key, icon, name));
 
   const sleepCard = () => {
     const MAX = 12 * 60, y = (m) => TOP + (1 - Math.min(m, MAX) / MAX) * (BOT - TOP);
@@ -139,20 +141,17 @@ export function viewTrend() {
       <div class="mnote calkey"><span>${T('가라앉음')} ${scale} ${T('들뜸')}</span><span><i class="pdot"></i> ${T('생리')}</span></div></section>`;
   };
 
-  // 증상 · 생리 · 약: 항목마다 한 줄. 증상은 막대 높이가 정도, 생리는 이어진 띠, 약은 점.
-  const RH = 30, bw = isWeek ? 20 : Math.max(3, col - 3);
+  // 증상(우울·고조·불안)은 기분과 같은 선 그래프로, 0(없음)~4(매우 높음)
+  const symCard = (key, name) => {
+    const high = got.filter((e) => e[key] >= 3).length;
+    const big = pickDate ? (pickE ? LEVELS[pickE[key] || 0] : '–') : F('{0}일', high);
+    return lineCard(key, name, 4, [[0, ''], [2, ''], [4, '']], `<div class="mt">${name}</div><div class="mv"><b>${big}</b><span>${pickDate ? pickLabel : T('높음 이상인 날')}</span></div>`);
+  };
+
+  // 생리 · 약: 생리는 이어진 띠, 약은 먹은 날에 점
   const guide = (h) => (pick == null ? '' : `<line x1="${cx(pick).toFixed(1)}" x2="${cx(pick).toFixed(1)}" y1="0" y2="${h}" stroke="${C.muted}"/>`);
   const inkAt = (i) => (pick == null || pick === i ? C.ink : C.faint);
   const srow = (name, right, h, inner) => `<div class="srow"><div class="sh"><span>${name}</span><span>${right}</span></div><svg width="${W}" height="${h}">${inner}${guide(h)}</svg></div>`;
-  const symRow = (key, name) => {
-    const high = got.filter((e) => e[key] >= 3).length, max = Math.max(0, ...got.map((e) => e[key] || 0));
-    const right = pickDate ? (pickE ? LEVELS[pickE[key] || 0] : '–') : high ? F('높음 이상 {0}일', high) : max ? F('가장 높은 날 {0}', LEVELS[max]) : T('없음');
-    return srow(name, right, RH, days.map((e, i) => {
-      if (!e) return '';
-      const h = e[key] ? (e[key] / 4) * (RH - 2) : 2;   // 없음인 날은 바닥에 얇은 줄만
-      return `<rect x="${(cx(i) - bw / 2).toFixed(1)}" y="${(RH - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="${Math.min(bw / 2, 4, h / 2).toFixed(1)}" fill="${e[key] ? inkAt(i) : C.grid}"/>`;
-    }).join(''));
-  };
   const periodRow = () => {
     let out = '', n = 0;
     for (let i = 0; i < r.n; i++) {
@@ -170,11 +169,9 @@ export function viewTrend() {
     return srow(T('약'), pickDate ? (counts[pick] ? F('{0}번', counts[pick]) : '–') : n ? F('{0}일', n) : T('없음'), 16,
       counts.map((c, i) => (c ? `<circle cx="${cx(i).toFixed(1)}" cy="8" r="${isWeek ? 4.5 : Math.max(1.5, Math.min(3, col / 2 - 1))}" fill="${inkAt(i)}"/>` : '')).join(''));
   };
-  const symptoms = `<section class="card mcard"><div class="mt">${IC.wave}${T('증상 · 생리 · 약')}</div>
-    <div class="plot strips" data-n="${r.n}" data-w="${W}">
-      ${symRow('dep', T('우울'))}${symRow('elev', T('고조'))}${symRow('anx', T('불안'))}
-      <svg width="${W}" height="18">${xLabelsAt(13)}</svg>
+  const marks = `<section class="card mcard"><div class="plot strips" data-n="${r.n}" data-w="${W}">
       ${periodRow()}${medRow()}
+      <svg width="${W}" height="18">${xLabelsAt(13)}</svg>
     </div></section>`;
 
   app.innerHTML = `
@@ -186,7 +183,9 @@ export function viewTrend() {
       <button data-act="shift" data-step="1" aria-label="${T('다음')}" ${shiftAnchor(r.start, 1) > t ? 'disabled' : ''}>›</button></div>
     ${pickDate ? `<div class="pickbar"><span>${pickLabel}${pickE ? '' : T(' · 기록 없음')}</span><button class="mini" data-act="openDay" data-date="${pickDate}">${pickE ? T('기록 열기') : T('기록하기')}</button></div>` : ''}
     ${isWeek ? '' : calendar()}
-    ${lineCard('mood', IC.face(5), T('기분'))}${lineCard('energy', IC.battery(6), T('에너지'))}${lineCard('conf', IC.star, T('자신감'))}
-    ${sleepCard()}${symptoms}
+    ${scoreCard('mood', IC.face(5), T('기분'))}${scoreCard('energy', IC.battery(6), T('에너지'))}${scoreCard('conf', IC.star, T('자신감'))}
+    ${sleepCard()}
+    ${symCard('dep', T('우울'))}${symCard('elev', T('고조'))}${symCard('anx', T('불안'))}
+    ${marks}
     <p class="foot">${T('그래프나 달력에서 날짜를 누르면 그날 값을 볼 수 있어요.')}<br>${DISCLAIMER}</p>`;
 }

@@ -232,7 +232,7 @@ ol.steps li { margin: 3px 0; }
 .plot { cursor: pointer; }
 .plot svg { display: block; overflow: visible; }
 .mnote { color: var(--faint); font-size: calc(11.5px * var(--fs, 1.12)); margin-top: 6px; }
-.strips { margin-top: 12px; }
+.strips { margin-top: -4px; }
 .srow { margin-top: 8px; }
 .sh { display: flex; justify-content: space-between; margin: 0 0 4px; font-size: calc(12px * var(--fs, 1.12)); color: var(--muted); }
 .sh span:first-child { color: var(--text); font-weight: 600; }
