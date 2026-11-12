@@ -24,6 +24,7 @@
 ## 올리기 전에
 
 1. `node mood/tests/smoke.js` — 전부 통과해야 한다. 기능을 더하거나 버그를 고치면 확인을 한 줄 더한다.
+   `sw.js`나 `main.js`의 "새 버전 받기"를 고쳤으면 `node mood/tests/update.js`도 돌린다.
 2. `mood/sw.js`의 `CACHE` 숫자와 `mood/js/config.js`의 `VERSION`을 같은 숫자로 하나 올린다 (설정 화면 맨 아래에 보여서, 사용자가 최신인지 확인할 수 있다). `js/`에 파일을 더했으면 `JS` 목록에도 더한다.
 3. 화면이 바뀌었으면 아이폰 크기로 스크린샷을 찍어 `mood/preview/`에 넣고 사용자에게 보여 준다. (테스트 기기에는 애플 글꼴이 없으니 `settings.font = 'pretendard'`로 찍는다.)
 4. 한 가지 변경은 한 커밋으로, 무엇을 왜 바꿨는지 적는다.

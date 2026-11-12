@@ -190,6 +190,18 @@ applyTheme();
 applyFont();
 render();
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+// 새 버전 받기: 아이폰 홈 화면 앱은 껐다 켜도 예전 화면을 그대로 들고 있는 일이 많다.
+// 앱으로 돌아올 때마다 새 버전이 있는지 확인하고, 새 버전이 자리 잡으면 화면을 한 번 다시 연다.
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+  const sw = navigator.serviceWorker;
+  let hadOld = !!sw.controller, reloaded = false;
+  sw.addEventListener('controllerchange', () => {
+    if (!hadOld) { hadOld = true; return; }   // 처음 설치는 다시 열 필요가 없다
+    if (reloaded || sheetOpen()) return;      // 기록 화면을 쓰는 중이면 그대로 둔다 (다음에 열 때 반영)
+    reloaded = true;
+    location.reload();
+  });
+  sw.register('sw.js').then((reg) => {
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) reg.update().catch(() => {}); });
+  }).catch(() => {});
 }
