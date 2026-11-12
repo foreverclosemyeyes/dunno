@@ -3,28 +3,162 @@
 
   // ---------- 고정 값 ----------
   const KEY = 'tide.v1', OLD_KEY = 'harugyeol.v1';
-  const LEVELS = ['없음', '약간', '보통', '높음', '매우 높음'];
-  const APPETITE = ['낮음', '보통', '높음'];
-  const CAFFEINE = ['없음', '조금', '많음'];
-  const SYMPTOMS = [['dep', '우울'], ['elev', '고조 (들뜸)'], ['anx', '불안']];
+
+  // ---------- 언어 ----------
+  // 한국어 문장을 그대로 열쇠로 쓰고, 영어일 때만 아래 표에서 바꿔 준다. 언어를 바꾸면 앱을 새로 연다.
+  const EN = (() => { try { return JSON.parse(localStorage.getItem(KEY)).settings.lang === 'en'; } catch (e) { return false; } })();
+  document.documentElement.lang = EN ? 'en' : 'ko';
+  const DICT = {
+    '없음': 'None',
+    '약간': 'Mild',
+    '보통': 'Moderate',
+    '보통 ': 'Normal',
+    '높음': 'High',
+    '매우 높음': 'Very high',
+    '낮음': 'Low',
+    '조금': 'Some',
+    '많음': 'A lot',
+    '우울': 'Depressed',
+    '고조 (들뜸)': 'Elevated',
+    '불안': 'Anxious',
+    '적게 자도 안 피곤함': 'Not tired on little sleep',
+    '말이 많아짐': 'More talkative',
+    '생각이 빠르게 튐': 'Racing thoughts',
+    '주의가 쉽게 흩어짐': 'Easily distracted',
+    '새로운 일·프로젝트에 몰두': 'Absorbed in new projects',
+    '충동적인 지출이나 결정': 'Impulsive spending or decisions',
+    '기본': 'Default',
+    '애플 고딕': 'Apple Gothic',
+    '명조': 'Serif',
+    '이 앱은 진단 도구가 아니에요. 내 상태를 기록해 두는 참고용이에요.': 'This app is not a diagnostic tool. It is a personal log for reference.',
+    '저장하지 못했어요. 저장 공간을 확인해 주세요.': 'Could not save. Please check your storage space.',
+    '기분': 'Mood',
+    '기록 없음': 'No entry',
+    '홈 화면에 추가해서 쓰세요.': 'Add this to your Home Screen.',
+    '사파리 아래쪽 공유 버튼(네모에 화살표) → “홈 화면에 추가”를 누르면 앱처럼 열려요.': 'In Safari, tap the Share button (square with an arrow) → “Add to Home Screen” to open it like an app.',
+    '닫기': 'Close',
+    '오늘': 'Today',
+    '지난 기록': 'Past entry',
+    '설정과 백업': 'Settings & backup',
+    '이전 주': 'Previous week',
+    '다음 주': 'Next week',
+    '오늘로 돌아가기': 'Back to today',
+    '오늘 기록이 아직 없어요': 'No entry for today yet',
+    '이 날은 기록이 없어요': 'No entry for this day',
+    '10초면 끝나요.': 'It takes 10 seconds.',
+    '기록하기': 'Log',
+    '시간': 'h',
+    '분': 'm',
+    '에너지': 'Energy',
+    '자신감': 'Confidence',
+    '수면': 'Sleep',
+    '고조': 'Elevated',
+    '잠든 → 깬': 'Asleep → Awake',
+    ' · 피곤': ' · tired',
+    ' · 개운': ' · rested',
+    '생리': 'Period',
+    '생리 중': 'On period',
+    '식욕': 'Appetite',
+    '카페인': 'Caffeine',
+    '약': 'Meds',
+    '체크': 'Checked',
+    '메모': 'Note',
+    '수정하기': 'Edit',
+    '지난주': 'last week',
+    '지난달': 'last month',
+    '평균': 'Average',
+    '{0}와 비슷': 'same as {0}',
+    '{0}보다 {1} {2}': '{1} {2} vs {0}',
+    '12시간': '12h',
+    '점선은 지금까지의 내 평균 수면': 'Dotted line is your average sleep so far',
+    '기분 달력': 'Mood calendar',
+    '가라앉음': 'Low',
+    '들뜸': 'High',
+    '증상 · 생리 · 약': 'Symptoms · Period · Meds',
+    '흐름': 'Trends',
+    '기록 {0}일 / {1}일': '{0} of {1} days logged',
+    '이전': 'Previous',
+    '다음': 'Next',
+    ' · 기록 없음': ' · no entry',
+    '기록 열기': 'Open entry',
+    '그래프나 달력에서 날짜를 누르면 그날 값을 볼 수 있어요.': 'Tap a date on a chart or the calendar to see that day.',
+    '약 이름': 'Medication name',
+    '용량 (예: 300mg)': 'Dose',
+    '이 약 저장하고 선택': 'Save and select',
+    '+ 약 추가': '+ Add med',
+    '자주 먹는 약을 한 번 추가해 두면 다음부터는 탭 한 번이면 돼요.': 'Add a medication once and it is one tap from then on.',
+    '기록 수정': 'Edit entry',
+    '기분 0에서 10': 'Mood, 0 to 10',
+    '에너지 0에서 10': 'Energy, 0 to 10',
+    '바닥': 'Empty',
+    '넘침': 'Full',
+    '자신감 0에서 10': 'Confidence, 0 to 10',
+    '위축': 'Low',
+    '오늘 이런 점이 있었나요?': 'Did any of these apply today?',
+    '해당하는 것만': 'Only those that apply',
+    '지난밤 수면': 'Last night\'s sleep',
+    '잠든 시각': 'Fell asleep',
+    '깬 시각': 'Woke up',
+    '일어났을 때 피곤했나요?': 'Tired when you woke up?',
+    '아니오': 'No',
+    '예': 'Yes',
+    '오늘 먹은 약': 'Meds taken today',
+    '탭해서 선택': 'Tap to select',
+    '선택': 'Optional',
+    '한 줄로 남기기': 'One line',
+    '이 날 기록 삭제': 'Delete this entry',
+    '저장': 'Save',
+    '시각을 넣으면 자동 계산': 'Calculated from the times',
+    '{0} 잤어요': 'Slept {0}',
+    '저장했어요': 'Saved',
+    '삭제': 'Delete',
+    '저장된 약이 없어요. 기록 화면에서 “+ 약 추가”로 넣을 수 있어요.': 'No saved meds. Add one with “+ Add med” on the log screen.',
+    '기록 {0}일': '{0} days logged',
+    '글씨체': 'Font',
+    '가나다 123': 'Abc 가나다 123',
+    '백업': 'Backup',
+    '기록은 이 아이폰 안에만 저장돼요. 폰을 바꾸거나 앱을 지우면 사라지니, 가끔 백업 파일을 만들어 “파일” 앱이나 iCloud에 넣어 두세요.': 'Entries are stored only on this iPhone. They are lost if you change phones or delete the app, so export a backup file now and then and keep it in Files or iCloud.',
+    '백업 파일 내보내기': 'Export backup file',
+    '백업 파일 불러오기': 'Import backup file',
+    '자주 먹는 약': 'Saved meds',
+    '홈 화면에 추가하는 방법': 'How to add to Home Screen',
+    '사파리에서 이 페이지를 엽니다.': 'Open this page in Safari.',
+    '아래쪽 공유 버튼(네모에 위쪽 화살표)을 누릅니다.': 'Tap the Share button at the bottom (square with an up arrow).',
+    '“홈 화면에 추가”를 누릅니다.': 'Tap “Add to Home Screen”.',
+    '안내': 'About',
+    '걱정되는 변화가 있으면 진료 때 이 기록을 보여 주며 이야기해 보세요.': 'If a change worries you, show this log at your appointment and talk it through.',
+    '백업 파일을 만들었어요': 'Backup file created',
+    '이 앱의 백업 파일이 아니에요': 'This is not a backup file from this app',
+    '백업 파일에 {0}일치 기록이 있어요.\n지금 기록과 합칠까요? (같은 날짜는 더 최근에 수정한 쪽을 남겨요)': 'The backup file has {0} days of entries.\nMerge with your current entries? (For the same date, the more recently edited one is kept)',
+    '{0}일치 기록을 불러왔어요': 'Imported {0} days of entries',
+    '이 날 기록을 삭제할까요?': 'Delete this entry?',
+    '삭제했어요': 'Deleted',
+    '약 이름을 적어 주세요': 'Please enter a medication name',
+  };
+  const T = (ko) => (EN && DICT[ko] != null ? DICT[ko] : ko);
+  const F = (ko, ...a) => T(ko).replace(/\{(\d)\}/g, (_, i) => a[i]);
+  const LEVELS = [T('없음'), T('약간'), T('보통'), T('높음'), T('매우 높음')];
+  const APPETITE = [T('낮음'), T('보통 '), T('높음')];
+  const CAFFEINE = [T('없음'), T('조금'), T('많음')];
+  const SYMPTOMS = [['dep', T('우울')], ['elev', T('고조 (들뜸)')], ['anx', T('불안')]];
   const SIGNS = [
-    ['lessSleep', '적게 자도 안 피곤함'],
-    ['talkative', '말이 많아짐'],
-    ['racing', '생각이 빠르게 튐'],
-    ['distract', '주의가 쉽게 흩어짐'],
-    ['projects', '새로운 일·프로젝트에 몰두'],
-    ['impulsive', '충동적인 지출이나 결정'],
+    ['lessSleep', T('적게 자도 안 피곤함')],
+    ['talkative', T('말이 많아짐')],
+    ['racing', T('생각이 빠르게 튐')],
+    ['distract', T('주의가 쉽게 흩어짐')],
+    ['projects', T('새로운 일·프로젝트에 몰두')],
+    ['impulsive', T('충동적인 지출이나 결정')],
   ];
   const SIGN_THRESHOLD = 7;
   const isHigh = (d) => d.mood >= SIGN_THRESHOLD || d.energy >= SIGN_THRESHOLD || (d.conf != null && d.conf >= SIGN_THRESHOLD);
   const FONTS = {
-    system: ['기본', '-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif'],
-    gothic: ['애플 고딕', '"Apple SD Gothic Neo", "AppleGothic", "Noto Sans KR", sans-serif'],
+    system: [T('기본'), '-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif'],
+    gothic: [T('애플 고딕'), '"Apple SD Gothic Neo", "AppleGothic", "Noto Sans KR", sans-serif'],
     pretendard: ['Pretendard', '"Pretendard Variable", -apple-system, "Apple SD Gothic Neo", sans-serif'],
-    myungjo: ['명조', '"AppleMyungjo", "Nanum Myeongjo", "Noto Serif KR", serif'],
+    myungjo: [T('명조'), '"AppleMyungjo", "Nanum Myeongjo", "Noto Serif KR", serif'],
   };
-  const WD = ['일', '월', '화', '수', '목', '금', '토'];
-  const DISCLAIMER = '이 앱은 진단 도구가 아니에요. 내 상태를 기록해 두는 참고용이에요.';
+  const WD = () => (EN ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] : ['일', '월', '화', '수', '목', '금', '토']);
+  const DISCLAIMER = T('이 앱은 진단 도구가 아니에요. 내 상태를 기록해 두는 참고용이에요.');
 
   // ---------- 저장소 (이 기기 안에만 저장) ----------
   const blank = () => ({ version: 1, entries: {}, meds: [], settings: {} });
@@ -37,7 +171,7 @@
   }
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(db)); return true; }
-    catch (e) { toast('저장하지 못했어요. 저장 공간을 확인해 주세요.'); return false; }
+    catch (e) { toast(T('저장하지 못했어요. 저장 공간을 확인해 주세요.')); return false; }
   }
   let db = load();
 
@@ -48,18 +182,24 @@
   const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate() + n); return ds(d); };
   const today = () => ds(new Date());
   const weekStart = (s) => { const d = parse(s); return addDays(s, -((d.getDay() + 6) % 7)); }; // 월요일 시작
-  const longDate = (s) => { const d = parse(s); return `${d.getMonth() + 1}월 ${d.getDate()}일 ${WD[d.getDay()]}요일`; };
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const md = (d) => (EN ? `${MON[d.getMonth()]} ${d.getDate()}` : `${d.getMonth() + 1}월 ${d.getDate()}일`);
+  const monthTitle = (d) => (EN ? `${MONTHS[d.getMonth()]} ${d.getFullYear()}` : `${d.getFullYear()}년 ${d.getMonth() + 1}월`);
+  const longDate = (s) => { const d = parse(s); return EN ? `${WD()[d.getDay()]}, ${md(d)}` : `${md(d)} ${WD()[d.getDay()]}요일`; };
   const toMin = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
   function sleepMinutes(bed, wake) {
     if (!bed || !wake) return null;
     const diff = (toMin(wake) - toMin(bed) + 1440) % 1440;
     return diff || null;
   }
-  const durText = (min) => (min == null ? '–' : `${Math.floor(min / 60)}시간${min % 60 ? ` ${min % 60}분` : ''}`);
+const durText = (min) => (min == null ? '–' : EN
+    ? `${Math.floor(min / 60)}h${min % 60 ? ` ${min % 60}m` : ''}`
+    : `${Math.floor(min / 60)}시간${min % 60 ? ` ${min % 60}분` : ''}`);
   const ampm = (t) => {
     if (!t) return '–';
     const [h, m] = t.split(':').map(Number);
-    return `${h < 12 ? '오전' : '오후'} ${h % 12 || 12}:${pad(m)}`;
+return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '오전' : '오후'} ${h % 12 || 12}:${pad(m)}`;
   };
 
   // 흑백: 기분이 낮을수록 어둡게, 높을수록 밝게
@@ -120,39 +260,39 @@
         ? `<span class="dot on" style="${moodFill(en.mood)}">${en.mood}</span>`
         : '<span class="dot"></span>';
       return `<button class="${cls}" data-act="pick" data-date="${d}" ${d > t ? 'disabled' : ''}
-        aria-label="${longDate(d)}${en ? `, 기분 ${en.mood}` : ', 기록 없음'}">
-        <span>${WD[dt.getDay()]}</span><span class="num">${dt.getDate()}</span>${dot}</button>`;
+        aria-label="${longDate(d)}, ${en ? `${T('기분')} ${en.mood}` : T('기록 없음')}">
+        <span>${WD()[dt.getDay()]}</span><span class="num">${dt.getDate()}</span>${dot}</button>`;
     }).join('');
 
     const wsD = parse(ws), weD = parse(addDays(ws, 6));
-    const weekLabel = `${wsD.getMonth() + 1}월 ${wsD.getDate()}일 – ${weD.getMonth() + 1}월 ${weD.getDate()}일`;
+    const weekLabel = `${md(wsD)} – ${md(weD)}`;
     const hint = (!standalone() && !db.settings.hintClosed)
-      ? `<div class="card hint"><div><b>홈 화면에 추가해서 쓰세요.</b><br>사파리 아래쪽 공유 버튼(네모에 화살표) → “홈 화면에 추가”를 누르면 앱처럼 열려요.</div>
-         <button class="x" data-act="closeHint" aria-label="닫기">✕</button></div>` : '';
+      ? `<div class="card hint"><div><b>${T('홈 화면에 추가해서 쓰세요.')}</b><br>${T('사파리 아래쪽 공유 버튼(네모에 화살표) → “홈 화면에 추가”를 누르면 앱처럼 열려요.')}</div>
+         <button class="x" data-act="closeHint" aria-label="${T('닫기')}">✕</button></div>` : '';
 
     app.innerHTML = `
       <header class="top">
-        <div><h1>${sel === t ? '오늘' : '지난 기록'}</h1><div class="sub">${longDate(sel)}</div></div>
-        <button class="icon-btn" data-act="settings" aria-label="설정과 백업">${IC.sliders}</button>
+        <div><h1>${sel === t ? T('오늘') : T('지난 기록')}</h1><div class="sub">${longDate(sel)}</div></div>
+        <button class="icon-btn" data-act="settings" aria-label="${T('설정과 백업')}">${IC.sliders}</button>
       </header>
       ${hint}
       <section class="card week">
         <div class="week-head">
-          <button data-act="week" data-step="-1" aria-label="이전 주">‹</button>
+          <button data-act="week" data-step="-1" aria-label="${T('이전 주')}">‹</button>
           <span>${weekLabel}</span>
-          <button data-act="week" data-step="1" aria-label="다음 주" ${addDays(ws, 7) > t ? 'disabled' : ''}>›</button>
+          <button data-act="week" data-step="1" aria-label="${T('다음 주')}" ${addDays(ws, 7) > t ? 'disabled' : ''}>›</button>
         </div>
         <div class="days">${days}</div>
       </section>
       <section class="card">${e ? summary(e) : emptyCard(sel === t)}</section>
-      ${sel !== t ? '<button class="btn ghost" data-act="goToday">오늘로 돌아가기</button>' : ''}
+      ${sel !== t ? `<button class="btn ghost" data-act="goToday">${T('오늘로 돌아가기')}</button>` : ''}
       <p class="foot">${DISCLAIMER}</p>`;
   }
 
   function emptyCard(isToday) {
-    return `<div class="empty"><div class="e1">${isToday ? '오늘 기록이 아직 없어요' : '이 날은 기록이 없어요'}</div>
-      <div>10초면 끝나요.</div></div>
-      <button class="btn" data-act="record">기록하기</button>`;
+    return `<div class="empty"><div class="e1">${isToday ? T('오늘 기록이 아직 없어요') : T('이 날은 기록이 없어요')}</div>
+      <div>${T('10초면 끝나요.')}</div></div>
+      <button class="btn" data-act="record">${T('기록하기')}</button>`;
   }
 
   const tile = (icon, n, label, sub) => `<div class="tile">${icon}<div><div class="n">${n}</div><div class="l">${label}${sub ? ` <span class="d">${sub}</span>` : ''}</div></div></div>`;
@@ -162,27 +302,27 @@
       [1, 2, 3, 4].map((i) => `<i class="${i <= v ? 'on' : ''}"></i>`).join('')}</span></span>`;
     const row = (icon, k, v) => `<div class="row"><span class="k">${icon}${k}</span><span class="v">${v}</span></div>`;
     const sleepBig = e.sleepMin == null ? '–'
-      : `${Math.floor(e.sleepMin / 60)}<small>시간</small>${e.sleepMin % 60 ? `${e.sleepMin % 60}<small>분</small>` : ''}`;
+      : `${Math.floor(e.sleepMin / 60)}<small>${T('시간')}</small>${e.sleepMin % 60 ? `${e.sleepMin % 60}<small>${T('분')}</small>` : ''}`;
     const signs = SIGNS.filter(([k]) => e.signs && e.signs[k]).map(([, label]) => label);
     const meds = (e.meds || []).map((x) => esc(x.name) + (x.dose ? ` ${esc(x.dose)}` : '')).join(', ');
     return `
       <div class="tiles">
-        ${tile(IC.face(e.mood), e.mood, '기분')}
-        ${tile(IC.battery(e.energy), e.energy, '에너지')}
-        ${tile(IC.star, e.conf == null ? '–' : e.conf, '자신감')}
-        ${tile(IC.moon, sleepBig, '수면')}
+        ${tile(IC.face(e.mood), e.mood, T('기분'))}
+        ${tile(IC.battery(e.energy), e.energy, T('에너지'))}
+        ${tile(IC.star, e.conf == null ? '–' : e.conf, T('자신감'))}
+        ${tile(IC.moon, sleepBig, T('수면'))}
       </div>
       <div class="rows">
-        ${row(IC.wave, '', `${lv('우울', e.dep)}${lv('고조', e.elev)}${lv('불안', e.anx)}`)}
-        ${e.bed && e.wake ? row(IC.moon, '잠든 → 깬', `${ampm(e.bed)} → ${ampm(e.wake)}${e.tired == null ? '' : e.tired ? ' · 피곤' : ' · 개운'}`) : ''}
-        ${e.period ? row(IC.drop, '생리', '생리 중') : ''}
-        ${e.appetite != null ? row(IC.fork, '식욕', APPETITE[e.appetite]) : ''}
-        ${e.caffeine != null ? row(IC.coffee, '카페인', CAFFEINE[e.caffeine]) : ''}
-        ${row(IC.pill, '약', meds || '기록 없음')}
-        ${signs.length ? row('', '체크', signs.map(esc).join('<br>')) : ''}
-        ${e.note ? row(IC.note, '메모', esc(e.note)) : ''}
+        ${row(IC.wave, '', `${lv(T('우울'), e.dep)}${lv(T('고조'), e.elev)}${lv(T('불안'), e.anx)}`)}
+        ${e.bed && e.wake ? row(IC.moon, T('잠든 → 깬'), `${ampm(e.bed)} → ${ampm(e.wake)}${e.tired == null ? '' : e.tired ? T(' · 피곤') : T(' · 개운')}`) : ''}
+        ${e.period ? row(IC.drop, T('생리'), T('생리 중')) : ''}
+        ${e.appetite != null ? row(IC.fork, T('식욕'), APPETITE[e.appetite]) : ''}
+        ${e.caffeine != null ? row(IC.coffee, T('카페인'), CAFFEINE[e.caffeine]) : ''}
+        ${row(IC.pill, T('약'), meds || T('기록 없음'))}
+        ${signs.length ? row('', T('체크'), signs.map(esc).join('<br>')) : ''}
+        ${e.note ? row(IC.note, T('메모'), esc(e.note)) : ''}
       </div>
-      <button class="btn ghost" data-act="record">수정하기</button>`;
+      <button class="btn ghost" data-act="record">${T('수정하기')}</button>`;
   }
 
   // ---------- 흐름 화면 (주 / 월) ----------
@@ -224,11 +364,11 @@
     const isWeek = trend.mode === 'week';
     const sD = parse(r.start), eD = parse(addDays(r.start, r.n - 1));
     const title = isWeek
-      ? `${sD.getMonth() + 1}월 ${sD.getDate()}일 – ${eD.getMonth() + 1}월 ${eD.getDate()}일`
-      : `${sD.getFullYear()}년 ${sD.getMonth() + 1}월`;
-    const word = isWeek ? '지난주' : '지난달';
+      ? `${md(sD)} – ${md(eD)}`
+      : monthTitle(sD);
+    const word = isWeek ? T('지난주') : T('지난달');
     const pick = trend.pick, pickDate = pick == null ? null : addDays(r.start, pick), pickE = pickDate ? db.entries[pickDate] : null;
-    const pickLabel = pickDate ? (() => { const d = parse(pickDate); return `${d.getMonth() + 1}월 ${d.getDate()}일 ${WD[d.getDay()]}요일`; })() : '';
+    const pickLabel = pickDate ? longDate(pickDate) : '';
 
     // 크기: 오른쪽에 눈금 숫자 자리를 남기고 나머지를 날짜 수로 나눈다
     const AX = 28, W = Math.max(160, Math.min(app.clientWidth, 480) - 28 - 32 - AX), col = W / r.n;
@@ -237,14 +377,14 @@
     const xLabels = days.map((_, i) => {
       const d = addDays(r.start, i), dt = parse(d);
       if (!isWeek && (dt.getDate() - 1) % 7 !== 0) return '';
-      return `<text x="${cx(i).toFixed(1)}" y="${H - 4}" text-anchor="middle" font-size="10" fill="${d === t ? '#fff' : '#8e8e93'}">${isWeek ? WD[dt.getDay()] : dt.getDate()}</text>`;
+      return `<text x="${cx(i).toFixed(1)}" y="${H - 4}" text-anchor="middle" font-size="10" fill="${d === t ? '#fff' : '#8e8e93'}">${isWeek ? WD()[dt.getDay()] : dt.getDate()}</text>`;
     }).join('');
     const grid = (ticks, y) => ticks.map(([v, label]) => `<line x1="0" x2="${W}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="#2c2c2e"/>
       <text x="${W + 6}" y="${(y(v) + 3.5).toFixed(1)}" font-size="10" fill="#636366">${label}</text>`).join('');
     const plot = (inner) => `<div class="plot" data-n="${r.n}" data-w="${W}"><svg width="${W + AX}" height="${H}">${inner}${xLabels}</svg></div>`;
 
     // 카드 머리: 평소에는 평균, 날짜를 누르면 그날 값
-    const fmtSleep = (m) => `${Math.floor(m / 60)}<small>시간</small> ${Math.round(m % 60)}<small>분</small>`;
+    const fmtSleep = (m) => `${Math.floor(m / 60)}<small>${T('시간')}</small> ${Math.round(m % 60)}<small>${T('분')}</small>`;
     const head = (key, icon, name, isSleep) => {
       let big, sub;
       if (pickDate) {
@@ -254,10 +394,10 @@
       } else {
         const a = mean(got, key), b = mean(before, key);
         big = a == null ? '–' : isSleep ? fmtSleep(a) : a.toFixed(1);
-        sub = '평균';
+        sub = T('평균');
         if (a != null && b != null) {
-          const diff = a - b, mag = isSleep ? `${Math.round(Math.abs(diff))}분` : Math.abs(diff).toFixed(1);
-          sub += Math.abs(diff) < (isSleep ? 5 : 0.05) ? ` · ${word}와 비슷` : ` · ${word}보다 ${diff > 0 ? '↑' : '↓'} ${mag}`;
+          const diff = a - b, mag = isSleep ? `${Math.round(Math.abs(diff))}${T('분')}` : Math.abs(diff).toFixed(1);
+          sub += Math.abs(diff) < (isSleep ? 5 : 0.05) ? ` · ${F('{0}와 비슷', word)}` : ` · ${F('{0}보다 {1} {2}', word, diff > 0 ? '↑' : '↓', mag)}`;
         }
       }
       return `<div class="mt">${icon}${name}</div><div class="mv"><b>${big}</b><span>${sub}</span></div>`;
@@ -287,7 +427,7 @@
       const MAX = 12 * 60, y = (m) => TOP + (1 - Math.min(m, MAX) / MAX) * (BOT - TOP);
       const bw = isWeek ? 20 : Math.max(3, col - 3), rx = Math.min(bw / 2, 5);
       const all = mean(Object.values(db.entries), 'sleepMin');
-      let out = grid([[0, '0'], [360, '6'], [720, '12시간']], y);
+      let out = grid([[0, '0'], [360, '6'], [720, T('12시간')]], y);
       days.forEach((e, i) => {
         if (!e || e.sleepMin == null) return;
         const top = Math.min(y(e.sleepMin), BOT - 3);
@@ -295,8 +435,8 @@
           fill="${pick == null || pick === i ? '#fff' : '#636366'}"/>`;
       });
       if (all != null) out += `<line x1="0" x2="${W}" y1="${y(all).toFixed(1)}" y2="${y(all).toFixed(1)}" stroke="#aeaeb2" stroke-dasharray="2 4" stroke-linecap="round"/>`;
-      return `<section class="card mcard">${head('sleepMin', IC.moon, '수면', true)}${plot(out)}
-        <div class="mnote">점선은 지금까지의 내 평균 수면${all != null ? ` (${durText(Math.round(all))})` : ''}</div></section>`;
+      return `<section class="card mcard">${head('sleepMin', IC.moon, T('수면'), true)}${plot(out)}
+        <div class="mnote">${T('점선은 지금까지의 내 평균 수면')}${all != null ? ` (${durText(Math.round(all))})` : ''}</div></section>`;
     };
 
     // 월: 기분 달력
@@ -305,13 +445,13 @@
       const cells = Array.from({ length: lead }, () => '<span></span>').concat(days.map((e, i) => {
         const d = addDays(r.start, i);
         return `<button class="cday${pick === i ? ' sel' : ''}${d === t ? ' now' : ''}" data-act="pickDay" data-i="${i}" ${d > t ? 'disabled' : ''}
-          aria-label="${parse(d).getDate()}일${e ? `, 기분 ${e.mood}` : ', 기록 없음'}">
+          aria-label="${longDate(d)}, ${e ? `${T('기분')} ${e.mood}` : T('기록 없음')}">
           <span class="cdot" ${e ? `style="${moodFill(e.mood)}"` : ''}>${parse(d).getDate()}</span>${e && e.period ? '<i></i>' : ''}</button>`;
       })).join('');
       const scale = [0, 2.5, 5, 7.5, 10].map((v) => `<i style="${moodFill(v)}"></i>`).join('');
-      return `<section class="card mcard"><div class="mt">${IC.today}기분 달력</div>
-        <div class="cal">${['월', '화', '수', '목', '금', '토', '일'].map((w) => `<span class="cw">${w}</span>`).join('')}${cells}</div>
-        <div class="mnote calkey"><span>가라앉음 ${scale} 들뜸</span><span><i class="pdot"></i> 생리</span></div></section>`;
+      return `<section class="card mcard"><div class="mt">${IC.today}${T('기분 달력')}</div>
+        <div class="cal">${[1, 2, 3, 4, 5, 6, 0].map((i) => WD()[i]).map((w) => `<span class="cw">${w}</span>`).join('')}${cells}</div>
+        <div class="mnote calkey"><span>${T('가라앉음')} ${scale} ${T('들뜸')}</span><span><i class="pdot"></i> ${T('생리')}</span></div></section>`;
     };
 
     // 증상·생리·약: 날짜별 칸
@@ -321,33 +461,33 @@
     const gap = isWeek ? 4 : 1.5;
     const level = (key) => (e, i) => `<rect x="${(col * i + gap / 2).toFixed(1)}" y="2" width="${(col - gap).toFixed(1)}" height="14" rx="${isWeek ? 5 : 3}" fill="${SHADE[e[key] || 0]}"/>`;
     const dot = (test) => (e, i) => (test(e) ? `<circle cx="${cx(i).toFixed(1)}" cy="9" r="${isWeek ? 4.5 : Math.min(3, col / 2 - 1)}" fill="#fff"/>` : '');
-    const symptoms = `<section class="card mcard"><div class="mt">${IC.wave}증상 · 생리 · 약</div>
+    const symptoms = `<section class="card mcard"><div class="mt">${IC.wave}${T('증상 · 생리 · 약')}</div>
       <div class="plot strips" data-n="${r.n}" data-w="${W}">
-        ${strip('우울', level('dep'))}${strip('고조', level('elev'))}${strip('불안', level('anx'))}
+        ${strip(T('우울'), level('dep'))}${strip(T('고조'), level('elev'))}${strip(T('불안'), level('anx'))}
         <div style="height:8px"></div>
-        ${strip('생리', dot((e) => e.period))}${strip('약', dot((e) => e.meds && e.meds.length))}
+        ${strip(T('생리'), dot((e) => e.period))}${strip(T('약'), dot((e) => e.meds && e.meds.length))}
       </div>
-      <div class="mnote calkey"><span>없음 ${SHADE.map((c) => `<i style="background:${c}"></i>`).join('')} 매우 높음</span></div></section>`;
+      <div class="mnote calkey"><span>${T('없음')} ${SHADE.map((c) => `<i style="background:${c}"></i>`).join('')} ${T('매우 높음')}</span></div></section>`;
 
     app.innerHTML = `
-      <header class="top"><div><h1>흐름</h1><div class="sub">기록 ${got.length}일 / ${r.n}일</div></div>
-        <div class="segc"><button data-act="mode" data-mode="week" aria-pressed="${isWeek}">주</button>
-          <button data-act="mode" data-mode="month" aria-pressed="${!isWeek}">월</button></div></header>
+      <header class="top"><div><h1>${T('흐름')}</h1><div class="sub">${F('기록 {0}일 / {1}일', got.length, r.n)}</div></div>
+        <div class="segc"><button data-act="mode" data-mode="week" aria-pressed="${isWeek}">${EN ? 'Week' : T('주')}</button>
+          <button data-act="mode" data-mode="month" aria-pressed="${!isWeek}">${EN ? 'Month' : T('월')}</button></div></header>
       <div class="pnav">
-        <button data-act="shift" data-step="-1" aria-label="이전">‹</button><span>${title}</span>
-        <button data-act="shift" data-step="1" aria-label="다음" ${shiftAnchor(r.start, 1) > t ? 'disabled' : ''}>›</button></div>
-      ${pickDate ? `<div class="pickbar"><span>${pickLabel}${pickE ? '' : ' · 기록 없음'}</span><button class="mini" data-act="openDay" data-date="${pickDate}">${pickE ? '기록 열기' : '기록하기'}</button></div>` : ''}
+        <button data-act="shift" data-step="-1" aria-label="${T('이전')}">‹</button><span>${title}</span>
+        <button data-act="shift" data-step="1" aria-label="${T('다음')}" ${shiftAnchor(r.start, 1) > t ? 'disabled' : ''}>›</button></div>
+      ${pickDate ? `<div class="pickbar"><span>${pickLabel}${pickE ? '' : T(' · 기록 없음')}</span><button class="mini" data-act="openDay" data-date="${pickDate}">${pickE ? T('기록 열기') : T('기록하기')}</button></div>` : ''}
       ${isWeek ? '' : calendar()}
-      ${lineCard('mood', IC.face(5), '기분')}${lineCard('energy', IC.battery(6), '에너지')}${lineCard('conf', IC.star, '자신감')}
+      ${lineCard('mood', IC.face(5), T('기분'))}${lineCard('energy', IC.battery(6), T('에너지'))}${lineCard('conf', IC.star, T('자신감'))}
       ${sleepCard()}${symptoms}
-      <p class="foot">그래프나 달력에서 날짜를 누르면 그날 값을 볼 수 있어요.<br>${DISCLAIMER}</p>`;
+      <p class="foot">${T('그래프나 달력에서 날짜를 누르면 그날 값을 볼 수 있어요.')}<br>${DISCLAIMER}</p>`;
   }
 
   function render() {
     (ui.tab === 'trend' ? viewTrend : viewToday)();
     app.insertAdjacentHTML('beforeend', `<nav class="tabbar">
-      <button data-act="tab" data-tab="today" aria-pressed="${ui.tab === 'today'}">${IC.today}<span>오늘</span></button>
-      <button data-act="tab" data-tab="trend" aria-pressed="${ui.tab === 'trend'}">${IC.chart}<span>흐름</span></button></nav>`);
+      <button data-act="tab" data-tab="today" aria-pressed="${ui.tab === 'today'}">${IC.today}<span>${T('오늘')}</span></button>
+      <button data-act="tab" data-tab="trend" aria-pressed="${ui.tab === 'trend'}">${IC.chart}<span>${T('흐름')}</span></button></nav>`);
   }
 
   function applyFont() {
@@ -379,12 +519,12 @@
       esc(m.name)}${m.dose ? `<small>${esc(m.dose)}</small>` : ''}</button>`).join('');
     const add = ui.addingMed
       ? `<div class="med-new">
-           <input type="text" id="med-name" placeholder="약 이름" autocomplete="off" maxlength="30">
-           <input type="text" id="med-dose" placeholder="용량 (예: 300mg)" autocomplete="off" maxlength="20">
-           <button type="button" class="btn ghost" data-act="saveMed">이 약 저장하고 선택</button>
+           <input type="text" id="med-name" placeholder="${T('약 이름')}" autocomplete="off" maxlength="30">
+           <input type="text" id="med-dose" placeholder="${T('용량 (예: 300mg)')}" autocomplete="off" maxlength="20">
+           <button type="button" class="btn ghost" data-act="saveMed">${T('이 약 저장하고 선택')}</button>
          </div>` : '';
-    return `<div class="chips">${chips}<button type="button" class="chip add" data-act="addMed">+ 약 추가</button></div>
-      ${all.length ? '' : '<p class="set-p" style="margin-top:8px">자주 먹는 약을 한 번 추가해 두면 다음부터는 탭 한 번이면 돼요.</p>'}${add}`;
+    return `<div class="chips">${chips}<button type="button" class="chip add" data-act="addMed">${T('+ 약 추가')}</button></div>
+      ${all.length ? '' : `<p class="set-p" style="margin-top:8px">${T('자주 먹는 약을 한 번 추가해 두면 다음부터는 탭 한 번이면 돼요.')}</p>`}${add}`;
   }
 
   function signsHtml() {
@@ -399,29 +539,29 @@
     const d = ui.draft, isEdit = !!db.entries[date];
     sheet.innerHTML = `<div class="sheet-in">
       <div class="sheet-top">
-        <div><h2>${isEdit ? '기록 수정' : '기록하기'}</h2><div class="sub">${longDate(date)}</div></div>
-        <button class="icon-btn" data-act="close" aria-label="닫기">✕</button>
+        <div><h2>${isEdit ? T('기록 수정') : T('기록하기')}</h2><div class="sub">${longDate(date)}</div></div>
+        <button class="icon-btn" data-act="close" aria-label="${T('닫기')}">✕</button>
       </div>
 
       <div class="card">
-        <div class="lab"><b><span id="i-mood"></span>기분</b><span class="slider-val" id="v-mood">${d.mood}</span></div>
-        <input type="range" id="f-mood" min="0" max="10" step="1" value="${d.mood}" aria-label="기분 0에서 10">
-        <div class="ticks"><span>가라앉음</span><span>보통</span><span>들뜸</span></div>
+        <div class="lab"><b><span id="i-mood"></span>${T('기분')}</b><span class="slider-val" id="v-mood">${d.mood}</span></div>
+        <input type="range" id="f-mood" min="0" max="10" step="1" value="${d.mood}" aria-label="${T('기분 0에서 10')}">
+        <div class="ticks"><span>${T('가라앉음')}</span><span>${T('보통 ')}</span><span>${T('들뜸')}</span></div>
       </div>
       <div class="card">
-        <div class="lab"><b><span id="i-energy"></span>에너지</b><span class="slider-val" id="v-energy">${d.energy}</span></div>
-        <input type="range" id="f-energy" min="0" max="10" step="1" value="${d.energy}" aria-label="에너지 0에서 10">
-        <div class="ticks"><span>바닥</span><span>보통</span><span>넘침</span></div>
+        <div class="lab"><b><span id="i-energy"></span>${T('에너지')}</b><span class="slider-val" id="v-energy">${d.energy}</span></div>
+        <input type="range" id="f-energy" min="0" max="10" step="1" value="${d.energy}" aria-label="${T('에너지 0에서 10')}">
+        <div class="ticks"><span>${T('바닥')}</span><span>${T('보통 ')}</span><span>${T('넘침')}</span></div>
       </div>
 
       <div class="card">
-        <div class="lab"><b>${IC.star}자신감</b><span class="slider-val" id="v-conf">${d.conf}</span></div>
-        <input type="range" id="f-conf" min="0" max="10" step="1" value="${d.conf}" aria-label="자신감 0에서 10">
-        <div class="ticks"><span>위축</span><span>보통</span><span>넘침</span></div>
+        <div class="lab"><b>${IC.star}${T('자신감')}</b><span class="slider-val" id="v-conf">${d.conf}</span></div>
+        <input type="range" id="f-conf" min="0" max="10" step="1" value="${d.conf}" aria-label="${T('자신감 0에서 10')}">
+        <div class="ticks"><span>${T('위축')}</span><span>${T('보통 ')}</span><span>${T('넘침')}</span></div>
       </div>
 
       <div class="card signs" id="signs" hidden>
-        <div class="lab"><b>오늘 이런 점이 있었나요?</b><span>해당하는 것만</span></div>
+        <div class="lab"><b>${T('오늘 이런 점이 있었나요?')}</b><span>${T('해당하는 것만')}</span></div>
         ${signsHtml()}
       </div>
 
@@ -430,35 +570,35 @@
       </div>
 
       <div class="card">
-        <div class="lab"><b>${IC.moon}지난밤 수면</b><span id="v-sleep"></span></div>
+        <div class="lab"><b>${IC.moon}${T('지난밤 수면')}</b><span id="v-sleep"></span></div>
         <div class="times">
-          <label>잠든 시각<input type="time" id="f-bed" value="${esc(d.bed || '')}"></label>
-          <label>깬 시각<input type="time" id="f-wake" value="${esc(d.wake || '')}"></label>
+          <label>${T('잠든 시각')}<input type="time" id="f-bed" value="${esc(d.bed || '')}"></label>
+          <label>${T('깬 시각')}<input type="time" id="f-wake" value="${esc(d.wake || '')}"></label>
         </div>
-        <div class="sub-field"><div class="sub-lab">일어났을 때 피곤했나요?</div>${seg('tired', ['아니오', '예'], d.tired == null ? null : +d.tired)}</div>
+        <div class="sub-field"><div class="sub-lab">${T('일어났을 때 피곤했나요?')}</div>${seg('tired', [T('아니오'), T('예')], d.tired == null ? null : +d.tired)}</div>
       </div>
 
       <div class="card">
-        <button type="button" class="tog solo" data-flag="period" aria-pressed="${!!d.period}"><span>${IC.drop}생리 중</span><i></i></button>
+        <button type="button" class="tog solo" data-flag="period" aria-pressed="${!!d.period}"><span>${IC.drop}${T('생리 중')}</span><i></i></button>
       </div>
 
       <div class="card">
-        <div class="sub-field"><div class="sub-lab">${IC.fork}식욕</div>${seg('appetite', APPETITE, d.appetite)}</div>
-        <div class="sub-field"><div class="sub-lab">${IC.coffee}카페인</div>${seg('caffeine', CAFFEINE, d.caffeine)}</div>
+        <div class="sub-field"><div class="sub-lab">${IC.fork}${T('식욕')}</div>${seg('appetite', APPETITE, d.appetite)}</div>
+        <div class="sub-field"><div class="sub-lab">${IC.coffee}${T('카페인')}</div>${seg('caffeine', CAFFEINE, d.caffeine)}</div>
       </div>
 
       <div class="card">
-        <div class="lab"><b>${IC.pill}오늘 먹은 약</b><span>탭해서 선택</span></div>
+        <div class="lab"><b>${IC.pill}${T('오늘 먹은 약')}</b><span>${T('탭해서 선택')}</span></div>
         <div id="meds">${medsHtml()}</div>
       </div>
 
       <div class="card">
-        <div class="lab"><b>${IC.note}메모</b><span>선택</span></div>
-        <input type="text" id="f-note" maxlength="120" placeholder="한 줄로 남기기" value="${esc(d.note || '')}" autocomplete="off" style="margin-top:0">
+        <div class="lab"><b>${IC.note}${T('메모')}</b><span>${T('선택')}</span></div>
+        <input type="text" id="f-note" maxlength="120" placeholder="${T('한 줄로 남기기')}" value="${esc(d.note || '')}" autocomplete="off" style="margin-top:0">
       </div>
 
-      ${isEdit ? '<button class="btn danger" data-act="deleteEntry">이 날 기록 삭제</button>' : ''}
-      <div class="savebar"><button class="btn" data-act="save">저장</button></div>
+      ${isEdit ? `<button class="btn danger" data-act="deleteEntry">${T('이 날 기록 삭제')}</button>` : ''}
+      <div class="savebar"><button class="btn" data-act="save">${T('저장')}</button></div>
     </div>`;
     showSheet();
     syncForm();
@@ -475,7 +615,7 @@
     $('#v-conf').textContent = d.conf;
     $('#signs').hidden = !isHigh(d);
     const min = sleepMinutes(d.bed, d.wake);
-    $('#v-sleep').textContent = min == null ? '시각을 넣으면 자동 계산' : `${durText(min)} 잤어요`;
+    $('#v-sleep').textContent = min == null ? T('시각을 넣으면 자동 계산') : F('{0} 잤어요', durText(min));
   }
 
   function saveEntry() {
@@ -492,7 +632,7 @@
     if (!save()) return;
     closeSheet();
     render();
-    toast('저장했어요');
+    toast(T('저장했어요'));
   }
 
   // ---------- 설정·백업 ----------
@@ -500,35 +640,40 @@
     const n = Object.keys(db.entries).length;
     const meds = db.meds.length
       ? db.meds.map((m) => `<div class="med-row"><span>${esc(m.name)} ${esc(m.dose || '')}</span>
-          <button data-act="delMed" data-med="${esc(medKey(m))}">삭제</button></div>`).join('')
-      : '<p class="set-p">저장된 약이 없어요. 기록 화면에서 “+ 약 추가”로 넣을 수 있어요.</p>';
+          <button data-act="delMed" data-med="${esc(medKey(m))}">${T('삭제')}</button></div>`).join('')
+      : `<p class="set-p">${T('저장된 약이 없어요. 기록 화면에서 “+ 약 추가”로 넣을 수 있어요.')}</p>`;
     sheet.innerHTML = `<div class="sheet-in">
-      <div class="sheet-top"><div><h2>설정과 백업</h2><div class="sub">기록 ${n}일</div></div>
-        <button class="icon-btn" data-act="close" aria-label="닫기">✕</button></div>
+      <div class="sheet-top"><div><h2>${T('설정과 백업')}</h2><div class="sub">${F('기록 {0}일', n)}</div></div>
+        <button class="icon-btn" data-act="close" aria-label="${T('닫기')}">✕</button></div>
 
-      <div class="set-title">글씨체</div>
+      <div class="set-title">${T('언어 · Language')}</div>
+      <div class="card"><div class="chips">
+        <button class="chip" data-act="lang" data-lang="ko" aria-pressed="${!EN}">한국어</button>
+        <button class="chip" data-act="lang" data-lang="en" aria-pressed="${EN}">English</button></div></div>
+
+      <div class="set-title">${T('글씨체')}</div>
       <div class="card"><div class="chips">${Object.keys(FONTS).map((k) => `<button class="chip" data-act="font" data-font="${k}"
-        style="font-family:${esc(FONTS[k][1])}" aria-pressed="${(db.settings.font || 'system') === k}">${FONTS[k][0]} 가나다 123</button>`).join('')}</div></div>
+        style="font-family:${esc(FONTS[k][1])}" aria-pressed="${(db.settings.font || 'system') === k}">${FONTS[k][0]} ${T('가나다 123')}</button>`).join('')}</div></div>
 
-      <div class="set-title">백업</div>
+      <div class="set-title">${T('백업')}</div>
       <div class="card">
-        <p class="set-p">기록은 이 아이폰 안에만 저장돼요. 폰을 바꾸거나 앱을 지우면 사라지니, 가끔 백업 파일을 만들어 “파일” 앱이나 iCloud에 넣어 두세요.</p>
-        <button class="btn ghost" data-act="export">백업 파일 내보내기</button>
-        <button class="btn ghost" data-act="import">백업 파일 불러오기</button>
+        <p class="set-p">${T('기록은 이 아이폰 안에만 저장돼요. 폰을 바꾸거나 앱을 지우면 사라지니, 가끔 백업 파일을 만들어 “파일” 앱이나 iCloud에 넣어 두세요.')}</p>
+        <button class="btn ghost" data-act="export">${T('백업 파일 내보내기')}</button>
+        <button class="btn ghost" data-act="import">${T('백업 파일 불러오기')}</button>
       </div>
 
-      <div class="set-title">자주 먹는 약</div>
+      <div class="set-title">${T('자주 먹는 약')}</div>
       <div class="card">${meds}</div>
 
-      <div class="set-title">홈 화면에 추가하는 방법</div>
+      <div class="set-title">${T('홈 화면에 추가하는 방법')}</div>
       <div class="card"><ol class="steps">
-        <li>사파리에서 이 페이지를 엽니다.</li>
-        <li>아래쪽 공유 버튼(네모에 위쪽 화살표)을 누릅니다.</li>
-        <li>“홈 화면에 추가”를 누릅니다.</li>
+        <li>${T('사파리에서 이 페이지를 엽니다.')}</li>
+        <li>${T('아래쪽 공유 버튼(네모에 위쪽 화살표)을 누릅니다.')}</li>
+        <li>${T('“홈 화면에 추가”를 누릅니다.')}</li>
       </ol></div>
 
-      <div class="set-title">안내</div>
-      <div class="card"><p class="set-p">${DISCLAIMER} 걱정되는 변화가 있으면 진료 때 이 기록을 보여 주며 이야기해 보세요.</p></div>
+      <div class="set-title">${T('안내')}</div>
+      <div class="card"><p class="set-p">${DISCLAIMER} ${T('걱정되는 변화가 있으면 진료 때 이 기록을 보여 주며 이야기해 보세요.')}</p></div>
     </div>`;
     showSheet();
   }
@@ -552,7 +697,7 @@
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-    toast('백업 파일을 만들었어요');
+    toast(T('백업 파일을 만들었어요'));
   }
 
   function importData(file) {
@@ -562,9 +707,9 @@
       try { inc = JSON.parse(reader.result); } catch (e) { inc = null; }
       const ok = inc && typeof inc.entries === 'object' && inc.entries &&
         Object.values(inc.entries).every((e) => e && typeof e.mood === 'number' && /^\d{4}-\d{2}-\d{2}$/.test(e.date || ''));
-      if (!ok) { toast('이 앱의 백업 파일이 아니에요'); return; }
+      if (!ok) { toast(T('이 앱의 백업 파일이 아니에요')); return; }
       const n = Object.keys(inc.entries).length;
-      if (!confirm(`백업 파일에 ${n}일치 기록이 있어요.\n지금 기록과 합칠까요? (같은 날짜는 더 최근에 수정한 쪽을 남겨요)`)) return;
+      if (!confirm(F('백업 파일에 {0}일치 기록이 있어요.\n지금 기록과 합칠까요? (같은 날짜는 더 최근에 수정한 쪽을 남겨요)', n))) return;
       Object.values(inc.entries).forEach((e) => {
         const cur = db.entries[e.date];
         if (!cur || (e.updatedAt || '') >= (cur.updatedAt || '')) db.entries[e.date] = e;
@@ -575,7 +720,7 @@
       if (!save()) return;
       render();
       openSettings();
-      toast(`${n}일치 기록을 불러왔어요`);
+      toast(F('{0}일치 기록을 불러왔어요', n));
     };
     reader.readAsText(file);
   }
@@ -587,6 +732,7 @@
   // ---------- 이벤트 ----------
   const actions = {
     tab: (el) => { ui.tab = el.dataset.tab; window.scrollTo(0, 0); render(); },
+    lang: (el) => { db.settings.lang = el.dataset.lang; if (save()) location.reload(); },
     font: (el) => { db.settings.font = el.dataset.font; save(); applyFont(); openSettings(); },
     mode: (el) => { trend.mode = el.dataset.mode; trend.pick = null; if (trend.anchor > today()) trend.anchor = today(); render(); },
     shift: (el) => { shiftTrend(Number(el.dataset.step)); render(); },
@@ -605,14 +751,14 @@
     close: closeSheet,
     save: saveEntry,
     deleteEntry: () => {
-      if (!confirm('이 날 기록을 삭제할까요?')) return;
+      if (!confirm(T('이 날 기록을 삭제할까요?'))) return;
       delete db.entries[ui.draft.date];
-      save(); closeSheet(); render(); toast('삭제했어요');
+      save(); closeSheet(); render(); toast(T('삭제했어요'));
     },
     addMed: () => { ui.addingMed = !ui.addingMed; $('#meds').innerHTML = medsHtml(); if (ui.addingMed) $('#med-name').focus(); },
     saveMed: () => {
       const name = $('#med-name').value.trim(), dose = $('#med-dose').value.trim();
-      if (!name) { toast('약 이름을 적어 주세요'); return; }
+      if (!name) { toast(T('약 이름을 적어 주세요')); return; }
       const m = { name, dose };
       if (!db.meds.some((s) => medKey(s) === medKey(m))) { db.meds.push(m); save(); }
       if (!ui.draft.meds.some((s) => medKey(s) === medKey(m))) ui.draft.meds.push(m);
