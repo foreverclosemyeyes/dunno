@@ -90,14 +90,14 @@ button { border: 0; background: none; padding: 0; cursor: pointer; touch-action:
 .icon-btn { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--text); margin-bottom: 2px; }
 
 .card, .tile, .pickbar, .icon-btn, .segc, .btn.gray { background: var(--card); box-shadow: var(--shadow); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); }
-.card { border-radius: var(--radius); padding: 14px 16px; margin-bottom: 18px; }
+.card { border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px; }
 .hint { color: var(--muted); font-size: calc(13px * var(--fs, 1.12)); display: flex; gap: 10px; align-items: flex-start; }
 .hint b { color: var(--text); font-weight: 600; }
 .hint .x { color: var(--faint); font-size: calc(14px * var(--fs, 1.12)); width: 32px; height: 32px; flex: none; margin: -6px -8px 0 0; text-align: center; }
 
 /* 묶음 목록 */
-.sec { color: var(--muted); font-size: calc(12.5px * var(--fs, 1.12)); font-weight: 500; margin: 28px 16px 8px; }
-.secnote { color: var(--muted); font-size: calc(12px * var(--fs, 1.12)); margin: -8px 16px 0; line-height: 1.4; }
+.sec { color: var(--muted); font-size: calc(12.5px * var(--fs, 1.12)); font-weight: 500; margin: 20px 16px 7px; }
+.secnote { color: var(--muted); font-size: calc(12px * var(--fs, 1.12)); margin: -4px 16px 0; line-height: 1.4; }
 .list { padding: 0; overflow: hidden; }
 .li { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 46px; padding: 8px 16px; font-size: calc(15px * var(--fs, 1.12)); }
 .li + .li::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; height: 0.5px; background: var(--line); }
@@ -167,7 +167,7 @@ textarea { display: block; font: inherit; font-size: calc(16px * var(--fs, 1.12)
 .med-new .btn { margin: 0; min-height: 42px; font-size: calc(14px * var(--fs, 1.12)); background: var(--card2); }
 
 /* 버튼 */
-.btn { display: block; width: 100%; min-height: 50px; border-radius: 16px; background: var(--ink); color: var(--ink-inv); font-size: calc(16px * var(--fs, 1.12)); font-weight: 600; text-align: center; margin-top: 18px; }
+.btn { display: block; width: 100%; min-height: 50px; border-radius: 16px; background: var(--ink); color: var(--ink-inv); font-size: calc(16px * var(--fs, 1.12)); font-weight: 600; text-align: center; margin-top: 12px; }
 .btn:active { opacity: .75; }
 .btn.gray { color: var(--text); }
 .btn.plain { background: transparent; color: var(--text); font-weight: 500; font-size: calc(15px * var(--fs, 1.12)); min-height: 44px; }
@@ -178,7 +178,7 @@ textarea { display: block; font: inherit; font-size: calc(16px * var(--fs, 1.12)
 .foot { color: var(--faint); font-size: calc(11.5px * var(--fs, 1.12)); text-align: center; padding: 10px 12px 0; line-height: 1.45; }
 
 /* 주간 날짜 바 · 달력 */
-.weekbar { display: flex; align-items: center; margin: 0 -6px 26px; }
+.weekbar { display: flex; align-items: center; margin: 0 -6px 16px; }
 .weekbar .days { flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); }
 .nav { width: 26px; height: 44px; font-size: calc(20px * var(--fs, 1.12)); color: var(--muted); text-align: center; flex: none; }
 .nav:disabled { opacity: .25; }
@@ -195,7 +195,7 @@ textarea { display: block; font: inherit; font-size: calc(16px * var(--fs, 1.12)
 .cal .cday i, .calkey i.pdot { display: block; width: 4px; height: 4px; border-radius: 50%; background: var(--ink); }
 
 /* 오늘 요약 */
-.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
 .tile { border-radius: var(--radius); padding: 14px 16px 15px; min-width: 0; }
 .tile .tl { display: flex; justify-content: space-between; color: var(--muted); font-size: calc(13px * var(--fs, 1.12)); font-weight: 500; font-variant-numeric: tabular-nums; }
 .tile .word { font-size: calc(21px * min(var(--fs, 1.12), 1.25)); font-weight: 700; letter-spacing: -0.03em; line-height: 1.25; margin: 5px 0 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -213,7 +213,7 @@ textarea { display: block; font: inherit; font-size: calc(16px * var(--fs, 1.12)
 /* 시트 */
 .sheet { position: fixed; inset: 0; z-index: 10; background: var(--glow), var(--bg); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 .sheet-in { max-width: 480px; margin: 0 auto; padding: 0 16px calc(var(--safe-b) + 96px); }
-.sheet-top { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; margin: 0 -16px 18px; padding: calc(var(--safe-t) + 6px) 16px 6px; background: var(--bar); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); }
+.sheet-top { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; margin: 0 -16px 12px; padding: calc(var(--safe-t) + 6px) 16px 6px; background: var(--bar); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); }
 .st { text-align: center; line-height: 1.2; }
 .st b { display: block; font-size: calc(16px * var(--fs, 1.12)); font-weight: 600; }
 .st span { color: var(--muted); font-size: calc(11.5px * var(--fs, 1.12)); }
@@ -227,10 +227,10 @@ ol.steps li { margin: 3px 0; }
 .segc { display: flex; border-radius: 9px; padding: 2px; margin-bottom: 3px; }
 .segc button { width: 54px; min-height: 30px; border-radius: 7px; font-size: calc(13px * var(--fs, 1.12)); font-weight: 500; color: var(--text); text-align: center; }
 .segc button[aria-pressed=true] { background: var(--sel); font-weight: 600; }
-.pnav { display: flex; align-items: center; justify-content: space-between; margin: 0 -8px 16px; font-size: calc(15px * var(--fs, 1.12)); font-weight: 600; }
+.pnav { display: flex; align-items: center; justify-content: space-between; margin: 0 -8px 8px; font-size: calc(15px * var(--fs, 1.12)); font-weight: 600; }
 .pnav button { width: 44px; height: 40px; font-size: calc(22px * var(--fs, 1.12)); color: var(--text); text-align: center; }
 .pnav button:disabled { opacity: .25; }
-.pickbar { display: flex; align-items: center; justify-content: space-between; border-radius: var(--radius); padding: 8px 8px 8px 16px; margin-bottom: 18px; font-size: calc(14px * var(--fs, 1.12)); font-weight: 600; }
+.pickbar { display: flex; align-items: center; justify-content: space-between; border-radius: var(--radius); padding: 8px 8px 8px 16px; margin-bottom: 12px; font-size: calc(14px * var(--fs, 1.12)); font-weight: 600; }
 .mini { flex: none; background: var(--card2); border-radius: 999px; padding: 8px 14px; font-size: calc(13px * var(--fs, 1.12)); font-weight: 600; }
 .mcard { padding: 14px 16px 12px; }
 .mt { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: calc(13px * var(--fs, 1.12)); font-weight: 600; }
