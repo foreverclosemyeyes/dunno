@@ -1609,30 +1609,3 @@ body.layout-bigcal .bc-d, body.layout-bigcal #bc-grid .bc-h { padding-left: 2px 
 body.skin-bubble #assistant { --fig: min(50vh, 31vw); --iw: min(calc(var(--fig) * 2.15), calc((55vw - var(--fig) * .7) / .86)); }
 body.skin-bubble #assistant { --lift: calc(var(--ih) * .2 + 50px); }
 body.skin-bubble #asst-figure { bottom: 0; }
-
-/* 긴 대사: 글씨를 줄이고, 그래도 넘치면 말풍선 안에서 스크롤 */
-body.skin-bubble #asst-text { max-height: 100%; overflow: hidden; }
-body.skin-bubble #asst-text[data-len="mid"] .el-bubble { font-size: clamp(12px, calc(var(--iw) * .0225), 19px) !important; line-height: 1.35 !important; }
-body.skin-bubble #asst-text[data-len="long"] { overflow-y: auto; scrollbar-width: thin; scrollbar-color: #666 transparent; padding-right: 4px; }
-body.skin-bubble #asst-text[data-len="long"] .el-bubble { font-size: clamp(11px, calc(var(--iw) * .02), 17px) !important; line-height: 1.32 !important; }
-body.skin-bubble #asst-bubble { justify-content: flex-start; }
-body.skin-bubble #asst-text[data-len="short"], body.skin-bubble #asst-text[data-len="mid"] { margin: auto 0; }
-
-/* 캐릭터 더 작게 (설정의 '그림 크기'보다 커지지 않음) */
-body.skin-bubble #assistant { --fig: min(var(--asst-size), 43vh, 27vw); --iw: min(calc(var(--fig) * 2.5), calc((55vw - var(--fig) * .7) / .86)); }
-/* 긴 대사는 말풍선 자체가 위로 커짐 */
-body.skin-bubble #asst-bubble:has(#asst-text[data-len="long"]) { height: calc(var(--ih) * .5); top: calc(var(--it) + var(--ih) * .24); }
-body.skin-bubble #asst-bubble:has(#asst-text[data-len="long"]) #asst-name { top: -42% !important; }
-body.skin-bubble #asst-bubble:has(#asst-text[data-len="long"]) ~ #asst-controls .asst-actions { top: calc(var(--it) + var(--ih) * .1 - 34px); }
-
-/* 기록 / 파라미터 탭: 종이 오른쪽 가장자리에 붙인 포스트잇 */
-body.layout-bigcal .nb-tabs { right: -50px !important; top: 9% !important; gap: 12px !important; z-index: 4 !important; transform: none !important; }
-body.layout-bigcal .nb-tabs button { width: 74px !important; height: 50px !important; padding: 0 4px 0 12px !important; text-align: center !important; clip-path: none !important;
-  background: #f4d03f !important; color: #111 !important; font-size: 12px !important; letter-spacing: 0 !important; opacity: 1 !important;
-  box-shadow: 2px 3px 0 rgba(0,0,0,.35); transform: rotate(4deg); transform-origin: left center;
-  background-image: linear-gradient(90deg, rgba(0,0,0,.14) 0 10px, transparent 10px) !important; }
-body.layout-bigcal .nb-tabs button:nth-child(odd) { transform: rotate(-3deg); }
-body.layout-bigcal .nb-tabs button[data-tab="params"] { background-color: #7fd1e8 !important; }
-body.layout-bigcal .nb-tabs button:hover { filter: brightness(1.06); }
-body.layout-bigcal #record[data-tab="log"] .nb-tabs button[data-tab="log"],
-body.layout-bigcal #record[data-tab="params"] .nb-tabs button[data-tab="params"] { background-color: var(--accent) !important; color: #fff !important; width: 84px !important; }
