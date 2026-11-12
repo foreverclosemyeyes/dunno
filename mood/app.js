@@ -13,6 +13,8 @@
     '약간': 'Mild',
     '보통': 'Moderate',
     '보통 ': 'Normal',
+    '취소': 'Cancel', '완료': 'Done', '설정': 'Settings', '증상': 'Symptoms', '몸': 'Body',
+    '수면 시간': 'Time asleep', '일어났을 때 피곤함': 'Tired on waking', '일어났을 때': 'On waking', '피곤': 'Tired',
     '높음': 'High',
     '매우 높음': 'Very high',
     '낮음': 'Low',
@@ -138,8 +140,6 @@
   const T = (ko) => (EN && DICT[ko] != null ? DICT[ko] : ko);
   const F = (ko, ...a) => T(ko).replace(/\{(\d)\}/g, (_, i) => a[i]);
   const LEVELS = [T('없음'), T('약간'), T('보통'), T('높음'), T('매우 높음')];
-  const APPETITE = [T('낮음'), T('보통 '), T('높음')];
-  const CAFFEINE = [T('없음'), T('조금'), T('많음')];
   const SYMPTOMS = [['dep', T('우울')], ['elev', T('고조 (들뜸)')], ['anx', T('불안')]];
   const SIGNS = [
     ['lessSleep', T('적게 자도 안 피곤함')],
@@ -161,11 +161,22 @@
   const DISCLAIMER = T('이 앱은 진단 도구가 아니에요. 내 상태를 기록해 두는 참고용이에요.');
 
   // ---------- 저장소 (이 기기 안에만 저장) ----------
-  const blank = () => ({ version: 1, entries: {}, meds: [], settings: {} });
+  const blank = () => ({ version: 2, entries: {}, meds: [], settings: {} });
+  // 예전 기록(식욕·카페인 3단계)을 0~10 숫자로 옮긴다
+  function migrate(data) {
+    if ((data.version || 1) < 2) {
+      Object.values(data.entries || {}).forEach((e) => {
+        if (e.appetite != null) e.appetite = [2, 5, 8][e.appetite];
+        if (e.caffeine != null) e.caffeine = [0, 4, 8][e.caffeine];
+      });
+      data.version = 2;
+    }
+    return data;
+  }
   function load() {
     try {
       const raw = JSON.parse(localStorage.getItem(KEY) || localStorage.getItem(OLD_KEY));
-      if (raw && typeof raw === 'object' && raw.entries) return Object.assign(blank(), raw);
+      if (raw && typeof raw === 'object' && raw.entries) return migrate(Object.assign(blank(), raw, { version: raw.version || 1 }));
     } catch (e) { /* 처음 실행이거나 읽기 실패 */ }
     return blank();
   }
@@ -247,64 +258,53 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
   const standalone = () => window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
 
   // ---------- 오늘 화면 ----------
+  const li = (left, right) => `<div class="li"><span class="lk">${left}</span><span class="lv">${right}</span></div>`;
+
   function viewToday() {
-    const t = today();
-    const sel = ui.selected;
-    const ws = weekStart(sel);
-    const e = db.entries[sel];
+    const t = today(), sel = ui.selected, ws = weekStart(sel), e = db.entries[sel];
 
     const days = Array.from({ length: 7 }, (_, i) => {
       const d = addDays(ws, i), en = db.entries[d], dt = parse(d);
-      const cls = ['day', d === t ? 'today' : '', d === sel ? 'sel' : ''].join(' ');
-      const dot = en
-        ? `<span class="dot on" style="${moodFill(en.mood)}">${en.mood}</span>`
-        : '<span class="dot"></span>';
-      return `<button class="${cls}" data-act="pick" data-date="${d}" ${d > t ? 'disabled' : ''}
+      return `<button class="cday${d === sel ? ' sel' : ''}${d === t ? ' now' : ''}" data-act="pick" data-date="${d}" ${d > t ? 'disabled' : ''}
         aria-label="${longDate(d)}, ${en ? `${T('기분')} ${en.mood}` : T('기록 없음')}">
-        <span>${WD()[dt.getDay()]}</span><span class="num">${dt.getDate()}</span>${dot}</button>`;
+        <span class="cw">${WD()[dt.getDay()]}</span><span class="cdot" ${en ? `style="${moodFill(en.mood)}"` : ''}>${dt.getDate()}</span></button>`;
     }).join('');
 
-    const wsD = parse(ws), weD = parse(addDays(ws, 6));
-    const weekLabel = `${md(wsD)} – ${md(weD)}`;
     const hint = (!standalone() && !db.settings.hintClosed)
       ? `<div class="card hint"><div><b>${T('홈 화면에 추가해서 쓰세요.')}</b><br>${T('사파리 아래쪽 공유 버튼(네모에 화살표) → “홈 화면에 추가”를 누르면 앱처럼 열려요.')}</div>
          <button class="x" data-act="closeHint" aria-label="${T('닫기')}">✕</button></div>` : '';
 
     app.innerHTML = `
       <header class="top">
-        <div><h1>${sel === t ? T('오늘') : T('지난 기록')}</h1><div class="sub">${longDate(sel)}</div></div>
+        <div><div class="over">${sel === t ? longDate(sel) : T('지난 기록')}</div><h1>${sel === t ? T('오늘') : longDate(sel)}</h1></div>
         <button class="icon-btn" data-act="settings" aria-label="${T('설정과 백업')}">${IC.sliders}</button>
       </header>
       ${hint}
-      <section class="card week">
-        <div class="week-head">
-          <button data-act="week" data-step="-1" aria-label="${T('이전 주')}">‹</button>
-          <span>${weekLabel}</span>
-          <button data-act="week" data-step="1" aria-label="${T('다음 주')}" ${addDays(ws, 7) > t ? 'disabled' : ''}>›</button>
-        </div>
+      <div class="weekbar">
+        <button class="nav" data-act="week" data-step="-1" aria-label="${T('이전 주')}">‹</button>
         <div class="days">${days}</div>
-      </section>
-      <section class="card">${e ? summary(e) : emptyCard(sel === t)}</section>
-      ${sel !== t ? `<button class="btn ghost" data-act="goToday">${T('오늘로 돌아가기')}</button>` : ''}
+        <button class="nav" data-act="week" data-step="1" aria-label="${T('다음 주')}" ${addDays(ws, 7) > t ? 'disabled' : ''}>›</button>
+      </div>
+      ${e ? summary(e) : emptyCard(sel === t)}
+      ${sel !== t ? `<button class="btn plain" data-act="goToday">${T('오늘로 돌아가기')}</button>` : ''}
       <p class="foot">${DISCLAIMER}</p>`;
   }
 
   function emptyCard(isToday) {
-    return `<div class="empty"><div class="e1">${isToday ? T('오늘 기록이 아직 없어요') : T('이 날은 기록이 없어요')}</div>
-      <div>${T('10초면 끝나요.')}</div></div>
-      <button class="btn" data-act="record">${T('기록하기')}</button>`;
+    return `<section class="card empty"><div class="e1">${isToday ? T('오늘 기록이 아직 없어요') : T('이 날은 기록이 없어요')}</div>
+      <div>${T('10초면 끝나요.')}</div>
+      <button class="btn" data-act="record">${T('기록하기')}</button></section>`;
   }
 
-  const tile = (icon, n, label, sub) => `<div class="tile">${icon}<div><div class="n">${n}</div><div class="l">${label}${sub ? ` <span class="d">${sub}</span>` : ''}</div></div></div>`;
+  const tile = (icon, n, label) => `<div class="tile"><div class="tl">${icon}${label}</div><div class="n">${n}</div></div>`;
+  const bars = (v) => `<span class="bars">${[1, 2, 3, 4].map((i) => `<i class="${i <= v ? 'on' : ''}"></i>`).join('')}</span>`;
 
   function summary(e) {
-    const lv = (label, v) => `<span style="white-space:nowrap;margin-left:10px">${label} <span class="bars">${
-      [1, 2, 3, 4].map((i) => `<i class="${i <= v ? 'on' : ''}"></i>`).join('')}</span></span>`;
-    const row = (icon, k, v) => `<div class="row"><span class="k">${icon}${k}</span><span class="v">${v}</span></div>`;
     const sleepBig = e.sleepMin == null ? '–'
-      : `${Math.floor(e.sleepMin / 60)}<small>${T('시간')}</small>${e.sleepMin % 60 ? `${e.sleepMin % 60}<small>${T('분')}</small>` : ''}`;
+      : `${Math.floor(e.sleepMin / 60)}<small>${T('시간')}</small>${e.sleepMin % 60 ? ` ${e.sleepMin % 60}<small>${T('분')}</small>` : ''}`;
     const signs = SIGNS.filter(([k]) => e.signs && e.signs[k]).map(([, label]) => label);
     const meds = (e.meds || []).map((x) => esc(x.name) + (x.dose ? ` ${esc(x.dose)}` : '')).join(', ');
+    const ten = (v) => `${v}<span class="of"> / 10</span>`;
     return `
       <div class="tiles">
         ${tile(IC.face(e.mood), e.mood, T('기분'))}
@@ -312,17 +312,22 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
         ${tile(IC.star, e.conf == null ? '–' : e.conf, T('자신감'))}
         ${tile(IC.moon, sleepBig, T('수면'))}
       </div>
-      <div class="rows">
-        ${row(IC.wave, '', `${lv(T('우울'), e.dep)}${lv(T('고조'), e.elev)}${lv(T('불안'), e.anx)}`)}
-        ${e.bed && e.wake ? row(IC.moon, T('잠든 → 깬'), `${ampm(e.bed)} → ${ampm(e.wake)}${e.tired == null ? '' : e.tired ? T(' · 피곤') : T(' · 개운')}`) : ''}
-        ${e.period ? row(IC.drop, T('생리'), T('생리 중')) : ''}
-        ${e.appetite != null ? row(IC.fork, T('식욕'), APPETITE[e.appetite]) : ''}
-        ${e.caffeine != null ? row(IC.coffee, T('카페인'), CAFFEINE[e.caffeine]) : ''}
-        ${row(IC.pill, T('약'), meds || T('기록 없음'))}
-        ${signs.length ? row('', T('체크'), signs.map(esc).join('<br>')) : ''}
-        ${e.note ? row(IC.note, T('메모'), esc(e.note)) : ''}
-      </div>
-      <button class="btn ghost" data-act="record">${T('수정하기')}</button>`;
+      <section class="card list">
+        ${li(T('우울'), `${LEVELS[e.dep]}${bars(e.dep)}`)}
+        ${li(T('고조'), `${LEVELS[e.elev]}${bars(e.elev)}`)}
+        ${li(T('불안'), `${LEVELS[e.anx]}${bars(e.anx)}`)}
+      </section>
+      <section class="card list">
+        ${e.bed && e.wake ? li(`${IC.moon}${T('잠든 → 깬')}`, `${ampm(e.bed)} → ${ampm(e.wake)}`) : ''}
+        ${e.tired ? li(`${IC.moon}${T('일어났을 때')}`, T('피곤')) : ''}
+        ${e.period ? li(`${IC.drop}${T('생리')}`, T('생리 중')) : ''}
+        ${e.appetite != null ? li(`${IC.fork}${T('식욕')}`, ten(e.appetite)) : ''}
+        ${e.caffeine != null ? li(`${IC.coffee}${T('카페인')}`, ten(e.caffeine)) : ''}
+        ${li(`${IC.pill}${T('약')}`, meds || T('기록 없음'))}
+        ${signs.length ? li(T('체크'), signs.map(esc).join('<br>')) : ''}
+        ${e.note ? li(`${IC.note}${T('메모')}`, esc(e.note)) : ''}
+      </section>
+      <button class="btn gray" data-act="record">${T('수정하기')}</button>`;
   }
 
   // ---------- 흐름 화면 (주 / 월) ----------
@@ -470,7 +475,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
       <div class="mnote calkey"><span>${T('없음')} ${SHADE.map((c) => `<i style="background:${c}"></i>`).join('')} ${T('매우 높음')}</span></div></section>`;
 
     app.innerHTML = `
-      <header class="top"><div><h1>${T('흐름')}</h1><div class="sub">${F('기록 {0}일 / {1}일', got.length, r.n)}</div></div>
+      <header class="top"><div><div class="over">${F('기록 {0}일 / {1}일', got.length, r.n)}</div><h1>${T('흐름')}</h1></div>
         <div class="segc"><button data-act="mode" data-mode="week" aria-pressed="${isWeek}">${EN ? 'Week' : T('주')}</button>
           <button data-act="mode" data-mode="month" aria-pressed="${!isWeek}">${EN ? 'Month' : T('월')}</button></div></header>
       <div class="pnav">
@@ -497,40 +502,46 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
   // ---------- 기록 화면 ----------
   function newDraft(date) {
     const old = db.entries[date];
-    if (old) return JSON.parse(JSON.stringify(Object.assign({ signs: {}, meds: [], period: false }, old, { conf: old.conf == null ? 5 : old.conf })));
+    if (old) return JSON.parse(JSON.stringify(Object.assign({ signs: {}, meds: [], period: false }, old, {
+      conf: old.conf == null ? 5 : old.conf, appetite: old.appetite == null ? 5 : old.appetite, caffeine: old.caffeine == null ? 0 : old.caffeine })));
     // 잠든·깬 시각은 가장 최근 기록을 기본값으로 (대부분 비슷하니까 덜 만져도 되게)
     const last = Object.keys(db.entries).sort().reverse().map((k) => db.entries[k]).find((x) => x.bed && x.wake);
     return {
       date, mood: 5, energy: 5, conf: 5, dep: 0, elev: 0, anx: 0,
       bed: last ? last.bed : '23:30', wake: last ? last.wake : '07:00',
-      tired: null, period: false, appetite: 1, caffeine: null, meds: [], note: '', signs: {},
+      tired: false, period: false, appetite: 5, caffeine: 0, meds: [], note: '', signs: {},
     };
   }
 
   const medKey = (m) => `${m.name}|${m.dose || ''}`;
-  const seg = (field, labels, value, cls) => `<div class="seg ${cls || ''}" data-field="${field}">${
+  const seg = (field, labels, value) => `<div class="seg" data-field="${field}">${
     labels.map((l, i) => `<button type="button" data-v="${i}" aria-pressed="${value === i}">${l}</button>`).join('')}</div>`;
+  const SLIDERS = ['mood', 'energy', 'conf', 'appetite', 'caffeine'];
+  const slider = (id, icon, label, v, lo, hi) => `<div class="li sl">
+    <div class="slh"><span class="lk"><span id="i-${id}">${icon}</span>${label}</span><b id="v-${id}">${v}</b></div>
+    <input type="range" id="f-${id}" min="0" max="10" step="1" value="${v}" style="--v:${v / 10}" aria-label="${label}">
+    <div class="ends"><span>${lo}</span><span>${hi}</span></div></div>`;
+  const sw = (attr, on, label, icon) => `<button type="button" class="li sw" ${attr} aria-pressed="${!!on}"><span class="lk">${icon || ''}${label}</span><i></i></button>`;
 
   function medsHtml() {
     const d = ui.draft;
     const taken = new Set(d.meds.map(medKey));
-    const all = db.meds.concat(d.meds.filter((m) => !db.meds.some((s) => medKey(s) === medKey(m))));
-    const chips = all.map((m) => `<button type="button" class="chip" data-med="${esc(medKey(m))}" aria-pressed="${taken.has(medKey(m))}">${
-      esc(m.name)}${m.dose ? `<small>${esc(m.dose)}</small>` : ''}</button>`).join('');
+    const all = db.meds.concat(d.meds.filter((m) => !db.meds.some((x) => medKey(x) === medKey(m))));
+    const rows = all.map((m) => `<button type="button" class="li med" data-med="${esc(medKey(m))}" aria-pressed="${taken.has(medKey(m))}">
+      <span class="lk">${esc(m.name)}${m.dose ? `<small>${esc(m.dose)}</small>` : ''}</span><span class="chk">✓</span></button>`).join('');
     const add = ui.addingMed
-      ? `<div class="med-new">
+      ? `<div class="li med-new">
            <input type="text" id="med-name" placeholder="${T('약 이름')}" autocomplete="off" maxlength="30">
            <input type="text" id="med-dose" placeholder="${T('용량 (예: 300mg)')}" autocomplete="off" maxlength="20">
-           <button type="button" class="btn ghost" data-act="saveMed">${T('이 약 저장하고 선택')}</button>
-         </div>` : '';
-    return `<div class="chips">${chips}<button type="button" class="chip add" data-act="addMed">${T('+ 약 추가')}</button></div>
-      ${all.length ? '' : `<p class="set-p" style="margin-top:8px">${T('자주 먹는 약을 한 번 추가해 두면 다음부터는 탭 한 번이면 돼요.')}</p>`}${add}`;
+           <button type="button" class="btn gray" data-act="saveMed">${T('이 약 저장하고 선택')}</button>
+         </div>`
+      : `<button type="button" class="li add" data-act="addMed">${T('+ 약 추가')}</button>`;
+    return rows + add;
   }
 
   function signsHtml() {
     const d = ui.draft;
-    return SIGNS.map(([k, label]) => `<button type="button" class="tog" data-sign="${k}" aria-pressed="${!!d.signs[k]}">
-      <span>${label}</span><i></i></button>`).join('');
+    return SIGNS.map(([k, label]) => sw(`data-sign="${k}"`, d.signs[k], label)).join('');
   }
 
   function openRecord(date) {
@@ -539,83 +550,69 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
     const d = ui.draft, isEdit = !!db.entries[date];
     sheet.innerHTML = `<div class="sheet-in">
       <div class="sheet-top">
-        <div><h2>${isEdit ? T('기록 수정') : T('기록하기')}</h2><div class="sub">${longDate(date)}</div></div>
-        <button class="icon-btn" data-act="close" aria-label="${T('닫기')}">✕</button>
+        <button class="txt" data-act="close">${T('취소')}</button>
+        <div class="st"><b>${isEdit ? T('기록 수정') : T('기록하기')}</b><span>${longDate(date)}</span></div>
+        <button class="txt strong" data-act="save">${T('저장')}</button>
       </div>
 
-      <div class="card">
-        <div class="lab"><b><span id="i-mood"></span>${T('기분')}</b><span class="slider-val" id="v-mood">${d.mood}</span></div>
-        <input type="range" id="f-mood" min="0" max="10" step="1" value="${d.mood}" aria-label="${T('기분 0에서 10')}">
-        <div class="ticks"><span>${T('가라앉음')}</span><span>${T('보통 ')}</span><span>${T('들뜸')}</span></div>
-      </div>
-      <div class="card">
-        <div class="lab"><b><span id="i-energy"></span>${T('에너지')}</b><span class="slider-val" id="v-energy">${d.energy}</span></div>
-        <input type="range" id="f-energy" min="0" max="10" step="1" value="${d.energy}" aria-label="${T('에너지 0에서 10')}">
-        <div class="ticks"><span>${T('바닥')}</span><span>${T('보통 ')}</span><span>${T('넘침')}</span></div>
+      <section class="card list">
+        ${slider('mood', '', T('기분'), d.mood, T('가라앉음'), T('들뜸'))}
+        ${slider('energy', '', T('에너지'), d.energy, T('바닥'), T('넘침'))}
+        ${slider('conf', IC.star, T('자신감'), d.conf, T('위축'), T('넘침'))}
+      </section>
+
+      <div id="signs" hidden>
+        <div class="sec">${T('오늘 이런 점이 있었나요?')}</div>
+        <section class="card list">${signsHtml()}</section>
       </div>
 
-      <div class="card">
-        <div class="lab"><b>${IC.star}${T('자신감')}</b><span class="slider-val" id="v-conf">${d.conf}</span></div>
-        <input type="range" id="f-conf" min="0" max="10" step="1" value="${d.conf}" aria-label="${T('자신감 0에서 10')}">
-        <div class="ticks"><span>${T('위축')}</span><span>${T('보통 ')}</span><span>${T('넘침')}</span></div>
-      </div>
+      <div class="sec">${T('증상')}</div>
+      <section class="card list">
+        ${SYMPTOMS.map(([k, label]) => `<div class="li col"><span class="lk">${label}</span>${seg(k, LEVELS, d[k])}</div>`).join('')}
+      </section>
 
-      <div class="card signs" id="signs" hidden>
-        <div class="lab"><b>${T('오늘 이런 점이 있었나요?')}</b><span>${T('해당하는 것만')}</span></div>
-        ${signsHtml()}
-      </div>
+      <div class="sec">${T('지난밤 수면')}</div>
+      <section class="card list">
+        <label class="li"><span class="lk">${T('잠든 시각')}</span><input type="time" id="f-bed" value="${esc(d.bed || '')}"></label>
+        <label class="li"><span class="lk">${T('깬 시각')}</span><input type="time" id="f-wake" value="${esc(d.wake || '')}"></label>
+        <div class="li"><span class="lk">${T('수면 시간')}</span><span class="lv" id="v-sleep"></span></div>
+        ${sw('data-flag="tired"', d.tired, T('일어났을 때 피곤함'))}
+      </section>
 
-      <div class="card">
-        ${SYMPTOMS.map(([k, label]) => `<div class="sub-field"><div class="sub-lab">${label}</div>${seg(k, LEVELS, d[k])}</div>`).join('')}
-      </div>
+      <div class="sec">${T('몸')}</div>
+      <section class="card list">
+        ${sw('data-flag="period"', d.period, T('생리 중'), IC.drop)}
+        ${slider('appetite', IC.fork, T('식욕'), d.appetite, T('없음'), T('많음'))}
+        ${slider('caffeine', IC.coffee, T('카페인'), d.caffeine, T('없음'), T('많음'))}
+      </section>
 
-      <div class="card">
-        <div class="lab"><b>${IC.moon}${T('지난밤 수면')}</b><span id="v-sleep"></span></div>
-        <div class="times">
-          <label>${T('잠든 시각')}<input type="time" id="f-bed" value="${esc(d.bed || '')}"></label>
-          <label>${T('깬 시각')}<input type="time" id="f-wake" value="${esc(d.wake || '')}"></label>
-        </div>
-        <div class="sub-field"><div class="sub-lab">${T('일어났을 때 피곤했나요?')}</div>${seg('tired', [T('아니오'), T('예')], d.tired == null ? null : +d.tired)}</div>
-      </div>
+      <div class="sec">${T('오늘 먹은 약')}</div>
+      <section class="card list" id="meds">${medsHtml()}</section>
 
-      <div class="card">
-        <button type="button" class="tog solo" data-flag="period" aria-pressed="${!!d.period}"><span>${IC.drop}${T('생리 중')}</span><i></i></button>
-      </div>
+      <div class="sec">${T('메모')}</div>
+      <section class="card list">
+        <div class="li"><input type="text" id="f-note" maxlength="120" placeholder="${T('한 줄로 남기기')}" value="${esc(d.note || '')}" autocomplete="off"></div>
+      </section>
 
-      <div class="card">
-        <div class="sub-field"><div class="sub-lab">${IC.fork}${T('식욕')}</div>${seg('appetite', APPETITE, d.appetite)}</div>
-        <div class="sub-field"><div class="sub-lab">${IC.coffee}${T('카페인')}</div>${seg('caffeine', CAFFEINE, d.caffeine)}</div>
-      </div>
-
-      <div class="card">
-        <div class="lab"><b>${IC.pill}${T('오늘 먹은 약')}</b><span>${T('탭해서 선택')}</span></div>
-        <div id="meds">${medsHtml()}</div>
-      </div>
-
-      <div class="card">
-        <div class="lab"><b>${IC.note}${T('메모')}</b><span>${T('선택')}</span></div>
-        <input type="text" id="f-note" maxlength="120" placeholder="${T('한 줄로 남기기')}" value="${esc(d.note || '')}" autocomplete="off" style="margin-top:0">
-      </div>
-
-      ${isEdit ? `<button class="btn danger" data-act="deleteEntry">${T('이 날 기록 삭제')}</button>` : ''}
+      ${isEdit ? `<button class="btn plain danger" data-act="deleteEntry">${T('이 날 기록 삭제')}</button>` : ''}
       <div class="savebar"><button class="btn" data-act="save">${T('저장')}</button></div>
     </div>`;
     showSheet();
     syncForm();
   }
 
-  // 슬라이더 값에 따라 숫자·체크리스트·수면 시간을 바로 갱신
+  // 슬라이더 값에 따라 숫자·아이콘·체크리스트·수면 시간을 바로 갱신
   function syncForm() {
     const d = ui.draft;
     if (!d) return;
-    $('#v-mood').textContent = d.mood;
+    SLIDERS.forEach((k) => {
+      $(`#v-${k}`).textContent = d[k];
+      $(`#f-${k}`).style.setProperty('--v', d[k] / 10);
+    });
     $('#i-mood').innerHTML = IC.face(d.mood);
     $('#i-energy').innerHTML = IC.battery(d.energy);
-    $('#v-energy').textContent = d.energy;
-    $('#v-conf').textContent = d.conf;
     $('#signs').hidden = !isHigh(d);
-    const min = sleepMinutes(d.bed, d.wake);
-    $('#v-sleep').textContent = min == null ? T('시각을 넣으면 자동 계산') : F('{0} 잤어요', durText(min));
+    $('#v-sleep').textContent = durText(sleepMinutes(d.bed, d.wake));
   }
 
   function saveEntry() {
@@ -626,7 +623,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
     db.entries[d.date] = {
       date: d.date, mood: d.mood, energy: d.energy, conf: d.conf, dep: d.dep, elev: d.elev, anx: d.anx,
       bed: d.bed || null, wake: d.wake || null, sleepMin: sleepMinutes(d.bed, d.wake),
-      tired: d.tired, period: !!d.period, appetite: d.appetite, caffeine: d.caffeine,
+      tired: !!d.tired, period: !!d.period, appetite: d.appetite, caffeine: d.caffeine,
       meds: d.meds, note: (d.note || '').trim(), signs, updatedAt: new Date().toISOString(),
     };
     if (!save()) return;
@@ -638,42 +635,43 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
   // ---------- 설정·백업 ----------
   function openSettings() {
     const n = Object.keys(db.entries).length;
+    const pick = (act, attr, on, label, style) => `<button class="li med" data-act="${act}" ${attr} aria-pressed="${on}"${style ? ` style="${style}"` : ''}>
+      <span class="lk">${label}</span><span class="chk">✓</span></button>`;
     const meds = db.meds.length
-      ? db.meds.map((m) => `<div class="med-row"><span>${esc(m.name)} ${esc(m.dose || '')}</span>
-          <button data-act="delMed" data-med="${esc(medKey(m))}">${T('삭제')}</button></div>`).join('')
-      : `<p class="set-p">${T('저장된 약이 없어요. 기록 화면에서 “+ 약 추가”로 넣을 수 있어요.')}</p>`;
-    sheet.innerHTML = `<div class="sheet-in">
-      <div class="sheet-top"><div><h2>${T('설정과 백업')}</h2><div class="sub">${F('기록 {0}일', n)}</div></div>
-        <button class="icon-btn" data-act="close" aria-label="${T('닫기')}">✕</button></div>
-
-      <div class="set-title">${T('언어 · Language')}</div>
-      <div class="card"><div class="chips">
-        <button class="chip" data-act="lang" data-lang="ko" aria-pressed="${!EN}">한국어</button>
-        <button class="chip" data-act="lang" data-lang="en" aria-pressed="${EN}">English</button></div></div>
-
-      <div class="set-title">${T('글씨체')}</div>
-      <div class="card"><div class="chips">${Object.keys(FONTS).map((k) => `<button class="chip" data-act="font" data-font="${k}"
-        style="font-family:${esc(FONTS[k][1])}" aria-pressed="${(db.settings.font || 'system') === k}">${FONTS[k][0]} ${T('가나다 123')}</button>`).join('')}</div></div>
-
-      <div class="set-title">${T('백업')}</div>
-      <div class="card">
-        <p class="set-p">${T('기록은 이 아이폰 안에만 저장돼요. 폰을 바꾸거나 앱을 지우면 사라지니, 가끔 백업 파일을 만들어 “파일” 앱이나 iCloud에 넣어 두세요.')}</p>
-        <button class="btn ghost" data-act="export">${T('백업 파일 내보내기')}</button>
-        <button class="btn ghost" data-act="import">${T('백업 파일 불러오기')}</button>
+      ? db.meds.map((m) => `<div class="li"><span class="lk">${esc(m.name)}<small>${esc(m.dose || '')}</small></span>
+          <button class="txt dim" data-act="delMed" data-med="${esc(medKey(m))}">${T('삭제')}</button></div>`).join('')
+      : `<div class="li"><span class="lv">${T('저장된 약이 없어요. 기록 화면에서 “+ 약 추가”로 넣을 수 있어요.')}</span></div>`;
+    sheet.innerHTML = `<div class="sheet-in" style="padding-bottom:calc(var(--safe-b) + 30px)">
+      <div class="sheet-top">
+        <span class="txt"></span>
+        <div class="st"><b>${T('설정')}</b><span>${F('기록 {0}일', n)}</span></div>
+        <button class="txt strong" data-act="close">${T('완료')}</button>
       </div>
 
-      <div class="set-title">${T('자주 먹는 약')}</div>
-      <div class="card">${meds}</div>
+      <div class="sec">${T('언어 · Language')}</div>
+      <section class="card list">${pick('lang', 'data-lang="ko"', !EN, '한국어')}${pick('lang', 'data-lang="en"', EN, 'English')}</section>
 
-      <div class="set-title">${T('홈 화면에 추가하는 방법')}</div>
-      <div class="card"><ol class="steps">
+      <div class="sec">${T('글씨체')}</div>
+      <section class="card list">${Object.keys(FONTS).map((k) => pick('font', `data-font="${k}"`, (db.settings.font || 'system') === k,
+        `${FONTS[k][0]}<small>${T('가나다 123')}</small>`, `font-family:${esc(FONTS[k][1])}`)).join('')}</section>
+
+      <div class="sec">${T('백업')}</div>
+      <section class="card list">
+        <button class="li add" data-act="export">${T('백업 파일 내보내기')}</button>
+        <button class="li add" data-act="import">${T('백업 파일 불러오기')}</button>
+      </section>
+      <p class="secnote">${T('기록은 이 아이폰 안에만 저장돼요. 폰을 바꾸거나 앱을 지우면 사라지니, 가끔 백업 파일을 만들어 “파일” 앱이나 iCloud에 넣어 두세요.')}</p>
+
+      <div class="sec">${T('자주 먹는 약')}</div>
+      <section class="card list">${meds}</section>
+
+      <div class="sec">${T('홈 화면에 추가하는 방법')}</div>
+      <section class="card"><ol class="steps">
         <li>${T('사파리에서 이 페이지를 엽니다.')}</li>
         <li>${T('아래쪽 공유 버튼(네모에 위쪽 화살표)을 누릅니다.')}</li>
         <li>${T('“홈 화면에 추가”를 누릅니다.')}</li>
-      </ol></div>
-
-      <div class="set-title">${T('안내')}</div>
-      <div class="card"><p class="set-p">${DISCLAIMER} ${T('걱정되는 변화가 있으면 진료 때 이 기록을 보여 주며 이야기해 보세요.')}</p></div>
+      </ol></section>
+      <p class="secnote">${DISCLAIMER} ${T('걱정되는 변화가 있으면 진료 때 이 기록을 보여 주며 이야기해 보세요.')}</p>
     </div>`;
     showSheet();
   }
@@ -708,6 +706,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
       const ok = inc && typeof inc.entries === 'object' && inc.entries &&
         Object.values(inc.entries).every((e) => e && typeof e.mood === 'number' && /^\d{4}-\d{2}-\d{2}$/.test(e.date || ''));
       if (!ok) { toast(T('이 앱의 백업 파일이 아니에요')); return; }
+      migrate(inc);
       const n = Object.keys(inc.entries).length;
       if (!confirm(F('백업 파일에 {0}일치 기록이 있어요.\n지금 기록과 합칠까요? (같은 날짜는 더 최근에 수정한 쪽을 남겨요)', n))) return;
       Object.values(inc.entries).forEach((e) => {
@@ -804,9 +803,8 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
   sheet.addEventListener('input', (ev) => {
     const d = ui.draft, el = ev.target;
     if (!d) return;
-    if (el.id === 'f-mood') d.mood = Number(el.value);
-    else if (el.id === 'f-energy') d.energy = Number(el.value);
-    else if (el.id === 'f-conf') d.conf = Number(el.value);
+    const k = el.id.slice(2);
+    if (SLIDERS.includes(k)) d[k] = Number(el.value);
     else if (el.id === 'f-bed') d.bed = el.value;
     else if (el.id === 'f-wake') d.wake = el.value;
     else if (el.id === 'f-note') d.note = el.value;
