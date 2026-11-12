@@ -1541,3 +1541,26 @@ body.skin-bubble #asst-bubble { margin-left: calc(clamp(360px, 31vw, 600px) * .3
 /* 큰 창에서 오른쪽 칸을 덮지 않게 폭 제한 */
 body.skin-bubble #asst-bubble { --bw: clamp(360px, 27vw, 500px); width: var(--bw); min-height: clamp(66px, 5vw, 92px);
   margin-left: calc(var(--bw) * .311 - 22px + max(0px, (100vw - 1280px) * .08)); }
+
+/* ===== 대화 구도 3차: 레퍼런스 영상에서 잰 비율 그대로 =====
+   영상(1280x720): 초상화는 왼쪽 아래에 크게(아래가 잘림), 꼬리 끝은 턱 아래 목 옆, 이름표는 턱 오른쪽,
+   말풍선 몸통은 화면 바닥까지. 말풍선 그림(1223x344) 기준: 꼬리 끝 (0, 63%), 글 영역 x 20~75% · y 41~74% */
+body.skin-bubble #assistant { --fig: min(52vh, 34vw); --iw: min(calc(var(--fig) * 1.86), calc((61vw - var(--fig) * .7) / .86)); --ih: calc(var(--iw) * .2813);
+  --il: calc(var(--fig) * .7); --it: calc(var(--fig) * .92 - var(--ih) * .82);
+  position: relative; display: block; height: calc(var(--fig) * .92); min-height: 0; }
+body.skin-bubble #asst-figure { position: absolute; left: 0; top: 0; width: var(--fig); height: var(--fig); margin: 0;
+  transform: translate(var(--asst-x), var(--asst-y)); z-index: 1; }
+body.skin-bubble #asst-col { position: static; display: block; translate: none; transform: none !important; max-width: none !important; }
+body.skin-bubble #asst-bubble { position: absolute; z-index: 3; left: calc(var(--il) + var(--iw) * .2); top: calc(var(--it) + var(--ih) * .41);
+  width: calc(var(--iw) * .55) !important; height: calc(var(--ih) * .33); min-height: 0; margin: 0 !important; padding: 0 !important; aspect-ratio: auto; justify-content: center; }
+body.skin-bubble #asst-bubble::before { inset: -124.2% -45.5% -78.8% -36.4% !important; transform-origin: 0 63%; }
+body.skin-bubble #asst-text .el-bubble { font-size: clamp(13px, calc(var(--iw) * .027), 22px) !important; line-height: 1.45 !important; }
+/* 이름표: 그림 속 흰 판 중심 (21.6%, 24.7%) */
+body.skin-bubble #asst-name { left: 2.9% !important; top: -49% !important; font-size: clamp(12px, calc(var(--iw) * .024), 20px) !important; }
+/* 답하는 칸·버튼: 이름표 오른쪽, 말풍선 몸통 위 */
+body.skin-bubble #asst-controls { position: absolute; z-index: 4; left: calc(var(--il) + var(--iw) * .44); top: calc(var(--it) + var(--ih) * .38 - 86px);
+  margin: 0 !important; padding: 0; flex-direction: column !important; align-items: flex-start; gap: 6px; }
+/* 달력 자리를 뺏지 않게: 비서 칸 높이는 말풍선만큼만, 초상화는 위로 넘쳐서 겹침 */
+body.skin-bubble #assistant { --it: 92px; height: calc(92px + var(--ih) * .82); overflow: visible; }
+body.skin-bubble #asst-figure { top: auto; bottom: calc(var(--fig) * -.08); }
+body.skin-bubble #assistant { --iw: min(calc(var(--fig) * 1.86), calc((55vw - var(--fig) * .7) / .86)); }
