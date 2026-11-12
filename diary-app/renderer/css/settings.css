@@ -193,3 +193,18 @@ body.settings-open #settings { transform: none; }
 
 .cast-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
 .cast-row .btn.on { background: var(--accent, #E3170A); color: #fff; }
+
+/* ===== 설정 창 읽기 쉽게 =====
+   - 창을 줄여도 설정 창 글씨는 줄지 않음
+   - 굵은 장식 글씨체는 맨 위 제목에만. 탭·버튼·이름표는 또렷한 고딕, 묶음 제목은 Black Han Sans */
+#settings { zoom: var(--unzoom, 1); }
+.set-tabs button, #settings .btn, #settings .mini-btn, #settings .chips button, #settings .ctl-label, .key > .ctl-label, #settings .key-status, #settings .test-result,
+#settings .face-ko, #settings .file-name, #settings .theme-date, #settings .theme-name, #settings select, #settings .unit, #settings .mini, #settings .pal span {
+  font-family: "Nanum Gothic", "Noto Sans KR Variable", sans-serif !important; font-weight: 800 !important; letter-spacing: 0 !important; }
+.set-tabs button { font-size: 13px; }
+#settings .btn { font-size: 12.5px; line-height: 1.35; }
+#settings .ctl-label { font-size: 13px; }
+.sec summary { font-family: "Black Han Sans", "Nanum Gothic", sans-serif !important; font-weight: 400 !important; font-size: 17px; letter-spacing: .01em; line-height: 1.3; }
+#settings .note { font-size: 12.5px; line-height: 1.55; }
+/* 묶음 제목도 또렷한 고딕으로 (굵은 장식 글씨체는 한글이 뭉개져 보임) */
+.sec summary { font-family: "Nanum Gothic", "Noto Sans KR Variable", sans-serif !important; font-weight: 800 !important; font-size: 15px; letter-spacing: 0; }

@@ -648,6 +648,8 @@ function fitZoom() {
   const on = store.get('settings', {}).autoZoom !== false;
   const f = on ? Math.max(0.5, Math.min(1, w / ZOOM_BASE.w, h / ZOOM_BASE.h)) : 1;
   if (Math.abs(win.webContents.getZoomFactor() - f) > 0.004) win.webContents.setZoomFactor(f);
+  // 설정 창은 줄이지 않음 (글씨가 작아지면 안 읽힘): 줄인 만큼 되키우는 배율을 화면에 알려 줌
+  win.webContents.executeJavaScript(`document.documentElement.style.setProperty('--unzoom', '${(1 / f).toFixed(4)}')`).catch(() => {});
 }
 
 function setSettings(partial) {
