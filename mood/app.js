@@ -19,6 +19,7 @@
     '캘린더에 알림 추가': 'Add reminders to Calendar', 'Tide 기록하기': 'Tide: log today', '약 먹을 시간': 'Time to take your meds', '알림 시간을 먼저 정해 주세요': 'Set a reminder time first',
     '아이폰 웹앱은 정해진 시간에 스스로 알림을 보낼 수 없어요. 대신 매일 반복되는 캘린더 알림 파일을 만들어 드려요. 시간을 정하고 버튼을 누른 뒤 “캘린더에 추가”를 고르세요. 안 쓰는 알림은 시간을 비워 두면 돼요.': 'An iPhone web app cannot send scheduled notifications on its own. Instead this makes a calendar file with daily repeating alerts. Set the times, tap the button, then choose “Add to Calendar”. Leave a time empty to skip that reminder.',
     '평소와 비슷': 'About your usual', '평소보다 {0} 김': '{0} more than usual', '평소보다 {0} 짧음': '{0} less than usual',
+    '색': 'Colour', '색으로 표시': 'Colour', '흑백': 'Black & white', '낮은 날은 회색, 높을수록 기분은 초록, 에너지는 노랑, 자신감은 파랑으로 물들어요.': 'Low days stay grey; higher values shift mood toward green, energy toward yellow and confidence toward blue.',
     '취소': 'Cancel', '완료': 'Done', '설정': 'Settings', '증상': 'Symptoms', '몸': 'Body',
     '수면 시간': 'Time asleep', '일어났을 때 피곤함': 'Tired on waking', '일어났을 때': 'On waking', '피곤': 'Tired',
     '높음': 'High',
@@ -234,8 +235,32 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
 
   // 흑백: 기분이 낮을수록 어둡게, 높을수록 밝게
   function moodFill(v) {
+    const c = toneRgb('mood', v);
+    if (c) return `background:rgb(${c});color:${(c[0] * 299 + c[1] * 587 + c[2] * 114) / 1000 > 140 ? '#000' : '#fff'}`;
     const g = Math.round(55 + v * 20);
     return `background:rgb(${g},${g},${g});color:${v >= 5 ? '#000' : '#fff'}`;
+  }
+
+  // ---------- 색 모드: 낮으면 회색, 높을수록 그 항목의 색 ----------
+  const isLight = () => document.documentElement.dataset.theme === 'light';
+  const colorOn = () => db.settings.color !== 'off';
+  const HUES = {
+    dark: { mood: [48, 209, 88], energy: [255, 214, 10], conf: [100, 170, 255], sleep: [125, 122, 255], gray: [99, 99, 102] },
+    light: { mood: [36, 178, 72], energy: [245, 184, 0], conf: [0, 122, 255], sleep: [88, 86, 214], gray: [174, 174, 178] },
+  };
+  function toneRgb(key, v) {
+    const set = HUES[isLight() ? 'light' : 'dark'];
+    if (!colorOn() || v == null || !set[key]) return null;
+    const t = Math.max(0, Math.min(1, v / 10));
+    return set.gray.map((g, i) => Math.round(g + (set[key][i] - g) * t));
+  }
+  const tone = (key, v) => { const c = toneRgb(key, v); return c ? `rgb(${c})` : ''; };
+  // 배경 빛도 그날 기분·에너지 색을 따라간다
+  function applyAmbient(e) {
+    const st = document.documentElement.style, a = isLight() ? [0.55, 0.45] : [0.34, 0.26];
+    const m = e && toneRgb('mood', e.mood), en = e && toneRgb('energy', e.energy);
+    if (m) st.setProperty('--amb1', `rgba(${m},${a[0]})`); else st.removeProperty('--amb1');
+    if (en) st.setProperty('--amb2', `rgba(${en},${a[1]})`); else st.removeProperty('--amb2');
   }
 
   // ---------- 아이콘 (선 그림) ----------
@@ -293,6 +318,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
       ? `<div class="card hint"><div><b>${T('홈 화면에 추가해서 쓰세요.')}</b><br>${T('사파리 아래쪽 공유 버튼(네모에 화살표) → “홈 화면에 추가”를 누르면 앱처럼 열려요.')}</div>
          <button class="x" data-act="closeHint" aria-label="${T('닫기')}">✕</button></div>` : '';
 
+    applyAmbient(e);
     app.innerHTML = `
       <header class="top">
         <div><div class="over">${sel === t ? longDate(sel) : T('지난 기록')}</div><h1>${sel === t ? T('오늘') : longDate(sel)}</h1></div>
@@ -322,7 +348,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
     const p = Math.max(0, Math.min(1, pos)) * 100, lo = Math.min(50, p), w = Math.abs(p - 50);
     return `<div class="lvl" aria-hidden="true"><i style="left:${lo.toFixed(1)}%;width:${w.toFixed(1)}%"></i><b style="left:${p.toFixed(1)}%"></b></div>`;
   };
-  const tile = (label, word, num, pos, sub) => `<div class="tile"><div class="tl"><span>${label}</span><span>${num == null ? '' : num}</span></div>
+  const tile = (label, word, num, pos, sub, color) => `<div class="tile"${color ? ` style="--tone:${color}"` : ''}><div class="tl"><span>${label}</span><span>${num == null ? '' : num}</span></div>
     <div class="word">${word}</div>${pos == null ? '' : level(pos)}${sub ? `<div class="ts">${sub}</div>` : ''}</div>`;
   const bars = (v) => `<span class="bars">${[1, 2, 3, 4].map((i) => `<i class="${i <= v ? 'on' : ''}"></i>`).join('')}</span>`;
 
@@ -354,10 +380,10 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
       sub = Math.abs(diff) < 10 ? T('평소와 비슷') : F(diff > 0 ? '평소보다 {0} 김' : '평소보다 {0} 짧음', durText(Math.abs(diff)));
     }
     return `<div class="tiles">
-        ${tile(T('기분'), nameOf('mood', e.mood), e.mood, e.mood / 10)}
-        ${tile(T('에너지'), nameOf('energy', e.energy), e.energy, e.energy / 10)}
-        ${e.conf == null ? tile(T('자신감'), '–') : tile(T('자신감'), nameOf('conf', e.conf), e.conf, e.conf / 10)}
-        ${tile(T('수면'), sleepBig, null, pos, sub)}
+        ${tile(T('기분'), nameOf('mood', e.mood), e.mood, e.mood / 10, '', tone('mood', e.mood))}
+        ${tile(T('에너지'), nameOf('energy', e.energy), e.energy, e.energy / 10, '', tone('energy', e.energy))}
+        ${e.conf == null ? tile(T('자신감'), '–') : tile(T('자신감'), nameOf('conf', e.conf), e.conf, e.conf / 10, '', tone('conf', e.conf))}
+        ${tile(T('수면'), sleepBig, null, pos, sub, e.sleepMin == null ? '' : tone('sleep', e.sleepMin / 48))}
       </div>`;
   }
 
@@ -461,21 +487,21 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
     };
 
     const lineCard = (key, icon, name) => {
-      const y = (v) => TOP + (1 - v / 10) * (BOT - TOP);
+      const y = (v) => TOP + (1 - v / 10) * (BOT - TOP), ink = tone(key, 10) || C.ink;
       const pts = [];
       days.forEach((e, i) => { if (e && e[key] != null) pts.push([cx(i), y(e[key]), i]); });
-      let out = `<defs><linearGradient id="g-${key}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.ink}" stop-opacity=".26"/><stop offset="1" stop-color="${C.ink}" stop-opacity="0"/></linearGradient></defs>`;
+      let out = `<defs><linearGradient id="g-${key}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${ink}" stop-opacity=".26"/><stop offset="1" stop-color="${ink}" stop-opacity="0"/></linearGradient></defs>`;
       out += grid([[0, '0'], [5, '5'], [10, '10']], y);
       if (pts.length > 1) {
         const d = smoothPath(pts, TOP, BOT);
         out += `<path d="${d}L${pts[pts.length - 1][0].toFixed(1)},${BOT}L${pts[0][0].toFixed(1)},${BOT}Z" fill="url(#g-${key})"/>
-          <path d="${d}" fill="none" stroke="${C.ink}" stroke-width="${isWeek ? 2.5 : 2}" stroke-linecap="round" stroke-linejoin="round"/>`;
+          <path d="${d}" fill="none" stroke="${ink}" stroke-width="${isWeek ? 2.5 : 2}" stroke-linecap="round" stroke-linejoin="round"/>`;
       }
-      if (isWeek || pts.length === 1) pts.forEach((p) => { out += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="4" fill="${C.ink}" stroke="${C.ring}" stroke-width="2"/>`; });
+      if (isWeek || pts.length === 1) pts.forEach((p) => { out += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="4" fill="${ink}" stroke="${C.ring}" stroke-width="2"/>`; });
       if (pick != null) {
         out += `<line x1="${cx(pick).toFixed(1)}" x2="${cx(pick).toFixed(1)}" y1="${TOP - 4}" y2="${BOT}" stroke="${C.muted}"/>`;
         const p = pts.find((q) => q[2] === pick);
-        if (p) out += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="5.5" fill="${C.ink}" stroke="${C.ring}" stroke-width="2.5"/>`;
+        if (p) out += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="5.5" fill="${ink}" stroke="${C.ring}" stroke-width="2.5"/>`;
       }
       return `<section class="card mcard">${head(key, icon, name)}${plot(out)}</section>`;
     };
@@ -489,7 +515,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
         if (!e || e.sleepMin == null) return;
         const top = Math.min(y(e.sleepMin), BOT - 3);
         out += `<rect x="${(cx(i) - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${(BOT - top).toFixed(1)}" rx="${rx.toFixed(1)}"
-          fill="${pick == null || pick === i ? C.ink : C.faint}"/>`;
+          fill="${pick == null || pick === i ? (tone('sleep', 10) || C.ink) : C.faint}"/>`;
       });
       if (all != null) out += `<line x1="0" x2="${W}" y1="${y(all).toFixed(1)}" y2="${y(all).toFixed(1)}" stroke="${C.muted}" stroke-dasharray="2 4" stroke-linecap="round"/>`;
       return `<section class="card mcard">${head('sleepMin', IC.moon, T('수면'), true)}${plot(out)}
@@ -551,6 +577,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
   function applyTheme() {
     const pref = db.settings.theme || 'auto', light = pref === 'light' || (pref === 'auto' && themeQuery.matches);
     document.documentElement.dataset.theme = light ? 'light' : 'dark';
+    document.documentElement.dataset.color = db.settings.color === 'off' ? 'off' : 'on';
     const meta = $('meta[name=theme-color]');
     if (meta) meta.content = light ? '#eef0f3' : '#000000';
   }
@@ -670,6 +697,8 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
     SLIDERS.forEach((k) => {
       $(`#v-${k}`).textContent = d[k];
       $(`#n-${k}`).textContent = nameOf(k, d[k]);
+      const col = tone(k, d[k]);
+      if (col) $(`#f-${k}`).style.setProperty('--tone', col); else $(`#f-${k}`).style.removeProperty('--tone');
       $(`#f-${k}`).style.setProperty('--v', d[k] / 10);
     });
     $('#i-mood').innerHTML = IC.face(d.mood);
@@ -718,6 +747,10 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
       <div class="sec">${T('화면 모드')}</div>
       <section class="card list">${[['auto', T('자동 (아이폰 설정 따라감)')], ['light', T('라이트')], ['dark', T('다크')]].map(([k, label]) =>
         pick('theme', `data-theme-pick="${k}"`, (db.settings.theme || 'auto') === k, label)).join('')}</section>
+
+      <div class="sec">${T('색')}</div>
+      <section class="card list">${pick('color', 'data-color-pick="on"', colorOn(), T('색으로 표시'))}${pick('color', 'data-color-pick="off"', !colorOn(), T('흑백'))}</section>
+      <p class="secnote">${T('낮은 날은 회색, 높을수록 기분은 초록, 에너지는 노랑, 자신감은 파랑으로 물들어요.')}</p>
 
       <div class="sec">${T('알림')}</div>
       <section class="card list">
@@ -827,6 +860,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
   // ---------- 이벤트 ----------
   const actions = {
     tab: (el) => { ui.tab = el.dataset.tab; window.scrollTo(0, 0); render(); },
+    color: (el) => { db.settings.color = el.dataset.colorPick; save(); applyTheme(); render(); openSettings(); },
     theme: (el) => { db.settings.theme = el.dataset.themePick; save(); applyTheme(); render(); openSettings(); },
     takeMed: (el) => { toggleMed(ui.selected, el.dataset.med); render(); },
     ics: async () => {
