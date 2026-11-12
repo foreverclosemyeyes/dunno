@@ -245,7 +245,7 @@
     const figEl = $('#asst-figure');
     if (document.body.classList.contains('skin-bubble') && figEl && figEl.offsetHeight && !$('#assistant').hidden && !document.body.classList.contains('char-hidden')) {
       const fr = figEl.getBoundingClientRect();
-      bh = Math.max(120, Math.min(bh, fr.top - box.getBoundingClientRect().top + fr.height * 0.2));
+      bh = Math.max(120, Math.min(bh, fr.top - box.getBoundingClientRect().top + fr.height * 0.07));
     }
     const iw = inner.scrollWidth, ih = inner.scrollHeight;
     if (!iw || !ih) return;
@@ -434,6 +434,7 @@
     }
     const text = $('#asst-text');
     text.classList.toggle('thinking', !!(msg && msg.thinking));
+    { const n = msg && msg.text ? msg.text.length : 0; text.dataset.len = n > 110 ? 'long' : n > 55 ? 'mid' : 'short'; } // 긴 말은 글씨를 줄이고, 더 길면 말풍선 안에서 스크롤
     let span = text.querySelector('.el-bubble');
     if (!span) { span = S('bubble', ''); text.replaceChildren(span); }
     if (msg && msg.thinking) { span.textContent = '생각하는 중…'; D.face.setMood('closed'); }

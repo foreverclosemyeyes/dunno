@@ -97,16 +97,28 @@
   }
 
   // 스킨 그림(말풍선·답하는 칸)을 불러왔으면 직접 그린 모양 대신 그 그림을 깔아 줌
+  // 직접 그린 말풍선: 검은 몸통(왼쪽 지그재그 꼬리) + 흰 테두리 + 흰 이름표 + 오른쪽 흰 쐐기
+  const OWN_BUBBLE = 'url("data:image/svg+xml;utf8,' + encodeURIComponent(
+    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1223 344' preserveAspectRatio='none'>" +
+    "<g stroke-linejoin='miter'>" +
+    "<polygon points='1046,262 1212,96 1221,150 1128,300' fill='#fff' stroke='#0b0b0b' stroke-width='7'/>" +
+    "<polygon points='172,128 1050,118 1078,334 150,252 108,238 128,212 6,170 122,180 98,150 172,156' fill='#0b0b0b' stroke='#0b0b0b' stroke-width='20'/>" +
+    "<polygon points='172,128 1050,118 1078,334 150,252 108,238 128,212 6,170 122,180 98,150 172,156' fill='#0b0b0b' stroke='#fff' stroke-width='9'/>" +
+    "<polygon points='80,110 436,22 454,80 102,154' fill='#fff' stroke='#0b0b0b' stroke-width='7'/>" +
+    "</g></svg>") + '")';
+
   function skin() {
     const sk = (D.state && D.state.theme && D.state.theme.layout.skin) || {};
-    document.body.classList.toggle('skin-bubble', !!sk.bubble);
+    // 새 대화 구도는 그림이 없어도 항상 씀: 스킨 말풍선 그림이 없으면 같은 치수(1223x344)로 직접 그린 말풍선을 깔아 줌
+    const on = document.body.classList.contains('layout-bigcal') && document.body.classList.contains('dialog-angular');
+    document.body.classList.toggle('skin-bubble', on);
     document.body.classList.remove('skin-reply'); // 답하는 칸은 직접 그린 모양이 더 깔끔해서 그림을 쓰지 않음
     for (const k of ['mask']) {
       document.body.classList.toggle('skin-has-' + k, !!sk[k]);
       document.body.style.setProperty('--skin-' + k, sk[k] ? `url("${sk[k]}")` : 'none');
     }
     const bub = $('#asst-bubble'), f = document.getElementById('chat-form');
-    if (bub) bub.style.setProperty('--skin-bubble', sk.bubble ? `url("${sk.bubble}")` : 'none');
+    if (bub) bub.style.setProperty('--skin-bubble', sk.bubble ? `url("${sk.bubble}")` : OWN_BUBBLE);
     if (f) f.style.setProperty('--skin-reply', sk.reply ? `url("${sk.reply}")` : 'none');
   }
 
