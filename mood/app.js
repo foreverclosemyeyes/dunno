@@ -18,6 +18,7 @@
     '라이트': 'Light', '다크': 'Dark', '알림': 'Reminders', '기록 알림': 'Log reminder', '약 알림 1': 'Med reminder 1', '약 알림 2': 'Med reminder 2',
     '캘린더에 알림 추가': 'Add reminders to Calendar', 'Tide 기록하기': 'Tide: log today', '약 먹을 시간': 'Time to take your meds', '알림 시간을 먼저 정해 주세요': 'Set a reminder time first',
     '아이폰 웹앱은 정해진 시간에 스스로 알림을 보낼 수 없어요. 대신 매일 반복되는 캘린더 알림 파일을 만들어 드려요. 시간을 정하고 버튼을 누른 뒤 “캘린더에 추가”를 고르세요. 안 쓰는 알림은 시간을 비워 두면 돼요.': 'An iPhone web app cannot send scheduled notifications on its own. Instead this makes a calendar file with daily repeating alerts. Set the times, tap the button, then choose “Add to Calendar”. Leave a time empty to skip that reminder.',
+    '8시간 기준': 'of 8 hours',
     '취소': 'Cancel', '완료': 'Done', '설정': 'Settings', '증상': 'Symptoms', '몸': 'Body',
     '수면 시간': 'Time asleep', '일어났을 때 피곤함': 'Tired on waking', '일어났을 때': 'On waking', '피곤': 'Tired',
     '높음': 'High',
@@ -162,7 +163,7 @@
   } : {
     mood: ['바닥', '많이 우울', '우울', '가라앉음', '살짝 다운', '그럭저럭', '괜찮음', '좋음', '신남', '붕 뜸', '날아갈 듯'],
     energy: ['방전', '녹초', '기진맥진', '축 처짐', '좀 피곤', '보통', '괜찮음', '쌩쌩', '기운 넘침', '가만 못 있음', '멈출 수 없음'],
-    conf: ['완전 쭈그러듦', '많이 위축', '주눅 듦', '소심해짐', '살짝 자신 없음', '보통', '할 만함', '자신 있음', '자신만만', '뭐든 될 것 같음', '무적'],
+    conf: ['완전 쭈그러듦', '많이 위축', '주눅 듦', '소심해짐', '살짝 자신 없음', '보통', '할 만함', '자신 있음', '자신만만', '뭐든 될 듯', '무적'],
   };
   const nameOf = (key, v) => (v == null || !NAMES[key] ? '' : NAMES[key][Math.round(v)] || '');
   const SIGN_THRESHOLD = 7;
@@ -316,7 +317,12 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
       <button class="btn" data-act="record">${T('기록하기')}</button></section>`;
   }
 
-  const tile = (icon, n, label, name) => `<div class="tile"><div class="tl">${icon}${label}</div><div class="n">${n}</div>${name ? `<div class="nm">${name}</div>` : ''}</div>`;
+  const ring = (frac) => {
+    const c = 2 * Math.PI * 17, f = Math.max(0, Math.min(1, frac || 0));
+    return `<svg class="ring" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" fill="none" stroke-width="3.5" style="stroke:var(--fill)"/>${
+      f > 0 ? `<circle cx="20" cy="20" r="17" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="${(c * f).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 20 20)" style="stroke:var(--ink)"/>` : ''}</svg>`;
+  };
+  const tile = (frac, n, label, name, cls) => `<div class="tile"><div class="tb"><div class="tl">${label}</div><div class="n ${cls || ''}">${n}</div>${name ? `<div class="nm">${name}</div>` : ''}</div>${ring(frac)}</div>`;
   const bars = (v) => `<span class="bars">${[1, 2, 3, 4].map((i) => `<i class="${i <= v ? 'on' : ''}"></i>`).join('')}</span>`;
 
   // 그날 먹은 약: 기록이 있으면 기록 안에, 아직 없으면 따로 적어 둔다
@@ -339,10 +345,10 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
     const sleepBig = e.sleepMin == null ? '–'
       : `${Math.floor(e.sleepMin / 60)}<small>${T('시간')}</small>${e.sleepMin % 60 ? ` ${e.sleepMin % 60}<small>${T('분')}</small>` : ''}`;
     return `<div class="tiles">
-        ${tile(IC.face(e.mood), e.mood, T('기분'), nameOf('mood', e.mood))}
-        ${tile(IC.battery(e.energy), e.energy, T('에너지'), nameOf('energy', e.energy))}
-        ${tile(IC.star, e.conf == null ? '–' : e.conf, T('자신감'), nameOf('conf', e.conf))}
-        ${tile(IC.moon, sleepBig, T('수면'))}
+        ${tile(e.mood / 10, e.mood, T('기분'), nameOf('mood', e.mood))}
+        ${tile(e.energy / 10, e.energy, T('에너지'), nameOf('energy', e.energy))}
+        ${tile((e.conf || 0) / 10, e.conf == null ? '–' : e.conf, T('자신감'), nameOf('conf', e.conf))}
+        ${tile((e.sleepMin || 0) / 480, sleepBig, T('수면'), e.sleepMin == null ? '' : T('8시간 기준'), 'sm')}
       </div>`;
   }
 
