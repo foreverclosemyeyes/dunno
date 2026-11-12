@@ -78,19 +78,19 @@ function seed() {
   await page.click('.savebar [data-act=save]');
   let e = (await store()).entries[today];
   check('기록 저장', e && e.mood === 8 && e.elev === 3 && e.sleepMin === 325 && e.signs.racing === true && e.caffeine === 6 && e.meds[0].name === '알프람', JSON.stringify(e));
-  check('약은 시각 없이 체크됨', e.meds[0].at === '', JSON.stringify(e.meds));
+  check('약을 체크하면 시각이 찍힘', /^\d\d:\d\d$/.test(e.meds[0].at), JSON.stringify(e.meds));
   check('메모는 여러 줄, 글자 그대로 표시', e.note === '<b>메모</b>\n둘째 줄' && (await page.$$('#app b >> text=메모')).length === 0 && (await text('#app .note')).includes('<b>메모</b>'));
   check('오늘 타일에 이름 표시', (await text('.tile .word')) === '신남');
 
-  // 3. 오늘 화면에서 약 체크: 하루에 여러 번, 시각 고치기, 지우기
+  // 3. 오늘 화면에서 약 체크: 하루에 여러 번, 시각만 지우기, 기록 지우기
   await page.click('#app [data-act=doseAdd]');
   check('한 번 더 먹은 것 추가', (await store()).entries[today].meds.length === 2);
   await page.click('#app [data-act=doseTime] >> nth=1');
-  await page.fill('#app .dose-at', '21:40');
-  check('먹은 시각 고치기', (await store()).entries[today].meds[1].at === '21:40');
+  e = (await store()).entries[today];
+  check('시각을 누르면 시각만 지워짐', e.meds.length === 2 && e.meds[1].at === '' && e.meds[0].at !== '', JSON.stringify(e.meds));
   await page.click('#app [data-act=doseDel] >> nth=0');
   e = (await store()).entries[today];
-  check('먹은 기록 지우기', e.meds.length === 1 && e.meds[0].at === '21:40', JSON.stringify(e.meds));
+  check('먹은 기록 지우기', e.meds.length === 1 && e.meds[0].at === '', JSON.stringify(e.meds));
 
   // 4. 수정: 값을 낮추면 체크리스트 내용은 버림
   await page.click('[data-act=record]'); await page.fill('#f-mood', '3'); await page.click('.savebar [data-act=save]');
@@ -115,14 +115,14 @@ function seed() {
   const after = await store();
   check('기록하면 약 체크가 기록으로 옮겨짐', after.entries[today].meds.length === 2 && !after.taken[today]);
 
-  // 4-3. 원하면 시각을 넣었다 뺄 수 있다
+  // 4-3. 처음엔 시각이 찍히고, 누를 때마다 시각이 사라졌다 들어왔다 한다
   await put({ version: 2, entries: {}, meds: [{ name: '브린텔릭스', dose: '15mg' }], taken: {}, settings: { hintClosed: true } });
   await page.click('#app [data-act=doseAdd]');
-  check('시각 없이 먹음 체크', (await store()).taken[today][0].at === '' && (await text('#app .dose')).includes('먹음'));
+  check('처음 누르면 시각이 찍힘', /^\d\d:\d\d$/.test((await store()).taken[today][0].at));
   await page.click('#app [data-act=doseTime]');
-  check('먹음을 누르면 시각이 들어감', /^\d\d:\d\d$/.test((await store()).taken[today][0].at) && await page.isVisible('#app .dose-at'));
-  await page.fill('#app .dose-at', '');
-  check('시각을 비우면 다시 시각 없는 기록', (await store()).taken[today][0].at === '' && (await page.$$('#app .dose-at')).length === 0);
+  check('한 번 더 누르면 시각이 사라지고 먹음만 남음', (await store()).taken[today][0].at === '' && (await text('#app .dose')).includes('먹음'));
+  await page.click('#app [data-act=doseTime]');
+  check('또 누르면 시각이 다시 들어감', /^\d\d:\d\d$/.test((await store()).taken[today][0].at));
 
   // 5. 쌓인 기록: 신호 · 인사이트 · 흐름
   await put(seed());

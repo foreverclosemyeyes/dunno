@@ -1,10 +1,10 @@
 // 시작점: 누르기·입력 처리와 앱 시작
 import { aiSummary } from './analysis.js';
-import { addDays, nowTime, today } from './dates.js';
+import { addDays, today } from './dates.js';
 import { $, app, closeSheet, enterApp, sheet, sheetOpen, toast } from './dom.js';
 import { exportData, giveFile, importData, makeIcs, remind } from './files.js';
 import { T } from './i18n.js';
-import { addDose, medKey, medsFor, normDose, setMeds, sugHtml } from './meds.js';
+import { addDose, medKey, medsFor, normDose, setMeds, sugHtml, toggleDoseTime } from './meds.js';
 import { render } from './render.js';
 import { onSwipe } from './swipe.js';
 import { trend, ui } from './state.js';
@@ -18,10 +18,10 @@ themeQuery.addEventListener('change', () => { applyTheme(); if (!sheetOpen()) re
 
 // 약 먹은 기록을 고칠 목록: 기록 화면이 열려 있으면 그 초안, 아니면 보고 있는 날짜의 저장된 목록
 const doseList = () => (ui.draft ? ui.draft.meds : medsFor(ui.selected).map((m) => ({ ...m })));
-function commitDoses(list, redraw) {
-  if (ui.draft) { if (redraw) $('#meds').innerHTML = medsHtml(); return; }
+function commitDoses(list) {
+  if (ui.draft) { $('#meds').innerHTML = medsHtml(); return; }
   setMeds(ui.selected, list);
-  if (redraw) render();
+  render();
 }
 
 // ---------- 이벤트 ----------
@@ -29,9 +29,9 @@ const actions = {
   tab: (el) => { if (ui.tab === el.dataset.tab) return; ui.tab = el.dataset.tab; window.scrollTo(0, 0); render(); enterApp(); },
   color: (el) => { db.settings.color = el.dataset.colorPick; save(); applyTheme(); render(); openSettings(); },
   theme: (el) => { db.settings.theme = el.dataset.themePick; save(); applyTheme(); render(); openSettings(); },
-  doseAdd: (el) => { const list = doseList(); addDose(list, el.dataset.med); commitDoses(list, true); },
-  doseTime: (el) => { const list = doseList(); list[Number(el.dataset.i)].at = nowTime(); commitDoses(list, true); },
-  doseDel: (el) => { const list = doseList(); list.splice(Number(el.dataset.i), 1); commitDoses(list, true); },
+  doseAdd: (el) => { const list = doseList(); addDose(list, el.dataset.med); commitDoses(list); },
+  doseTime: (el) => { const list = doseList(); toggleDoseTime(list[Number(el.dataset.i)]); commitDoses(list); },
+  doseDel: (el) => { const list = doseList(); list.splice(Number(el.dataset.i), 1); commitDoses(list); },
   ics: async () => {
     const r = remind();
     if (!r.log && !r.med1 && !r.med2) { toast(T('알림 시간을 먼저 정해 주세요')); return; }
@@ -123,15 +123,6 @@ document.addEventListener('click', (ev) => {
     d.signs[t.dataset.sign] = !d.signs[t.dataset.sign];
     t.setAttribute('aria-pressed', String(!!d.signs[t.dataset.sign]));
   }
-});
-
-// 약 먹은 시각을 고치면 바로 저장 (오늘 화면과 기록 화면 둘 다)
-document.addEventListener('change', (ev) => {
-  const el = ev.target;
-  if (!el.classList.contains('dose-at')) return;
-  const list = doseList();
-  list[Number(el.dataset.i)].at = el.value;
-  commitDoses(list, !el.value);   // 시각을 비웠으면 '먹음' 표시로 다시 그린다
 });
 
 sheet.addEventListener('input', (ev) => {

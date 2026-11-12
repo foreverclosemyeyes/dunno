@@ -1,6 +1,6 @@
 // 약: 그날 먹은 약(먹을 때마다 한 줄, 시각 포함), 약 추가 입력
 import { CATALOG, SEDATIVES } from './constants.js';
-import { addDays } from './dates.js';
+import { addDays, ampm, nowTime } from './dates.js';
 import { esc } from './dom.js';
 import { T } from './i18n.js';
 import { IC } from './icons.js';
@@ -21,9 +21,11 @@ export function setMeds(date, list) {
 }
 export function addDose(list, key) {
   const m = db.meds.concat(list).find((x) => medKey(x) === key);
-  // 시각은 비워 둔 채로 체크한다. 적고 싶을 때만 '✓ 먹음'을 눌러 넣는다.
-  if (m) list.push({ name: m.name, dose: m.dose, at: '' });
+  // 처음 체크할 때는 지금 시각이 같이 찍힌다
+  if (m) list.push({ name: m.name, dose: m.dose, at: nowTime() });
 }
+// 시각을 누르면 시각만 지워지고, '✓ 먹음'을 누르면 지금 시각이 다시 들어간다
+export const toggleDoseTime = (dose) => { dose.at = dose.at ? '' : nowTime(); };
 
 // 전날 안정제·수면제를 먹었거나, 당일 새벽(06시 전)에 먹었으면 그날 밤 잠은 '약 먹고 잔 밤'으로 본다
 export const aided = (e) => medsFor(addDays(e.date, -1)).some((m) => SEDATIVES.includes(m.name))
@@ -36,9 +38,9 @@ export function medsText(list) {
   return [...groups.values()].map(({ m, at }) => `${m.name}${m.dose ? ` ${m.dose}` : ''}${at.some((x) => x !== '?') || at.length > 1 ? ` (${at.join(', ')})` : ''}`).join(', ');
 }
 
-// 약마다 한 줄: 먹은 시각들(고칠 수 있음)과 '먹었어요' 버튼. 오늘 화면과 기록 화면이 같이 쓴다.
+// 약마다 한 줄: 먹은 기록들과 '먹었어요' 버튼. 오늘 화면과 기록 화면이 같이 쓴다.
 // 한 번 먹은 것까지는 한 줄에 들어가서 줄 높이가 안 바뀐다. 두 번째부터 아래 줄로 내려간다.
-// 시각이 없는 기록은 '✓ 먹음'으로 보이고, 누르면 지금 시각이 들어간다. 시각 칸을 비우면 다시 시각 없는 기록이 된다.
+// 먹은 기록은 시각(누르면 시각이 지워짐) 또는 '✓ 먹음'(누르면 지금 시각이 들어감)으로 보인다.
 export function doseRowsHtml(list) {
   const all = db.meds.concat(list.filter((m, i) => !db.meds.some((x) => medKey(x) === medKey(m)) && list.findIndex((y) => medKey(y) === medKey(m)) === i));
   return all.map((m) => {
@@ -46,7 +48,7 @@ export function doseRowsHtml(list) {
     return `<div class="li med-row${doses.length > 1 ? ' multi' : ''}">
       <span class="lk">${IC.pill}<span class="mn">${esc(m.name)}${m.dose ? `<small>${esc(m.dose)}</small>` : ''}</span></span>
       <span class="doses">${doses.map(([x, i]) => `<span class="dose">${x.at
-    ? `<input type="time" class="dose-at" data-i="${i}" value="${esc(x.at)}" aria-label="${T('먹은 시각')}">`
+    ? `<button type="button" class="dose-now" data-act="doseTime" data-i="${i}" aria-label="${T('시각 지우기')}">${ampm(x.at)}</button>`
     : `<button type="button" class="dose-now" data-act="doseTime" data-i="${i}" aria-label="${T('시각 넣기')}">✓ ${T('먹음')}</button>`}
         <button type="button" data-act="doseDel" data-i="${i}" aria-label="${T('삭제')}">✕</button></span>`).join('')}
         ${doses.length ? `<button type="button" class="take more" data-act="doseAdd" data-med="${esc(key)}" aria-label="${T('한 번 더')}">+</button>`
