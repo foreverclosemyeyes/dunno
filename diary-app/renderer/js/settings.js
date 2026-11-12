@@ -358,14 +358,7 @@
         ...Array.from({ length: 10 }, (_, n) => [`digit-${n}`, `digit-${n}-red`, `digit-${n}-blue`]).flat()];
       const skin = state.theme.layout.skin || {};
       const nSkin = SKIN_KEYS.filter((k) => skin[k]).length;
-      mode.body.append(btn('스킨 zip 넣기 (p5-skin.zip 을 압축 풀지 않고 그대로)', 'primary', async () => {
-        const got = await window.diary.importSkinZip(); if (!got) return;
-        const next = { ...(state.theme.layout.skin || {}) }; let n = 0;
-        for (const [k, u] of Object.entries(got)) if (SKIN_KEYS.includes(k)) { next[k] = u; n++; }
-        if (!n) return D.toast('zip 안에 스킨 그림이 없어요.', 5000);
-        ctx.set('layout.skin', next); ctx.commit(); render(); D.renderAll(); D.toast(`스킨 그림 ${n}장을 넣었어요.`);
-      }));
-      mode.body.append(btn(nSkin ? `스킨 그림 ${nSkin}/${SKIN_KEYS.length}장 적용 중 (낱장 더 불러오기)` : '스킨 그림 낱장으로 불러오기', '', async () => {
+      mode.body.append(btn(nSkin ? `스킨 그림 ${nSkin}/${SKIN_KEYS.length}장 적용 중 (더 불러오기)` : '스킨 그림 불러오기 (여러 장 한꺼번에 고르기)', '', async () => {
         const assets = await window.diary.pickAsset('image');
         const next = { ...(state.theme.layout.skin || {}) }; let n = 0;
         for (const a of assets) { const key = a.name.replace(/\.[a-z0-9]+$/i, '').toLowerCase(); if (SKIN_KEYS.includes(key)) { next[key] = a.url; n++; } }
