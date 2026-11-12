@@ -1564,3 +1564,10 @@ body.skin-bubble #asst-controls { position: absolute; z-index: 4; left: calc(var
 body.skin-bubble #assistant { --it: 92px; height: calc(92px + var(--ih) * .82); overflow: visible; }
 body.skin-bubble #asst-figure { top: auto; bottom: calc(var(--fig) * -.08); }
 body.skin-bubble #assistant { --iw: min(calc(var(--fig) * 1.86), calc((55vw - var(--fig) * .7) / .86)); }
+
+/* 달력 숫자가 초상화 머리 위로 오게 */
+body.skin-bubble #bigcal { position: relative; z-index: 2; }
+body.skin-bubble #assistant { z-index: 1; }
+/* 비서 칸은 말풍선 높이만 차지 → 달력이 그 위까지 길어져 빈자리가 줄어듦 */
+body.skin-bubble #assistant { --it: 14px; height: calc(14px + var(--ih) * .82); z-index: 3; }
+body.skin-bubble #asst-figure { pointer-events: none; }

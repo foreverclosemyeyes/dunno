@@ -240,7 +240,13 @@
     const box = $('#bigcal'), inner = $('#bc-inner');
     if (!box || state.theme.layout.mode !== 'bigcal') return;
     inner.style.transform = 'none';
-    const bw = box.clientWidth, bh = box.clientHeight;
+    const bw = box.clientWidth; let bh = box.clientHeight;
+    // 스킨 대화 구도: 달력은 초상화 머리 바로 위까지만 (마지막 줄이 초상화 뒤로 숨지 않게)
+    const figEl = $('#asst-figure');
+    if (document.body.classList.contains('skin-bubble') && figEl && figEl.offsetHeight && !$('#assistant').hidden && !document.body.classList.contains('char-hidden')) {
+      const fr = figEl.getBoundingClientRect();
+      bh = Math.max(120, Math.min(bh, fr.top - box.getBoundingClientRect().top + fr.height * 0.2));
+    }
     const iw = inner.scrollWidth, ih = inner.scrollHeight;
     if (!iw || !ih) return;
     const t = state.theme.layout.calTilt;
@@ -248,7 +254,8 @@
     const rw = iw * Math.cos(rad) + ih * Math.sin(rad), rh = iw * Math.sin(rad) + ih * Math.cos(rad);
     // 가로는 폭에 맞추고, 세로는 남는 높이만큼 최대 35%까지 길쭉하게 늘려서 왼쪽을 꽉 채움
     const fx = Math.min((bw * 1.04) / rw, bh / rh * 1.6);
-    const fy = Math.min(bh / rh, fx * 1.3); // 세로로 너무 늘어나지 않게
+    const tall = document.body.classList.contains('skin-bubble') ? 1.55 : 1.3; // 스킨 대화 구도에선 달력을 더 길쭉하게 해서 말풍선 위 빈자리를 채움
+    const fy = Math.min(bh / rh, fx * tall); // 세로로 너무 늘어나지 않게
     inner.style.transformOrigin = '50% 50%';
     const ty = (rh * fy - ih) / 2 + 2;
     inner.style.transform = `translate(${(bw - iw) / 2}px, ${ty}px) scale(${(fx * 0.99).toFixed(4)}, ${(fy * 0.99).toFixed(4)}) rotate(${t}deg)`;
