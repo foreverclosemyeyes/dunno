@@ -54,8 +54,9 @@ export function viewTrend() {
   const pick = trend.pick, pickDate = pick == null ? null : addDays(r.start, pick), pickE = pickDate ? db.entries[pickDate] : null;
   const pickLabel = pickDate ? longDate(pickDate) : '';
 
-  // 크기: 오른쪽에 눈금 숫자 자리를 남기고 나머지를 날짜 수로 나눈다
-  const FS = fontScale(), AX = Math.round(26 * FS), W = Math.max(160, Math.min(app.clientWidth, 480) - 28 - 32 - AX), col = W / r.n;
+  // 크기: 화면 여백(16×2)과 카드 안쪽 여백(18×2)을 빼고, 오른쪽에 눈금 숫자 자리를 남긴 뒤 날짜 수로 나눈다.
+  // app.css의 #app, .mcard 좌우 여백을 바꾸면 여기 숫자도 같이 바꾼다.
+  const FS = fontScale(), AX = Math.round(26 * FS), W = Math.max(160, Math.min(app.clientWidth, 480) - 32 - 36 - AX), col = W / r.n;
   const cx = (i) => col * (i + 0.5);
   const TOP = 8, BOT = 104, H = 124;
   const xLabelsAt = (y) => days.map((_, i) => {
