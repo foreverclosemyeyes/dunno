@@ -115,7 +115,7 @@
 
   let lastMediaKey = '';
   function renderBackground(theme, force) {
-    const bg = D.state.previewBg || activeBg(theme);
+    const bg = activeBg(theme);
     const layer = document.getElementById('bg-media');
     const overlay = document.getElementById('bg-overlay');
     if (!layer) return;

@@ -215,7 +215,6 @@
     for (const k of CAST_KEYS) t.assistant[k] = next[k];
     t.castActive = id;
   };
-  D.makeBg = bg;
   D.ELEMENTS = ELEMENTS;
   D.PALETTES = PALETTES;
   D.paletteColors = (i) => toColors(PALETTES[i][1]);

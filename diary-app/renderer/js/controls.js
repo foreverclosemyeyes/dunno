@@ -88,63 +88,6 @@
     return row(label, i, ctx, path);
   }
 
-  // 글씨체: 목록 + 직접 입력 + 내 컴퓨터 글씨체 + 파일 올리기
-  function font(ctx, path, label, onChange) {
-    const wrap = h('div', 'font-pick');
-    const cur = ctx.get(path);
-    const input = h('input'); input.type = 'text'; input.value = cur; input.setAttribute('list', 'font-options');
-    input.placeholder = '글씨체 이름';
-    input.style.fontFamily = D.fonts.cssStack(cur);
-    const apply = async () => {
-      const v = input.value.trim(); if (!v) return;
-      await D.fonts.checkVariable(v);
-      input.style.fontFamily = D.fonts.cssStack(v);
-      ctx.set(path, v); ctx.commit(); onChange && onChange(v);
-    };
-    input.onchange = apply;
-    const btnSys = h('button', 'mini-btn', '내 컴퓨터');
-    btnSys.title = '내 컴퓨터에 설치된 글씨체 목록 불러오기';
-    btnSys.onclick = async () => {
-      btnSys.textContent = '불러오는 중…';
-      const list = await D.fonts.loadSystemFonts();
-      D.settings.refreshFontOptions();
-      btnSys.textContent = `${list.length}개 불러옴`;
-      input.focus(); input.value = ''; input.placeholder = '이름을 입력하면 목록이 떠요';
-      if (input.showPicker) try { input.showPicker(); } catch { /* 일부 환경 미지원 */ }
-    };
-    const btnUp = h('button', 'mini-btn', '파일 올리기');
-    btnUp.title = '.ttf / .otf 글씨체 파일 올리기';
-    btnUp.onclick = async () => {
-      const assets = await window.diary.pickAsset('font');
-      for (const a of assets) {
-        const f = await D.fonts.analyzeUpload(a);
-        const list = D.state.theme.fonts;
-        if (!list.find((x) => x.url === f.url)) list.push(f);
-        D.fonts.registerUploaded(f);
-        input.value = f.family;
-        D.toast(`"${f.family}" 글씨체를 추가했어요${f.variable ? ` (가변 ${f.variable.min}~${f.variable.max})` : ''}`);
-      }
-      D.settings.refreshFontOptions();
-      if (assets.length) apply();
-    };
-    wrap.append(input, h('div', 'font-btns'));
-    wrap.lastChild.append(btnSys, btnUp);
-    return row(label, wrap, ctx, path, onChange);
-  }
-
-  // 굵기: 가변 글씨체면 연속 슬라이더, 아니면 있는 굵기 중 선택
-  function weight(ctx, path, fontName) {
-    const info = D.fonts.info(fontName);
-    if (info.variable) {
-      const r = slider(ctx, path, `굵기 (가변 ${info.variable.min}~${info.variable.max})`, info.variable.min, info.variable.max, 1);
-      return r;
-    }
-    const names = { 100: '100 가장 얇게', 200: '200', 300: '300 얇게', 400: '400 보통', 500: '500 중간', 600: '600', 700: '700 굵게', 800: '800', 900: '900 가장 굵게' };
-    const opts = info.weights.map((w) => [w, names[w] || String(w)]);
-    if (!info.weights.includes(ctx.get(path))) opts.unshift([ctx.get(path), `${ctx.get(path)} (지금 값)`]);
-    return select(ctx, path, '굵기', opts);
-  }
-
   function section(title, open = false) {
     const d = h('details', 'sec');
     d.open = open;
@@ -154,5 +97,5 @@
     return { el: d, body };
   }
 
-  D.ctl = { row, slider, colorA, select, toggle, text, font, weight, section, h };
+  D.ctl = { row, slider, colorA, select, toggle, text, section, h };
 })();

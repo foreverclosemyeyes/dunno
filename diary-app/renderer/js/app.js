@@ -21,7 +21,6 @@
     hasKeys: {},
     lastAssistant: null,
     chat: [],
-    previewBg: null,
   });
 
   function toast(msg, ms = 2600) {
@@ -935,7 +934,6 @@
     state.hasKeys = init.hasKeys;
     state.notionLogin = init.notionLogin;
     state.stats = init.stats || {};
-    state.themes = init.themes || [];
     state.lastAssistant = init.lastAssistant;
     state.chat = init.chat || [];
     state.data = init.data;

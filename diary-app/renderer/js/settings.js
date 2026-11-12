@@ -1,13 +1,10 @@
-// 오른쪽 설정 패널: 연결 / 글씨 / 색·배치 / 배경 / 비서 / 테마
+// 오른쪽 설정 패널: 연결 / 꾸미기 / 비서
 (function () {
   const { h } = D.ctl;
   const C = D.ctl;
   const panel = document.getElementById('settings');
   const state = D.state;
   let tab = 'connect';
-  let textKey = 'bigDate';
-  let bgSlot = 'base'; // base | weekday.N | rotation.items.N
-  let dragOn = false;
 
   // ---------- 저장 / 실행 취소 ----------
   const history = { list: [], idx: -1 };
@@ -70,17 +67,13 @@
     get: (p) => D.getPath(state.theme, p),
     set: (p, v) => { D.setPath(state.theme, p, v); applyAll(); },
     commit,
-    def: (p) => {
-      const m = p.match(/^background\.(?:base|weekday\.\d|rotation\.items\.\d+)\.(.+)$/);
-      if (m) return D.getPath(D.makeBg(), m[1]);
-      return D.getPath(D.DEFAULT_THEME, p);
-    },
+    def: (p) => D.getPath(D.DEFAULT_THEME, p),
     rerender: () => render(),
   };
 
   // ---------- 패널 틀 ----------
   const TABS = [
-    ['connect', '연결'], ['look', '꾸미기'], ['asst', '비서'], // 글씨·배경·테마 탭과 세부 조정 칸은 뺌 (꾸며 둔 모양은 그대로 유지)
+    ['connect', '연결'], ['look', '꾸미기'], ['asst', '비서'],
   ];
 
   function open() {
@@ -92,9 +85,6 @@
   function close() {
     document.body.classList.remove('settings-open');
     panel.setAttribute('aria-hidden', 'true');
-    setDrag(false);
-    state.previewBg = null;
-    D.theme.renderBackground(state.theme);
   }
 
   function render() {
@@ -115,7 +105,7 @@
     const tabs = h('div', 'set-tabs');
     for (const [k, t] of TABS) {
       const b = h('button', k === tab ? 'on' : '', t);
-      b.onclick = () => { tab = k; if (k !== 'bg') { state.previewBg = null; setDrag(false); D.theme.renderBackground(state.theme); } render(); };
+      b.onclick = () => { tab = k; render(); };
       tabs.append(b);
     }
     panel.append(tabs);
@@ -252,70 +242,7 @@
     body.append(n.el, hq.el, up.el, g.el);
   }
 
-  // ---------- 글씨 ----------
-  function renderText(body) {
-    const chips = h('div', 'chips');
-    for (const [k, label] of D.ELEMENTS) {
-      const b = h('button', k === textKey ? 'on' : '', label);
-      b.onclick = () => { textKey = k; render(); };
-      chips.append(b);
-    }
-    body.append(chips);
-    const P = `text.${textKey}`;
-    const s = ctx.get(P);
-
-    const f = C.section('글씨체 · 크기', true);
-    f.body.append(
-      C.font(ctx, `${P}.font`, '글씨체', () => render()),
-      C.weight(ctx, `${P}.weight`, s.font),
-      C.slider(ctx, `${P}.size`, '크기', 6, textKey === 'bigDate' ? 480 : 120, 1, 'px'),
-      C.slider(ctx, `${P}.tracking`, '자간', -30, 60, 0.5, 'px'),
-      C.slider(ctx, `${P}.lineHeight`, '행간', 0.5, 3, 0.05, '배'),
-    );
-    const tf = C.section('늘이기 · 회전 · 기울임', true);
-    tf.body.append(
-      C.slider(ctx, `${P}.scaleY`, '세로 길이', 20, 300, 1, '%'),
-      C.slider(ctx, `${P}.scaleX`, '가로 폭', 20, 300, 1, '%'),
-      C.slider(ctx, `${P}.rotate`, '통째로 회전', -180, 180, 1, '°'),
-      C.select(ctx, `${P}.origin`, '회전 기준점', [['left', '왼쪽'], ['center', '가운데'], ['right', '오른쪽']]),
-      C.slider(ctx, `${P}.skew`, '기울임 (이탤릭)', -30, 30, 0.5, '°'),
-    );
-    const pc = C.section('글자 하나하나 회전');
-    pc.body.append(C.toggle(ctx, `${P}.perChar`, '글자별 회전 켜기', () => render()));
-    if (s.perChar) {
-      pc.body.append(C.select(ctx, `${P}.perCharMode`, '방식', [['random', '랜덤'], ['manual', '직접 정한 각도']], () => render()));
-      if (s.perCharMode === 'random') {
-        pc.body.append(C.slider(ctx, `${P}.perCharRange`, '흔들림 범위 ±', 0, 45, 0.5, '°'), C.slider(ctx, `${P}.perCharSeed`, '랜덤 모양 번호', 1, 999, 1));
-      } else {
-        pc.body.append(C.text(ctx, `${P}.perCharAngles`, '각도 목록', { placeholder: '예: -6, 4, -2, 8 (글자마다 차례로)' }));
-      }
-    }
-    const col = C.section('색 · 외곽선 · 그림자', true);
-    col.body.append(
-      C.colorA(ctx, `${P}.color`, '글자 색', { allowAuto: true }),
-      C.slider(ctx, `${P}.strokeW`, '외곽선 두께', 0, 12, 0.25, 'px'),
-      C.colorA(ctx, `${P}.strokeC`, '외곽선 색'),
-      C.toggle(ctx, `${P}.shadowOn`, '그림자', () => render()),
-    );
-    if (s.shadowOn) {
-      col.body.append(
-        C.slider(ctx, `${P}.shadowAngle`, '그림자 방향', 0, 360, 1, '°'),
-        C.slider(ctx, `${P}.shadowDist`, '그림자 거리', 0, 60, 0.5, 'px'),
-        C.slider(ctx, `${P}.shadowBlur`, '그림자 흐림', 0, 40, 0.5, 'px'),
-        C.colorA(ctx, `${P}.shadowC`, '그림자 색'),
-      );
-    }
-    const dec = C.section('대문자 · 밑줄');
-    dec.body.append(
-      C.toggle(ctx, `${P}.upper`, '영문 대문자로'),
-      C.select(ctx, `${P}.deco`, '선', [['none', '없음'], ['underline', '밑줄'], ['line-through', '줄긋기'], ['overline', '윗줄'], ['underline line-through', '밑줄+줄긋기']]),
-      C.select(ctx, `${P}.decoStyle`, '선 모양', [['solid', '실선'], ['double', '이중선'], ['dotted', '점선'], ['dashed', '파선'], ['wavy', '물결']]),
-    );
-    body.append(f.el, tf.el, pc.el, col.el, dec.el);
-    body.append(btn(`"${D.ELEMENTS.find((e) => e[0] === textKey)[1]}" 전체 기본값으로`, '', () => { ctx.set(P, D.clone(D.DEFAULT_THEME.text[textKey])); commit(); render(); }));
-  }
-
-  // ---------- 색 · 배치 ----------
+  // ---------- 꾸미기 ----------
   function renderLook(body) {
     const pal = C.section('색 조합 (누르면 한 번에 바뀌어요)', true);
     const pg = h('div', 'pal-grid');
@@ -400,135 +327,6 @@
     );
     body.append(mode.el);
   }
-
-  // ---------- 배경 ----------
-  const WD_NAMES = { 1: '월', 2: '화', 3: '수', 4: '목', 5: '금', 6: '토', 0: '일' };
-  function slotPath() { return `background.${bgSlot}`; }
-  function setDrag(on) {
-    dragOn = on;
-    document.getElementById('bg-drag').hidden = !on;
-  }
-  function previewSlot() {
-    const b = ctx.get(slotPath());
-    state.previewBg = b && bgSlot !== 'base' ? b : null;
-    D.theme.renderBackground(state.theme);
-  }
-
-  function renderBg(body) {
-    const B = state.theme.background;
-    const m = C.section('배경 바꾸는 방식', true);
-    m.body.append(C.select(ctx, 'background.mode', '방식', [['single', '하나만 쓰기'], ['weekday', '요일별로 다르게'], ['rotate', '여러 장을 시간마다 바꾸기']], () => { bgSlot = 'base'; render(); }));
-
-    const chips = h('div', 'chips');
-    const chip = (slot, label, extra) => {
-      const b = h('button', (slot === bgSlot ? 'on ' : '') + (extra || ''), label);
-      b.onclick = () => { bgSlot = slot; previewSlot(); render(); };
-      chips.append(b);
-    };
-    chip('base', '기본 배경');
-    if (B.mode === 'weekday') {
-      for (const d of [1, 2, 3, 4, 5, 6, 0]) chip(`weekday.${d}`, WD_NAMES[d], B.weekday[d] ? 'has' : 'empty');
-    }
-    if (B.mode === 'rotate') {
-      B.rotation.items.forEach((_, i) => chip(`rotation.items.${i}`, `${i + 1}번`));
-      const add = h('button', 'add', '+ 그림/동영상 추가');
-      add.onclick = async () => {
-        const assets = await window.diary.pickAsset('media');
-        for (const a of assets) {
-          const isVid = /\.(mp4|webm)$/i.test(a.name);
-          B.rotation.items.push(D.makeBg({ type: isVid ? 'video' : 'image', media: { url: a.url, name: a.name } }));
-        }
-        if (assets.length) { bgSlot = `rotation.items.${B.rotation.items.length - 1}`; applyAll(); commit(); previewSlot(); render(); }
-      };
-      chips.append(add);
-      m.body.append(C.slider(ctx, 'background.rotation.minutes', '바꾸는 간격', 1, 720, 1, '분'));
-    }
-    m.body.append(chips);
-    if (B.mode === 'weekday') m.body.append(note('요일을 따로 꾸미지 않으면 기본 배경을 써요. 오늘이 아닌 요일을 고르면 미리보기로 잠깐 보여 줘요.'));
-    body.append(m.el);
-
-    const cur = ctx.get(slotPath());
-    if (!cur) {
-      const e = C.section(`${WD_NAMES[bgSlot.split('.')[1]]}요일 배경`, true);
-      e.body.append(note('지금은 기본 배경을 써요.'), btn('이 요일 따로 꾸미기', 'primary', () => {
-        ctx.set(slotPath(), D.clone(B.base)); commit(); previewSlot(); render();
-      }));
-      body.append(e.el);
-      return;
-    }
-    const P = slotPath();
-    const t = C.section('종류', true);
-    t.body.append(C.select(ctx, `${P}.type`, '종류', [['theme', '색·배치 탭의 배경색'], ['solid', '단색'], ['gradient', '그라데이션'], ['image', '이미지'], ['video', '동영상 (소리 없이 반복)']], () => render()));
-    if (cur.type === 'solid') t.body.append(C.colorA(ctx, `${P}.solid`, '색'));
-    if (cur.type === 'gradient') {
-      t.body.append(
-        C.select(ctx, `${P}.grad.kind`, '모양', [['linear', '직선'], ['radial', '원형'], ['conic', '회전형']], () => render()),
-        C.slider(ctx, `${P}.grad.angle`, '방향 · 각도', 0, 360, 1, '°'),
-      );
-      cur.grad.stops.forEach((s, i) => {
-        const g = h('div', 'stop');
-        g.append(C.colorA(ctx, `${P}.grad.stops.${i}`, `색 ${i + 1}`), C.slider(ctx, `${P}.grad.stops.${i}.p`, `색 ${i + 1} 위치`, 0, 100, 1, '%'));
-        if (cur.grad.stops.length > 2) g.append(btn('이 색 빼기', 'sm', () => { cur.grad.stops.splice(i, 1); applyAll(); commit(); render(); }));
-        t.body.append(g);
-      });
-      t.body.append(btn('+ 색 추가', '', () => { cur.grad.stops.push({ c: '#ff4a1c', a: 1, p: 100 }); applyAll(); commit(); render(); }));
-    }
-    if (cur.type === 'image' || cur.type === 'video') {
-      const r = h('div', 'row-inline');
-      r.append(h('span', 'file-name', cur.media ? cur.media.name : '아직 파일 없음'), btn('파일 올리기', 'primary', async () => {
-        const assets = await window.diary.pickAsset(cur.type === 'video' ? 'video' : 'image');
-        if (assets[0]) { ctx.set(`${P}.media`, { url: assets[0].url, name: assets[0].name }); commit(); D.theme.renderBackground(state.theme, true); render(); }
-      }));
-      t.body.append(r);
-      t.body.append(C.select(ctx, `${P}.fit`, '채우기 방식', [['cover', '꽉 채우기'], ['contain', '맞추기'], ['tile', '바둑판'], ['center', '가운데']]));
-      if (cur.type === 'video') t.body.append(note('동영상은 "바둑판" 대신 꽉 채우기로 보여요.'));
-    }
-    const pos = C.section('위치 · 크기 · 회전', true);
-    const drag = btn(dragOn ? '드래그 끄기' : '드래그로 옮기기', dragOn ? 'primary' : '', () => { setDrag(!dragOn); render(); });
-    pos.body.append(drag,
-      C.slider(ctx, `${P}.x`, '가로 위치', -1500, 1500, 1, 'px'),
-      C.slider(ctx, `${P}.y`, '세로 위치', -1500, 1500, 1, 'px'),
-      C.slider(ctx, `${P}.scale`, '확대 · 축소', 10, 400, 1, '%'),
-      C.slider(ctx, `${P}.rotate`, '회전', -180, 180, 0.5, '°'),
-    );
-    const fx = C.section('글씨가 잘 보이게', true);
-    fx.body.append(
-      C.slider(ctx, `${P}.brightness`, '밝기', 0, 200, 1, '%'),
-      C.slider(ctx, `${P}.blur`, '흐림', 0, 40, 0.5, 'px'),
-      C.slider(ctx, `${P}.opacity`, '투명도 (보이는 정도)', 0, 100, 1, '%'),
-      C.colorA(ctx, `${P}.overlayC`, '색 덮개 색'),
-      C.slider(ctx, `${P}.overlay`, '색 덮개 세기', 0, 100, 1, '%'),
-    );
-    const layers = C.section('배경 위 장식', true);
-    layers.body.append(C.toggle(ctx, 'layout.stripeOn', '사선 띠'), C.toggle(ctx, 'layout.textureOn', '질감'));
-    body.append(t.el, pos.el, fx.el, layers.el);
-
-    if (bgSlot.startsWith('weekday.')) body.append(btn('이 요일은 기본 배경 쓰기', '', () => { ctx.set(P, null); commit(); previewSlot(); render(); }));
-    if (bgSlot.startsWith('rotation.items.')) {
-      const i = +bgSlot.split('.')[2];
-      body.append(btn('이 배경 빼기', '', () => { B.rotation.items.splice(i, 1); bgSlot = 'base'; applyAll(); commit(); previewSlot(); render(); }));
-    }
-  }
-
-  // 배경 드래그
-  (function dragSetup() {
-    const layer = document.getElementById('bg-drag');
-    let start = null;
-    layer.addEventListener('pointerdown', (e) => {
-      const b = ctx.get(slotPath()); if (!b) return;
-      start = { x: e.clientX, y: e.clientY, bx: b.x, by: b.y };
-      layer.setPointerCapture(e.pointerId);
-    });
-    layer.addEventListener('pointermove', (e) => {
-      if (!start) return;
-      const P = slotPath();
-      D.setPath(state.theme, `${P}.x`, Math.round(start.bx + e.clientX - start.x));
-      D.setPath(state.theme, `${P}.y`, Math.round(start.by + e.clientY - start.y));
-      if (state.previewBg) state.previewBg = ctx.get(P);
-      D.theme.renderBackground(state.theme);
-    });
-    layer.addEventListener('pointerup', () => { if (start) { start = null; commit(); render(); } });
-  })();
 
   // ---------- 비서 ----------
   function renderAsst(body) {
@@ -664,109 +462,10 @@
     body.append(a.el, img.el, hide.el, cl.el);
   }
 
-  // ---------- 테마 ----------
-  async function collectAssets(theme) {
-    const json = JSON.stringify(theme);
-    const ids = [...new Set([...json.matchAll(/diary-asset:\/\/local\/([\w.-]+)/g)].map((m) => m[1]))];
-    const assets = {};
-    for (const id of ids) { const data = await window.diary.readAsset(id); if (data) assets[id] = data; }
-    return assets;
-  }
-  async function exportTheme(theme, name) {
-    D.toast('파일을 만드는 중…');
-    const file = { format: 'work-diary-theme', version: 1, name, theme, assets: await collectAssets(theme) };
-    const ok = await window.diary.exportTheme(JSON.stringify(file), name);
-    if (ok) D.toast('내보냈어요.');
-  }
-  async function importTheme() {
-    const raw = await window.diary.importTheme();
-    if (!raw) return;
-    try {
-      const file = JSON.parse(raw);
-      if (file.format !== 'work-diary-theme' || !file.theme) throw new Error('형식');
-      let json = JSON.stringify(file.theme);
-      for (const [id, data] of Object.entries(file.assets || {})) {
-        const saved = await window.diary.writeAsset(id, data);
-        json = json.split(`diary-asset://local/${id}`).join(saved.url);
-      }
-      const theme = JSON.parse(json);
-      const name = uniqueName(file.name || '가져온 테마');
-      state.themes.push({ name, savedAt: new Date().toISOString(), theme });
-      await window.diary.saveThemes(state.themes);
-      loadTheme(theme);
-      D.toast(`"${name}" 테마를 가져와서 적용했어요.`);
-    } catch (e) {
-      D.toast('테마 파일을 읽지 못했어요.');
-    }
-  }
-  function uniqueName(n) {
-    let name = n, i = 2;
-    while (state.themes.find((t) => t.name === name)) name = `${n} (${i++})`;
-    return name;
-  }
-
-  function renderThemes(body) {
-    const s = C.section('지금 꾸밈 저장', true);
-    const r = h('div', 'row-inline');
-    const input = h('input'); input.type = 'text'; input.placeholder = '테마 이름 (예: 월요병 퇴치)';
-    r.append(input, btn('저장', 'primary', async () => {
-      const name = input.value.trim(); if (!name) return D.toast('이름을 적어 주세요.');
-      const existing = state.themes.find((t) => t.name === name);
-      if (existing) { existing.theme = D.clone(state.theme); existing.savedAt = new Date().toISOString(); }
-      else state.themes.push({ name, savedAt: new Date().toISOString(), theme: D.clone(state.theme) });
-      await window.diary.saveThemes(state.themes);
-      D.toast(`"${name}" 저장했어요.`); render();
-    }));
-    s.body.append(r);
-    s.body.append(h('div', 'row-inline'));
-    s.body.lastChild.append(
-      btn('파일로 내보내기', '', () => exportTheme(state.theme, input.value.trim() || '내 테마')),
-      btn('파일 가져오기', '', importTheme),
-    );
-    s.body.append(note('내보낸 <b>.diarytheme</b> 파일에는 글씨체·그림·동영상 파일까지 함께 들어 있어서 다른 컴퓨터에서도 똑같이 보여요.'));
-
-    const l = C.section(`저장한 테마 (${state.themes.length})`, true);
-    if (!state.themes.length) l.body.append(note('아직 없어요.'));
-    state.themes.forEach((t, i) => {
-      const row = h('div', 'theme-row');
-      const d = new Date(t.savedAt);
-      row.append(h('div', 'theme-name', t.name), h('div', 'theme-date', `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`));
-      const acts = h('div', 'theme-acts');
-      acts.append(
-        btn('불러오기', 'primary sm', () => { loadTheme(D.clone(t.theme)); D.toast(`"${t.name}" 적용`); }),
-        btn('덮어쓰기', 'sm', async () => { t.theme = D.clone(state.theme); t.savedAt = new Date().toISOString(); await window.diary.saveThemes(state.themes); D.toast('덮어썼어요.'); render(); }),
-        btn('내보내기', 'sm', () => exportTheme(t.theme, t.name)),
-        btn('삭제', 'sm danger', async () => { if (!confirm(`"${t.name}" 테마를 지울까요?`)) return; state.themes.splice(i, 1); await window.diary.saveThemes(state.themes); render(); }),
-      );
-      row.append(acts);
-      l.body.append(row);
-    });
-
-    const reset = C.section('처음으로');
-    reset.body.append(btn('모든 꾸밈을 처음 기본값으로', 'danger', () => {
-      if (!confirm('지금 꾸밈을 모두 기본값으로 바꿀까요? (실행 취소로 되돌릴 수 있어요)')) return;
-      const fonts = state.theme.fonts;
-      const t = D.clone(D.DEFAULT_THEME); t.fonts = fonts;
-      loadTheme(t);
-    }));
-    body.append(s.el, l.el, reset.el);
-  }
-
-  // ---------- 글씨체 자동완성 목록 ----------
-  const datalist = document.createElement('datalist');
-  datalist.id = 'font-options';
-  document.body.append(datalist);
-  function refreshFontOptions() {
-    datalist.innerHTML = '';
-    const names = new Set([...D.fonts.builtin, ...state.theme.fonts.map((f) => f.family), ...D.fonts.registry.keys()]);
-    for (const n of names) { const o = document.createElement('option'); o.value = n; o.label = D.fonts.info(n).source === 'system' ? '내 컴퓨터' : D.fonts.info(n).source === 'upload' ? '올린 파일' : '기본'; datalist.append(o); }
-  }
-
   // ---------- 시작 ----------
   function init() {
     document.getElementById('btn-settings').onclick = () => (document.body.classList.contains('settings-open') ? close() : open());
     snapshotHistory();
-    refreshFontOptions();
     if (!state.hasKeys.notion) { tab = 'connect'; setTimeout(open, 400); }
     window.addEventListener('keydown', (e) => {
       const mod = e.metaKey || e.ctrlKey;
@@ -780,5 +479,5 @@
     window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.body.classList.contains('settings-open')) close(); });
   }
 
-  D.settings = { init, open, close, refreshFontOptions, refresh: () => { if (document.body.classList.contains('settings-open') && tab === 'connect' && !document.activeElement.matches('input')) render(); } };
+  D.settings = { init, open, close, refresh: () => { if (document.body.classList.contains('settings-open') && tab === 'connect' && !document.activeElement.matches('input')) render(); } };
 })();

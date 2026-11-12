@@ -692,7 +692,6 @@ function applyAutoLaunch(on) {
 
 // ---------- 파일(글씨체/그림/동영상) ----------
 const KIND_FILTERS = {
-  font: [{ name: '글씨체', extensions: ['ttf', 'otf', 'woff', 'woff2'] }],
   image: [{ name: '그림', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'] }],
   video: [{ name: '동영상', extensions: ['mp4', 'webm'] }],
   media: [{ name: '그림/동영상', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'mp4', 'webm'] }],
@@ -717,7 +716,6 @@ function registerIpc() {
     version: app.getVersion(),
     update: updateState,
     theme: store.get('theme', null),
-    themes: store.get('themes', []),
     stats: store.get('stats', {}),
     lastAssistant: store.get('lastAssistant', null),
     chat: store.get('chat', []),
@@ -779,7 +777,6 @@ function registerIpc() {
   ipcMain.handle('todo:edit', (_e, id, text) => editTodo(String(id), String(text)));
   ipcMain.handle('todo:toggle', (_e, id, checked) => toggleTodo(String(id), !!checked));
   ipcMain.handle('theme:save', (_e, theme) => { store.set('theme', theme); applyAppIcon(); return true; });
-  ipcMain.handle('themes:save', (_e, list) => { store.set('themes', list); return true; });
   ipcMain.handle('stats:save', (_e, stats) => { store.set('stats', stats); return true; });
   ipcMain.handle('stats:reset', () => { store.set('stats', {}); store.set('statAwards', {}); store.set('statsStart', state.today); return {}; });
   ipcMain.handle('open', (_e, url) => {
@@ -821,32 +818,6 @@ function registerIpc() {
     return fs.existsSync(file) ? fs.readFileSync(file).toString('base64') : null;
   });
   ipcMain.handle('asset:write', (_e, name, b64) => saveAsset(Buffer.from(b64, 'base64'), name));
-
-  ipcMain.handle('theme:export', async (_e, json, name) => {
-    const r = await dialog.showSaveDialog(win, {
-      defaultPath: `${(name || '테마').replace(/[\\/:*?"<>|]/g, '_')}.diarytheme`,
-      filters: [{ name: '다이어리 테마', extensions: ['diarytheme'] }],
-    });
-    if (r.canceled || !r.filePath) return false;
-    fs.writeFileSync(r.filePath, json);
-    return true;
-  });
-  ipcMain.handle('theme:import', async () => {
-    const r = await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: '다이어리 테마', extensions: ['diarytheme', 'json'] }] });
-    if (r.canceled || !r.filePaths[0]) return null;
-    return fs.readFileSync(r.filePaths[0], 'utf8');
-  });
-
-  ipcMain.handle('fonts:system', async () => {
-    try {
-      const fontList = require('font-list');
-      const fonts = await fontList.getFonts({ disableQuoting: true });
-      return [...new Set(fonts)].sort((a, b) => a.localeCompare(b, 'ko'));
-    } catch (e) {
-      console.error('[fonts]', e);
-      return [];
-    }
-  });
 }
 
 let claudeCli = null;
@@ -925,7 +896,7 @@ app.whenReady().then(() => {
     return net.fetch(pathToFileURL(file).toString(), { headers: req.headers });
   });
 
-  const allowed = ['local-fonts', 'notifications'];
+  const allowed = ['notifications'];
   session.defaultSession.setPermissionRequestHandler((_wc, perm, cb) => cb(allowed.includes(perm)));
   session.defaultSession.setPermissionCheckHandler((_wc, perm) => allowed.includes(perm));
 
