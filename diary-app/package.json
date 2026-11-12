@@ -38,9 +38,6 @@
       "build/tray*.png",
       "package.json"
     ],
-    "asarUnpack": [
-      "node_modules/font-list/**"
-    ],
     "directories": {
       "output": "dist",
       "buildResources": "build"
