@@ -174,27 +174,18 @@ function seed() {
   await page.click('[data-color-pick=off]'); await page.click('[data-size=xl]'); await page.click('[data-act=close]');
   check('아주 큰 글씨에서도 옆으로 안 넘침', !(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)));
 
-  // 6-1. 홈 화면 앱 배치: 화면 높이 기준으로 놓아도 탭바와 저장 버튼이 정확히 바닥에 붙는다
-  const edges = await page.evaluate(async () => {
+  // 6-1. 홈 화면 앱 배치: 내용이 짧은 화면에서도 페이지가 기기 화면보다 길고, 탭바는 바닥에 그대로 붙어 있다
+  await put({ version: 2, entries: {}, meds: [], taken: {}, settings: { hintClosed: true } });
+  const edges = await page.evaluate(() => {
     const root = document.documentElement;
     root.classList.add('standalone');
     root.style.setProperty('--screen-h', `${innerHeight}px`);
-    const tab = document.querySelector('.tabbar').getBoundingClientRect().bottom;
-    document.querySelector('[data-act=record]').click();
-    await new Promise((r) => setTimeout(r, 450));
-    const saveBar = document.querySelector('.savebar').getBoundingClientRect().bottom;
-    document.querySelector('.sheet-top [data-act=close]').click();
-    await new Promise((r) => setTimeout(r, 300));
-    // 내용이 긴 화면에서도 페이지는 안 움직이고 #app 안에서만 스크롤된다
-    const app = document.querySelector('#app');
-    app.scrollTop = 200;
-    const inner = [app.scrollHeight > app.clientHeight, document.documentElement.scrollHeight <= innerHeight, Math.round(document.querySelector('.tabbar').getBoundingClientRect().bottom)];
-    app.scrollTop = 0;
+    const out = [document.documentElement.scrollHeight > innerHeight, Math.round(document.querySelector('.tabbar').getBoundingClientRect().bottom), innerHeight];
     root.classList.remove('standalone');
-    return [Math.round(tab), Math.round(saveBar), innerHeight, ...inner];
+    return out;
   });
-  check('홈 화면 앱: 탭바·저장 줄이 화면 바닥에 맞음', edges[0] === edges[2] && edges[1] === edges[2], edges.join(', '));
-  check('홈 화면 앱: 내용만 스크롤되고 탭바는 그대로', edges[3] && edges[4] && edges[5] === edges[2], edges.join(', '));
+  check('홈 화면 앱: 짧은 화면도 페이지가 화면보다 길고 탭바는 바닥', edges[0] && edges[1] === edges[2], edges.join(', '));
+  await put(seed());
 
   // 7. 백업 내보내기 → 지우기 → 불러오기
   await page.click('[data-act=settings]');

@@ -14,8 +14,7 @@ export function toast(msg) {
   toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
 }
 
-// 화면 맨 위로. 홈 화면 앱에서는 #app이 스크롤 칸이라 둘 다 올린다.
-export const toTop = () => { window.scrollTo(0, 0); app.scrollTop = 0; };
+export const toTop = () => window.scrollTo(0, 0);
 
 // 클래스를 뗐다 붙여서 CSS 애니메이션을 처음부터 다시 돌린다
 function replay(el, cls, ms) {

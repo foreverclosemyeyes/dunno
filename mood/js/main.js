@@ -181,7 +181,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ---------- 시작 ----------
-// 홈 화면 앱이면 아래 고정 요소(탭바·저장 버튼)를 기기 화면 높이 기준으로 놓는다 (이유는 app.css의 .standalone 설명)
+// 홈 화면 앱이면 기기 화면 높이를 CSS에 알려 준다 (페이지를 화면보다 길게 유지하는 데 쓴다. 이유는 app.css의 .standalone 설명)
 if (standalone()) {
   document.documentElement.classList.add('standalone');
   document.documentElement.style.setProperty('--screen-h', `${Math.max(screen.height, screen.width)}px`);
