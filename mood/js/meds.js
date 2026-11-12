@@ -1,6 +1,6 @@
 // 약: 그날 먹은 약(먹을 때마다 한 줄, 시각 포함), 약 추가 입력
-import { CATALOG, SEDATIVES, TIMED } from './constants.js';
-import { addDays, nowTime } from './dates.js';
+import { CATALOG, SEDATIVES } from './constants.js';
+import { addDays } from './dates.js';
 import { esc } from './dom.js';
 import { T } from './i18n.js';
 import { IC } from './icons.js';
@@ -21,8 +21,8 @@ export function setMeds(date, list) {
 }
 export function addDose(list, key) {
   const m = db.meds.concat(list).find((x) => medKey(x) === key);
-  // 시각은 꼭 적지 않아도 된다. 각성제·수면제류만 지금 시각을 자동으로 넣고, 나머지는 비워 둔다.
-  if (m) list.push({ name: m.name, dose: m.dose, at: TIMED.includes(m.name) ? nowTime() : '' });
+  // 시각은 비워 둔 채로 체크한다. 적고 싶을 때만 '✓ 먹음'을 눌러 넣는다.
+  if (m) list.push({ name: m.name, dose: m.dose, at: '' });
 }
 
 // 전날 안정제·수면제를 먹었거나, 당일 새벽(06시 전)에 먹었으면 그날 밤 잠은 '약 먹고 잔 밤'으로 본다
