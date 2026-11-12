@@ -355,7 +355,7 @@
         C.toggle(ctx, 'layout.fxOn', '화려한 연출 (등장·넘김·체크 효과)'),
       );
       // 스킨 그림 묶음: 파일 이름으로 자리를 찾음 (cut-city, cloud-1~3, wd-0~6, pointup, pointup-bg, rankup, rankup-bg, bubble, reply)
-      const SKIN_KEYS = ['cut-city', 'cloud-1', 'cloud-2', 'cloud-3', 'wd-0', 'wd-1', 'wd-2', 'wd-3', 'wd-4', 'wd-5', 'wd-6', 'pointup', 'pointup-bg', 'rankup', 'rankup-bg', 'bubble', 'empty', 'mask', 'dagger', 'gatsu',
+      const SKIN_KEYS = ['cut-city', 'cloud-1', 'cloud-2', 'cloud-3', 'wd-0', 'wd-1', 'wd-2', 'wd-3', 'wd-4', 'wd-5', 'wd-6', 'pointup', 'pointup-bg', 'rankup', 'rankup-bg', 'bubble', 'empty', 'mask', 'dagger', 'gatsu', 'app-icon',
         ...Array.from({ length: 10 }, (_, n) => [`digit-${n}`, `digit-${n}-red`, `digit-${n}-blue`]).flat()];
       const skin = state.theme.layout.skin || {};
       const nSkin = SKIN_KEYS.filter((k) => skin[k]).length;
@@ -552,6 +552,24 @@
       D.toast(`${ok.map((r) => D.castFromLabel(r.label).name).join(', ')} 세팅 끝!`, 4000);
     }));
     body.append(who.el);
+    // 모드: 같은 캐릭터의 다른 모습 (그림 한 장씩). 파일 이름으로 자리를 찾음: look-glasses / look-joker / look-hurt / look-plain / look-think
+    const lk = C.section('모드 (같은 캐릭터의 다른 모습)', true);
+    const looks = state.theme.assistant.looks || {};
+    const haveLooks = D.LOOKS.filter(([id]) => looks[id]);
+    const lrow = h('div', 'cast-row');
+    const cur = state.theme.assistant.look || 'auto';
+    const pickLook = (id) => { ctx.set('assistant.look', id); commit(); D.renderAll(); render(); };
+    lrow.append(btn('자동 (상황 따라)', cur === 'auto' ? 'on' : '', () => pickLook('auto')), btn('원래 그림만', cur === 'off' ? 'on' : '', () => pickLook('off')));
+    for (const [id, ko] of haveLooks) lrow.append(btn(ko, cur === id ? 'on' : '', () => pickLook(id)));
+    lk.body.append(lrow, btn(haveLooks.length ? `모드 그림 ${haveLooks.length}/${D.LOOKS.length}장 (더 불러오기)` : '모드 그림 불러오기 (여러 장 한꺼번에)', '', async () => {
+      const assets = await window.diary.pickAsset('image'); let n = 0;
+      const next = { ...(state.theme.assistant.looks || {}) };
+      for (const as of assets) { const m = as.name.toLowerCase().match(/^look-(glasses|joker|hurt|plain|think)\./); if (m) { next[m[1]] = { url: as.url, name: as.name }; n++; } }
+      if (!n) return D.toast('모드 그림 이름이 아니에요. (look-joker.png, look-think.png …)', 5000);
+      ctx.set('assistant.looks', next); commit(); D.renderAll(); render(); D.toast(`모드 그림 ${n}장을 넣었어요.`);
+    }));
+    lk.body.append(note('자동: 생각하는 중엔 "생각 중", 진지할 땐 "조커", 지쳤을 땐 "다친 모습", 웃을 땐 "안경 벗음", 평소엔 원래 그림이 나와요.'));
+    body.append(lk.el);
     const a = C.section('이름 · 말투', true);
     a.body.append(
       C.text(ctx, 'assistant.name', '비서 이름'),

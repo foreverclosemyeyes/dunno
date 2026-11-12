@@ -624,6 +624,22 @@ function createTray() {
   tray.refreshMenu = () => tray.setContextMenu(menu());
 }
 
+// 앱 아이콘을 내 그림으로: 스킨 그림 중 'app-icon' 이 있으면 실행 중 독(Dock)/작업 표시줄 아이콘으로 씀
+let appIconUrl = null;
+function applyAppIcon() {
+  try {
+    const t = store.get('theme', null);
+    const url = t && t.layout && t.layout.skin && t.layout.skin['app-icon'];
+    if (url === appIconUrl) return;
+    appIconUrl = url || null;
+    const file = url ? path.join(assetsDir, path.basename(String(url))) : path.join(__dirname, '..', 'build', 'icon.png');
+    const img = nativeImage.createFromPath(file);
+    if (img.isEmpty()) return;
+    if (process.platform === 'darwin') { if (app.dock) app.dock.setIcon(img); }
+    else if (win && !win.isDestroyed()) win.setIcon(img);
+  } catch (e) { console.error('[app icon]', e); }
+}
+
 // 작은 창: 큰 창(1360x820 기준) 화면을 그대로 축소해서 보여 줌 → 캐릭터·말풍선·달력·노트가 같은 비율로 같이 작아짐
 const ZOOM_BASE = { w: 1360, h: 820 };
 function fitZoom() {
@@ -760,7 +776,7 @@ function registerIpc() {
   ipcMain.handle('todo:move', (_e, id, date) => moveTodo(String(id), String(date)));
   ipcMain.handle('todo:edit', (_e, id, text) => editTodo(String(id), String(text)));
   ipcMain.handle('todo:toggle', (_e, id, checked) => toggleTodo(String(id), !!checked));
-  ipcMain.handle('theme:save', (_e, theme) => { store.set('theme', theme); return true; });
+  ipcMain.handle('theme:save', (_e, theme) => { store.set('theme', theme); applyAppIcon(); return true; });
   ipcMain.handle('themes:save', (_e, list) => { store.set('themes', list); return true; });
   ipcMain.handle('stats:save', (_e, stats) => { store.set('stats', stats); return true; });
   ipcMain.handle('stats:reset', () => { store.set('stats', {}); store.set('statAwards', {}); store.set('statsStart', state.today); return {}; });
@@ -894,6 +910,7 @@ app.whenReady().then(() => {
   });
   assetsDir = path.join(ud, 'assets');
   fs.mkdirSync(assetsDir, { recursive: true });
+  applyAppIcon();
 
   // 지난번 동기화 결과로 먼저 화면을 채움 (인터넷이 없어도 보임)
   const snap = cache.get('snapshot');

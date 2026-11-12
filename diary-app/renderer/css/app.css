@@ -1774,3 +1774,7 @@ body.layout-bigcal #assistant { margin-bottom: clamp(20px, 5vh, 56px); }
 .log-day { margin-left: 46px; }
 .log-me { margin-left: 96px; }
 .log-key { -webkit-text-stroke: 0; font-size: 14px; text-shadow: 0 0 4px #000; }
+
+/* 모드 그림(세로로 긴 컷): 조금 작게, 말풍선 쪽으로 붙이고 바닥에 맞춤 → 머리가 달력을 덜 가림 */
+#asst-figure img.look { width: auto !important; height: 88% !important; max-width: none !important; object-fit: contain; margin: 0 4% 0 auto !important; align-self: flex-end; }
+#asst-figure img.look { margin: 0 27% 0 auto !important; }

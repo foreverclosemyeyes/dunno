@@ -119,6 +119,8 @@
       tone: '차분하고 간결한 존댓말. 과한 감탄·칭찬·이모지 없이 핵심만 짧게.',
       image: null,
       faces: { base: null, talk: null, smile: null, wink: null, serious: null, closed: null },
+      looks: {}, // 모드 그림 { glasses|joker|hurt|plain|think: { url, name } }
+      look: 'auto', // 'auto' | 'off' | 모드 id
       size: 400,
       outline: 4, // 캐릭터 검은 외곽선 두께(px)
       outlineColor: { c: '#0B0B0B', a: 1 },
@@ -184,7 +186,9 @@
   // 지금 있는 캐릭터 id 목록 (기본 4명 + 불러온 캐릭터)
   D.castIds = (t) => [...new Set([...D.CAST.map((c) => c[0]), ...Object.keys(t.cast || {}), t.castActive || 'ren'])];
   D.castName = (t, id) => ((t.castActive || 'ren') === id ? t.assistant.name : (t.cast && t.cast[id] && t.cast[id].name) || (D.CAST.find((c) => c[0] === id) || [])[1] || id);
-  const CAST_KEYS = ['name', 'tone', 'image', 'faces', 'size', 'x', 'y', 'flip'];
+  const CAST_KEYS = ['name', 'tone', 'image', 'faces', 'size', 'x', 'y', 'flip', 'looks', 'look'];
+  // 모드(다른 모습): 그림 한 장씩. 자동일 땐 상황에 따라 바뀜
+  D.LOOKS = [['glasses', '안경'], ['joker', '조커'], ['hurt', '다친 모습'], ['plain', '안경 벗음'], ['think', '생각 중']];
   const emptyFaces = () => ({ base: null, talk: null, smile: null, wink: null, serious: null, closed: null });
   // 저장된 캐릭터 꺼내기 (없으면 기본값으로 새로 만듦)
   D.castGet = (t, id) => {
