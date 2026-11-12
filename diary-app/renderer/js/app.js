@@ -121,7 +121,7 @@
   }
 
   // ---------- 큰 달력 ----------
-  const MON_EN = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  const MON_EN = ['JaN', 'FeB', 'MaR', 'aPR', 'MaY', 'JuN', 'JuL', 'auG', 'SeP', 'oCT', 'NoV', 'DeC']; // 요일 머리글처럼 대소문자 섞기
   function jitter(seedStr, range) {
     let h = 0; for (const ch of seedStr) h = (h * 31 + ch.charCodeAt(0)) | 0;
     const r1 = ((h >>> 0) % 1000) / 1000, r2 = ((((h >>> 0) / 1000) | 0) % 1000) / 1000;

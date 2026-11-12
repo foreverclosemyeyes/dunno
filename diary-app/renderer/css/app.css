@@ -1499,3 +1499,5 @@ body.skin-bubble #asst-bubble { margin: 92px 0 46px 78px; }
 body.skin-bubble #asst-controls { position: relative; z-index: 4; }
 body.skin-bubble #chat-form { order: 2; width: 250px; min-height: 40px !important; margin: 0 !important; padding: 4px 44px 4px 18px !important; transform: none !important; }
 body.skin-bubble #chat-input { font-size: 13px; min-width: 0; }
+
+#bc-month-label .el-calHead { text-transform: none !important; }
