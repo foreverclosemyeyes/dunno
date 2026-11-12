@@ -77,6 +77,8 @@ jobs:
 
   release:
     needs: build
+    # 윈도우 빌드 서버가 안 잡혀 실패·취소돼도 Mac 파일이 있으면 릴리스함 (앱 업데이트는 Mac zip 으로 받음)
+    if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -84,6 +86,8 @@ jobs:
         with:
           path: out
           merge-multiple: true
+      - name: Mac 파일이 있는지 확인
+        run: ls out/*mac-arm64.zip out/*mac-x64.zip
       - uses: softprops/action-gh-release@v2
         with:
           make_latest: true
