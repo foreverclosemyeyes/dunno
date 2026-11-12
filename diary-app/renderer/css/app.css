@@ -1583,3 +1583,10 @@ body.skin-bubble #chat-form { position: absolute !important; z-index: 4; left: c
   width: min(320px, calc(var(--iw) * .56)) !important; min-height: 48px !important; padding: 6px 54px 6px 22px !important; margin: 0 !important; }
 body.skin-bubble #chat-input { font-size: 15px !important; }
 body.skin-bubble #asst-controls .asst-actions { position: absolute; z-index: 4; left: calc(var(--il) + var(--iw) * .46); top: calc(var(--it) + var(--ih) * .36 - 34px); margin: 0; flex-wrap: nowrap; gap: 6px; }
+
+/* 노트 구멍: 레퍼런스 비율(폭 ≈ 테두리의 1.3배, 높이 ≈ 폭의 1.5배, 간격 ≈ 구멍 높이보다 조금 짧게), 종이 가장자리에서 살짝 안쪽 */
+body.layout-bigcal .nb-holes, body.layout-bigcal .nb-sheet-back::after, body.layout-bigcal #right > #quests::before {
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='22' height='392' viewBox='0 0 22 392'><g fill='%230b0b0b'><polygon points='4,0 17,1 20,28 7,28'/><polygon points='3,50 17,50 20,75 6,75'/><polygon points='3,95 17,95 20,121 6,121'/><polygon points='2,142 16,142 19,173 5,174'/><polygon points='3,195 17,196 20,220 6,221'/><polygon points='3,245 17,246 20,270 6,273'/><polygon points='2,295 17,295 20,322 5,323'/><polygon points='3,344 17,343 20,368 6,370'/></g></svg>") center top / 22px 392px repeat-y !important; width: 22px !important; }
+body.layout-bigcal .nb-holes { right: 26px !important; top: 14px !important; bottom: 18px !important; }
+body.layout-bigcal .nb-sheet-back::after { right: 10px; top: 26px; bottom: 26px; }
+body.layout-bigcal #right > #quests::before { right: 18px !important; top: 12px !important; bottom: 14px !important; }
