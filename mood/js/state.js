@@ -1,0 +1,9 @@
+// 화면 상태
+import { today } from './dates.js';
+
+// ---------- 화면 상태 ----------
+export const ui = { tab: 'today', selected: today(), draft: null, addingMed: false };
+export const standalone = () => window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+
+// ---------- 흐름 화면 (주 / 월) ----------
+export const trend = { mode: 'week', anchor: today(), pick: null };

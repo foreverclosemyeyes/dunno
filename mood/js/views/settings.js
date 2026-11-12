@@ -1,0 +1,74 @@
+// 설정 화면
+import { DISCLAIMER, FONTS, SIZES } from '../constants.js';
+import { esc, sheet, showSheet } from '../dom.js';
+import { remind } from '../files.js';
+import { EN, F, T } from '../i18n.js';
+import { medAddHtml, medKey } from '../meds.js';
+import { db } from '../store.js';
+import { ACCENTS, accentKey, isLight } from '../theme.js';
+
+// ---------- 설정·백업 ----------
+export function openSettings() {
+  const n = Object.keys(db.entries).length;
+  const pick = (act, attr, on, label, style) => `<button class="li med" data-act="${act}" ${attr} aria-pressed="${on}"${style ? ` style="${style}"` : ''}>
+    <span class="lk">${label}</span><span class="chk">✓</span></button>`;
+  const meds = db.meds.length
+    ? db.meds.map((m) => `<div class="li"><span class="lk">${esc(m.name)}<small>${esc(m.dose || '')}</small></span>
+        <button class="txt dim" data-act="delMed" data-med="${esc(medKey(m))}">${T('삭제')}</button></div>`).join('')
+    : '';
+  sheet.innerHTML = `<div class="sheet-in" style="padding-bottom:calc(var(--safe-b) + 30px)">
+    <div class="sheet-top">
+      <span class="txt"></span>
+      <div class="st"><b>${T('설정')}</b><span>${F('기록 {0}일', n)}</span></div>
+      <button class="txt strong" data-act="close">${T('완료')}</button>
+    </div>
+
+    <div class="sec">${T('언어 · Language')}</div>
+    <section class="card list">${pick('lang', 'data-lang="ko"', !EN, '한국어')}${pick('lang', 'data-lang="en"', EN, 'English')}</section>
+
+    <div class="sec">${T('화면 모드')}</div>
+    <section class="card list">${[['auto', T('자동 (아이폰 설정 따라감)')], ['light', T('라이트')], ['dark', T('다크')]].map(([k, label]) =>
+      pick('theme', `data-theme-pick="${k}"`, (db.settings.theme || 'auto') === k, label)).join('')}</section>
+
+    <div class="sec">${T('색')}</div>
+    <section class="card list">${pick('color', 'data-color-pick="off"', !accentKey(), T('흑백'))}${Object.keys(ACCENTS).map((k) =>
+      pick('color', `data-color-pick="${k}"`, accentKey() === k, `<i class="sw-dot" style="background:rgb(${ACCENTS[k][isLight() ? 2 : 1]})"></i>${T(ACCENTS[k][0])}`)).join('')}</section>
+    <p class="secnote">${T('기분·에너지·자신감이 낮은 날은 회색, 높을수록 고른 색으로 물들어요.')}</p>
+
+    <div class="sec">${T('알림')}</div>
+    <section class="card list">
+      <label class="li"><span class="lk">${T('기록 알림')}</span><input type="time" id="r-log" value="${esc(remind().log || '')}"></label>
+      <label class="li"><span class="lk">${T('약 알림 1')}</span><input type="time" id="r-med1" value="${esc(remind().med1 || '')}"></label>
+      <label class="li"><span class="lk">${T('약 알림 2')}</span><input type="time" id="r-med2" value="${esc(remind().med2 || '')}"></label>
+      <button class="li add" data-act="ics">${T('캘린더에 알림 추가')}</button>
+    </section>
+    <p class="secnote">${T('아이폰 웹앱은 정해진 시간에 스스로 알림을 보낼 수 없어요. 대신 매일 반복되는 캘린더 알림 파일을 만들어 드려요. 시간을 정하고 버튼을 누른 뒤 “캘린더에 추가”를 고르세요. 안 쓰는 알림은 시간을 비워 두면 돼요.')}</p>
+
+    <div class="sec">${T('글씨체')}</div>
+    <section class="card list">${Object.keys(FONTS).map((k) => pick('font', `data-font="${k}"`, (db.settings.font || 'system') === k,
+      `${FONTS[k][0]}<small>${T('가나다 123')}</small>`, `font-family:${esc(FONTS[k][1])}`)).join('')}</section>
+
+    <div class="sec">${T('글씨 크기')}</div>
+    <section class="card list">${Object.keys(SIZES).map((k) => pick('size', `data-size="${k}"`, (db.settings.size || 'm') === k,
+      `<span style="font-size:${15 * SIZES[k][1]}px">${SIZES[k][0]}</span>`)).join('')}</section>
+
+    <div class="sec">${T('백업')}</div>
+    <section class="card list">
+      <button class="li add" data-act="export">${T('백업 파일 내보내기')}</button>
+      <button class="li add" data-act="import">${T('백업 파일 불러오기')}</button>
+    </section>
+    <p class="secnote">${T('기록은 이 아이폰 안에만 저장돼요. 폰을 바꾸거나 앱을 지우면 사라지니, 가끔 백업 파일을 만들어 “파일” 앱이나 iCloud에 넣어 두세요.')}</p>
+
+    <div class="sec" id="sec-meds">${T('자주 먹는 약')}</div>
+    <section class="card list">${meds}${medAddHtml()}</section>
+
+    <div class="sec">${T('홈 화면에 추가하는 방법')}</div>
+    <section class="card"><ol class="steps">
+      <li>${T('사파리에서 이 페이지를 엽니다.')}</li>
+      <li>${T('아래쪽 공유 버튼(네모에 위쪽 화살표)을 누릅니다.')}</li>
+      <li>${T('“홈 화면에 추가”를 누릅니다.')}</li>
+    </ol></section>
+    <p class="secnote">${DISCLAIMER} ${T('걱정되는 변화가 있으면 진료 때 이 기록을 보여 주며 이야기해 보세요.')}</p>
+  </div>`;
+  showSheet();
+}

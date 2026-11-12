@@ -179,7 +179,7 @@ input[type=text] { width: 100%; min-height: 30px; padding: 0; }
 .lvl::before { content: ""; position: absolute; left: 50%; top: -3px; width: 1.5px; height: 10px; margin-left: -0.75px; border-radius: 1px; background: var(--faint); }
 .lvl i { position: absolute; top: 0; height: 4px; border-radius: 999px; background: var(--tone, var(--ink)); }
 .lvl b { position: absolute; top: -3px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: var(--tone, var(--ink)); }
-.tile[style] { background: color-mix(in srgb, var(--tone) 15%, var(--card)); }
+.tile[style] { background: color-mix(in srgb, var(--tone) 24%, var(--card)); }
 .empty { text-align: center; color: var(--muted); padding: 26px 16px 16px; font-size: calc(14px * var(--fs, 1.12)); }
 .empty .e1 { font-size: calc(17px * var(--fs, 1.12)); font-weight: 600; color: var(--text); margin-bottom: 3px; }
 .empty .btn { margin-top: 18px; }
