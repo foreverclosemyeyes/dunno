@@ -1,9 +1,11 @@
 // 설정 화면
+import { VERSION } from '../config.js';
 import { DISCLAIMER, FONTS, SIZES } from '../constants.js';
 import { esc, sheet, showSheet } from '../dom.js';
 import { remind } from '../files.js';
 import { EN, F, T } from '../i18n.js';
 import { medAddHtml, medKey } from '../meds.js';
+import { standalone } from '../state.js';
 import { db } from '../store.js';
 import { ACCENTS, accentKey, isLight } from '../theme.js';
 
@@ -69,6 +71,7 @@ export function openSettings() {
       <li>${T('“홈 화면에 추가”를 누릅니다.')}</li>
     </ol></section>
     <p class="secnote">${DISCLAIMER} ${T('걱정되는 변화가 있으면 진료 때 이 기록을 보여 주며 이야기해 보세요.')}</p>
+    <p class="foot" id="about">Tide ${VERSION} · ${standalone() ? T('홈 화면 앱') : T('브라우저')} · ${screen.width}×${screen.height} / ${innerWidth}×${innerHeight}</p>
   </div>`;
   showSheet();
 }

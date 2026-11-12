@@ -142,11 +142,9 @@ export function viewTrend() {
   };
 
   // 증상(우울·고조·불안)은 기분과 같은 선 그래프로, 0(없음)~4(매우 높음)
-  const symCard = (key, name) => {
-    const high = got.filter((e) => e[key] >= 3).length;
-    const big = pickDate ? (pickE ? LEVELS[pickE[key] || 0] : '–') : F('{0}일', high);
-    return lineCard(key, name, 4, [[0, ''], [2, ''], [4, '']], `<div class="mt">${name}</div><div class="mv"><b>${big}</b><span>${pickDate ? pickLabel : T('높음 이상인 날')}</span></div>`);
-  };
+  // 평소에는 이름만 보이고, 날짜를 누르면 그날 단계가 나온다
+  const symCard = (key, name) => lineCard(key, name, 4, [[0, ''], [2, ''], [4, '']],
+    `<div class="mt">${name}</div>${pickDate ? `<div class="mv"><b>${pickE ? LEVELS[pickE[key] || 0] : '–'}</b><span>${pickLabel}</span></div>` : '<div class="mv"></div>'}`);
 
   // 생리: 이어진 날들을 하나의 띠로
   const guide = (h) => (pick == null ? '' : `<line x1="${cx(pick).toFixed(1)}" x2="${cx(pick).toFixed(1)}" y1="0" y2="${h}" stroke="${C.muted}"/>`);

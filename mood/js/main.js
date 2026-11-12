@@ -1,7 +1,7 @@
 // 시작점: 누르기·입력 처리와 앱 시작
 import { aiSummary } from './analysis.js';
 import { addDays, today } from './dates.js';
-import { $, app, closeSheet, enterApp, sheet, sheetOpen, toast } from './dom.js';
+import { $, app, closeSheet, enterApp, sheet, sheetOpen, toTop, toast } from './dom.js';
 import { exportData, giveFile, importData, makeIcs, remind } from './files.js';
 import { T } from './i18n.js';
 import { addDose, medKey, medsFor, normDose, setMeds, sugHtml, toggleDoseTime } from './meds.js';
@@ -26,7 +26,7 @@ function commitDoses(list) {
 
 // ---------- 이벤트 ----------
 const actions = {
-  tab: (el) => { if (ui.tab === el.dataset.tab) return; ui.tab = el.dataset.tab; window.scrollTo(0, 0); render(); enterApp(); },
+  tab: (el) => { if (ui.tab === el.dataset.tab) return; ui.tab = el.dataset.tab; toTop(); render(); enterApp(); },
   color: (el) => { db.settings.color = el.dataset.colorPick; save(); applyTheme(); render(); openSettings(); },
   theme: (el) => { db.settings.theme = el.dataset.themePick; save(); applyTheme(); render(); openSettings(); },
   doseAdd: (el) => { const list = doseList(); addDose(list, el.dataset.med); commitDoses(list); },
@@ -54,7 +54,7 @@ const actions = {
   mode: (el) => { trend.mode = el.dataset.mode; trend.pick = null; if (trend.anchor > today()) trend.anchor = today(); render(); },
   shift: (el) => { shiftTrend(Number(el.dataset.step)); render(); },
   pickDay: (el) => { const i = Number(el.dataset.i); trend.pick = trend.pick === i ? null : i; render(); },
-  openDay: (el) => { ui.selected = el.dataset.date; ui.tab = 'today'; window.scrollTo(0, 0); render(); enterApp(); },
+  openDay: (el) => { ui.selected = el.dataset.date; ui.tab = 'today'; toTop(); render(); enterApp(); },
   pick: (el) => { ui.selected = el.dataset.date; render(); },
   week: (el) => {
     const next = addDays(ui.selected, 7 * Number(el.dataset.step));

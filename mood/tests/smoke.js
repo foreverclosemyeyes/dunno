@@ -185,10 +185,16 @@ function seed() {
     const saveBar = document.querySelector('.savebar').getBoundingClientRect().bottom;
     document.querySelector('.sheet-top [data-act=close]').click();
     await new Promise((r) => setTimeout(r, 300));
+    // 내용이 긴 화면에서도 페이지는 안 움직이고 #app 안에서만 스크롤된다
+    const app = document.querySelector('#app');
+    app.scrollTop = 200;
+    const inner = [app.scrollHeight > app.clientHeight, document.documentElement.scrollHeight <= innerHeight, Math.round(document.querySelector('.tabbar').getBoundingClientRect().bottom)];
+    app.scrollTop = 0;
     root.classList.remove('standalone');
-    return [Math.round(tab), Math.round(saveBar), innerHeight];
+    return [Math.round(tab), Math.round(saveBar), innerHeight, ...inner];
   });
   check('홈 화면 앱: 탭바·저장 줄이 화면 바닥에 맞음', edges[0] === edges[2] && edges[1] === edges[2], edges.join(', '));
+  check('홈 화면 앱: 내용만 스크롤되고 탭바는 그대로', edges[3] && edges[4] && edges[5] === edges[2], edges.join(', '));
 
   // 7. 백업 내보내기 → 지우기 → 불러오기
   await page.click('[data-act=settings]');
