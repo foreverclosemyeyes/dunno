@@ -1672,3 +1672,7 @@ body.layout-bigcal #record #bc-tag { display: inline-block; margin: 6px 0 0 2px 
   background: #0b0b0b; color: #fff; clip-path: polygon(0 0, 100% 0, 96% 100%, 0 100%); transform: rotate(-1.5deg); letter-spacing: .04em; white-space: nowrap; }
 /* 위 노트를 조금 작게 → 진행 중 업무 칸이 넓어짐 */
 body.layout-bigcal #record { flex: 1.5 1 0 !important; margin: 30px 104px 30px 34px !important; }
+/* 진행 중 업무 칸 테두리를 위 노트(오늘의 기록)와 같은 굵기로 */
+body.layout-bigcal #right > #quests { border: solid #0b0b0b !important; border-width: 10px 11px 12px 15px !important; }
+/* 사람과 말풍선을 같이 위로 */
+body.layout-bigcal #assistant { margin-bottom: clamp(20px, 5vh, 56px); }

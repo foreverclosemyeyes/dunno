@@ -243,7 +243,7 @@
     const bw = box.clientWidth; let bh = box.clientHeight;
     // 스킨 대화 구도: 달력은 초상화 머리 바로 위까지만 (마지막 줄이 초상화 뒤로 숨지 않게)
     const figEl = $('#asst-figure');
-    if (document.body.classList.contains('skin-bubble') && figEl && figEl.offsetHeight && !$('#assistant').hidden && !document.body.classList.contains('char-hidden')) {
+    if (figEl && figEl.offsetHeight && !$('#assistant').hidden && !document.body.classList.contains('char-hidden')) {
       const fr = figEl.getBoundingClientRect();
       bh = Math.max(120, Math.min(bh, fr.top - box.getBoundingClientRect().top + fr.height * 0.2));
     }
