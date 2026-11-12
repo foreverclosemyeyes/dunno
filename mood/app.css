@@ -23,8 +23,8 @@
   --sel: rgba(255, 255, 255, .26);
   --bar: rgba(10, 10, 12, .55);
   --shadow: none;
-  --glow: radial-gradient(60% 40% at 12% 0%, var(--amb1, rgba(255,255,255,.17)), transparent 70%),
-          radial-gradient(50% 35% at 100% 32%, var(--amb2, rgba(255,255,255,.10)), transparent 70%),
+  --glow: radial-gradient(60% 40% at 12% 0%, rgba(255,255,255,.17), transparent 70%),
+          radial-gradient(50% 35% at 100% 32%, rgba(255,255,255,.10), transparent 70%),
           radial-gradient(70% 40% at 30% 100%, rgba(255,255,255,.12), transparent 70%);
   --radius: 20px;
   --safe-t: env(safe-area-inset-top, 0px);
@@ -48,8 +48,8 @@
   --sel: #fff;
   --bar: rgba(240, 241, 244, .6);
   --shadow: 0 8px 28px rgba(0, 0, 0, .06);
-  --glow: radial-gradient(60% 40% at 10% 0%, var(--amb1, #fff), transparent 70%),
-          radial-gradient(50% 35% at 100% 30%, var(--amb2, #cfd3da), transparent 70%),
+  --glow: radial-gradient(60% 40% at 10% 0%, #fff, transparent 70%),
+          radial-gradient(50% 35% at 100% 30%, #cfd3da, transparent 70%),
           radial-gradient(70% 40% at 30% 100%, #fff, transparent 70%);
 }
 
@@ -242,3 +242,5 @@ ol.steps li { margin: 3px 0; }
 .slv b { color: var(--muted); font-size: calc(15px * var(--fs, 1.12)) !important; font-weight: 500 !important; min-width: 1.3em; text-align: right; }
 .nm { color: var(--muted); font-size: calc(13px * var(--fs, 1.12)); }
 .tile .nm { margin-top: 1px; font-size: calc(12.5px * var(--fs, 1.12)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.sw-dot { width: 14px; height: 14px; border-radius: 50%; flex: none; }
