@@ -14,6 +14,10 @@
     '보통': 'Moderate',
     '보통 ': 'Normal',
     '글씨 크기': 'Text size', '작게': 'Small', '크게': 'Large', '아주 크게': 'Extra large',
+    '먹었어요': 'Taken', '먹으면 누르기': 'Tap when taken', '화면 모드': 'Appearance', '자동 (아이폰 설정 따라감)': 'Automatic (follows iPhone)',
+    '라이트': 'Light', '다크': 'Dark', '알림': 'Reminders', '기록 알림': 'Log reminder', '약 알림 1': 'Med reminder 1', '약 알림 2': 'Med reminder 2',
+    '캘린더에 알림 추가': 'Add reminders to Calendar', 'Tide 기록하기': 'Tide: log today', '약 먹을 시간': 'Time to take your meds', '알림 시간을 먼저 정해 주세요': 'Set a reminder time first',
+    '아이폰 웹앱은 정해진 시간에 스스로 알림을 보낼 수 없어요. 대신 매일 반복되는 캘린더 알림 파일을 만들어 드려요. 시간을 정하고 버튼을 누른 뒤 “캘린더에 추가”를 고르세요. 안 쓰는 알림은 시간을 비워 두면 돼요.': 'An iPhone web app cannot send scheduled notifications on its own. Instead this makes a calendar file with daily repeating alerts. Set the times, tap the button, then choose “Add to Calendar”. Leave a time empty to skip that reminder.',
     '취소': 'Cancel', '완료': 'Done', '설정': 'Settings', '증상': 'Symptoms', '몸': 'Body',
     '수면 시간': 'Time asleep', '일어났을 때 피곤함': 'Tired on waking', '일어났을 때': 'On waking', '피곤': 'Tired',
     '높음': 'High',
@@ -164,7 +168,7 @@
   const DISCLAIMER = T('이 앱은 진단 도구가 아니에요. 내 상태를 기록해 두는 참고용이에요.');
 
   // ---------- 저장소 (이 기기 안에만 저장) ----------
-  const blank = () => ({ version: 2, entries: {}, meds: [], settings: {} });
+  const blank = () => ({ version: 2, entries: {}, meds: [], taken: {}, settings: {} });
   // 예전 기록(식욕·카페인 3단계)을 0~10 숫자로 옮긴다
   function migrate(data) {
     if ((data.version || 1) < 2) {
@@ -288,9 +292,11 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
         <div class="days">${days}</div>
         <button class="nav" data-act="week" data-step="1" aria-label="${T('다음 주')}" ${addDays(ws, 7) > t ? 'disabled' : ''}>›</button>
       </div>
-      ${e ? summary(e) : emptyCard(sel === t)}
+      ${e ? tilesHtml(e) : emptyCard(sel === t)}
+      ${medCard(sel)}
+      ${e ? detailHtml(e) : ''}
       ${sel !== t ? `<button class="btn plain" data-act="goToday">${T('오늘로 돌아가기')}</button>` : ''}
-      <p class="foot">${DISCLAIMER}</p>`;
+            <p class="foot">${DISCLAIMER}</p>`;
   }
 
   function emptyCard(isToday) {
@@ -302,31 +308,45 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
   const tile = (icon, n, label) => `<div class="tile"><div class="tl">${icon}${label}</div><div class="n">${n}</div></div>`;
   const bars = (v) => `<span class="bars">${[1, 2, 3, 4].map((i) => `<i class="${i <= v ? 'on' : ''}"></i>`).join('')}</span>`;
 
-  function summary(e) {
+  // 그날 먹은 약: 기록이 있으면 기록 안에, 아직 없으면 따로 적어 둔다
+  const medsFor = (date) => (db.entries[date] ? db.entries[date].meds || [] : db.taken[date] || []);
+  function toggleMed(date, key) {
+    const list = medsFor(date).slice(), i = list.findIndex((m) => medKey(m) === key);
+    if (i >= 0) list.splice(i, 1);
+    else { const m = db.meds.find((x) => medKey(x) === key); if (m) list.push({ name: m.name, dose: m.dose }); }
+    if (db.entries[date]) { db.entries[date].meds = list; db.entries[date].updatedAt = new Date().toISOString(); } else db.taken[date] = list;
+    save();
+  }
+  function medCard(date) {
+    if (!db.meds.length) return '';
+    const taken = new Set(medsFor(date).map(medKey));
+    return `<section class="card list">${db.meds.map((m) => `<button class="li med" data-act="takeMed" data-med="${esc(medKey(m))}" aria-pressed="${taken.has(medKey(m))}">
+      <span class="lk">${IC.pill}${esc(m.name)}${m.dose ? `<small>${esc(m.dose)}</small>` : ''}</span><span class="chk">${taken.has(medKey(m)) ? T('먹었어요') : T('먹으면 누르기')}</span></button>`).join('')}</section>`;
+  }
+
+  function tilesHtml(e) {
     const sleepBig = e.sleepMin == null ? '–'
       : `${Math.floor(e.sleepMin / 60)}<small>${T('시간')}</small>${e.sleepMin % 60 ? ` ${e.sleepMin % 60}<small>${T('분')}</small>` : ''}`;
-    const signs = SIGNS.filter(([k]) => e.signs && e.signs[k]).map(([, label]) => label);
-    const meds = (e.meds || []).map((x) => esc(x.name) + (x.dose ? ` ${esc(x.dose)}` : '')).join(', ');
-    const ten = (v) => `${v}<span class="of"> / 10</span>`;
-    return `
-      <div class="tiles">
+    return `<div class="tiles">
         ${tile(IC.face(e.mood), e.mood, T('기분'))}
         ${tile(IC.battery(e.energy), e.energy, T('에너지'))}
         ${tile(IC.star, e.conf == null ? '–' : e.conf, T('자신감'))}
         ${tile(IC.moon, sleepBig, T('수면'))}
-      </div>
-      <section class="card list">
-        ${li(T('우울'), `${LEVELS[e.dep]}${bars(e.dep)}`)}
-        ${li(T('고조'), `${LEVELS[e.elev]}${bars(e.elev)}`)}
-        ${li(T('불안'), `${LEVELS[e.anx]}${bars(e.anx)}`)}
-      </section>
-      <section class="card list">
-        ${e.bed && e.wake ? li(`${IC.moon}${T('잠든 → 깬')}`, `${ampm(e.bed)} → ${ampm(e.wake)}`) : ''}
-        ${e.tired ? li(`${IC.moon}${T('일어났을 때')}`, T('피곤')) : ''}
+      </div>`;
+  }
+
+  function detailHtml(e) {
+    const signs = SIGNS.filter(([k]) => e.signs && e.signs[k]).map(([, label]) => label);
+    const extra = (e.meds || []).filter((m) => !db.meds.some((x) => medKey(x) === medKey(m))).map((x) => esc(x.name) + (x.dose ? ` ${esc(x.dose)}` : '')).join(', ');
+    const ten = (v) => `${v}<span class="of"> / 10</span>`;
+    const sym = (label, v) => (v ? li(label, `${LEVELS[v]}${bars(v)}`) : '');
+    return `<section class="card list">
+        ${sym(T('우울'), e.dep)}${sym(T('고조'), e.elev)}${sym(T('불안'), e.anx)}
+        ${e.bed && e.wake ? li(`${IC.moon}${T('잠든 → 깬')}`, `${ampm(e.bed)} → ${ampm(e.wake)}${e.tired ? ` · ${T('피곤')}` : ''}`) : ''}
         ${e.period ? li(`${IC.drop}${T('생리')}`, T('생리 중')) : ''}
         ${e.appetite != null ? li(`${IC.fork}${T('식욕')}`, ten(e.appetite)) : ''}
         ${e.caffeine != null ? li(`${IC.coffee}${T('카페인')}`, ten(e.caffeine)) : ''}
-        ${li(`${IC.pill}${T('약')}`, meds || T('기록 없음'))}
+        ${extra ? li(`${IC.pill}${T('약')}`, extra) : ''}
         ${signs.length ? li(T('체크'), signs.map(esc).join('<br>')) : ''}
         ${e.note ? li(`${IC.note}${T('메모')}`, esc(e.note)) : ''}
       </section>
@@ -367,6 +387,9 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
   }
 
   function viewTrend() {
+    const C = document.documentElement.dataset.theme === 'light'
+      ? { ink: '#0b0b0c', ring: '#fff', grid: 'rgba(0,0,0,.08)', muted: '#6b6b70', faint: '#a0a0a6', shade: ['rgba(0,0,0,.06)', '#c7c7cc', '#8e8e93', '#48484a', '#000'] }
+      : { ink: '#fff', ring: '#1c1c1e', grid: 'rgba(255,255,255,.1)', muted: '#9a9aa0', faint: '#6a6a70', shade: ['rgba(255,255,255,.08)', '#5a5a5e', '#8e8e93', '#c7c7cc', '#fff'] };
     const t = today(), r = trendRange(trend.anchor), prev = trendRange(shiftAnchor(trend.anchor, -1));
     const days = rangeEntries(r), got = days.filter(Boolean), before = rangeEntries(prev).filter(Boolean);
     const isWeek = trend.mode === 'week';
@@ -385,10 +408,10 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
     const xLabels = days.map((_, i) => {
       const d = addDays(r.start, i), dt = parse(d);
       if (!isWeek && (dt.getDate() - 1) % 7 !== 0) return '';
-      return `<text x="${cx(i).toFixed(1)}" y="${H - 4}" text-anchor="middle" font-size="${(10 * FS).toFixed(1)}" fill="${d === t ? '#fff' : '#8e8e93'}">${isWeek ? WD()[dt.getDay()] : dt.getDate()}</text>`;
+      return `<text x="${cx(i).toFixed(1)}" y="${H - 4}" text-anchor="middle" font-size="${(10 * FS).toFixed(1)}" fill="${d === t ? C.ink : C.muted}">${isWeek ? WD()[dt.getDay()] : dt.getDate()}</text>`;
     }).join('');
-    const grid = (ticks, y) => ticks.map(([v, label]) => `<line x1="0" x2="${W}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="#2c2c2e"/>
-      <text x="${W + 6}" y="${(y(v) + 3.5).toFixed(1)}" font-size="${(10 * FS).toFixed(1)}" fill="#636366">${label}</text>`).join('');
+    const grid = (ticks, y) => ticks.map(([v, label]) => `<line x1="0" x2="${W}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="${C.grid}"/>
+      <text x="${W + 6}" y="${(y(v) + 3.5).toFixed(1)}" font-size="${(10 * FS).toFixed(1)}" fill="${C.faint}">${label}</text>`).join('');
     const plot = (inner) => `<div class="plot" data-n="${r.n}" data-w="${W}"><svg width="${W + AX}" height="${H}">${inner}${xLabels}</svg></div>`;
 
     // 카드 머리: 평소에는 평균, 날짜를 누르면 그날 값
@@ -415,18 +438,18 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
       const y = (v) => TOP + (1 - v / 10) * (BOT - TOP);
       const pts = [];
       days.forEach((e, i) => { if (e && e[key] != null) pts.push([cx(i), y(e[key]), i]); });
-      let out = `<defs><linearGradient id="g-${key}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".26"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>`;
+      let out = `<defs><linearGradient id="g-${key}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.ink}" stop-opacity=".26"/><stop offset="1" stop-color="${C.ink}" stop-opacity="0"/></linearGradient></defs>`;
       out += grid([[0, '0'], [5, '5'], [10, '10']], y);
       if (pts.length > 1) {
         const d = smoothPath(pts, TOP, BOT);
         out += `<path d="${d}L${pts[pts.length - 1][0].toFixed(1)},${BOT}L${pts[0][0].toFixed(1)},${BOT}Z" fill="url(#g-${key})"/>
-          <path d="${d}" fill="none" stroke="#fff" stroke-width="${isWeek ? 2.5 : 2}" stroke-linecap="round" stroke-linejoin="round"/>`;
+          <path d="${d}" fill="none" stroke="${C.ink}" stroke-width="${isWeek ? 2.5 : 2}" stroke-linecap="round" stroke-linejoin="round"/>`;
       }
-      if (isWeek || pts.length === 1) pts.forEach((p) => { out += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="4" fill="#fff" stroke="#1c1c1e" stroke-width="2"/>`; });
+      if (isWeek || pts.length === 1) pts.forEach((p) => { out += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="4" fill="${C.ink}" stroke="${C.ring}" stroke-width="2"/>`; });
       if (pick != null) {
-        out += `<line x1="${cx(pick).toFixed(1)}" x2="${cx(pick).toFixed(1)}" y1="${TOP - 4}" y2="${BOT}" stroke="#8e8e93"/>`;
+        out += `<line x1="${cx(pick).toFixed(1)}" x2="${cx(pick).toFixed(1)}" y1="${TOP - 4}" y2="${BOT}" stroke="${C.muted}"/>`;
         const p = pts.find((q) => q[2] === pick);
-        if (p) out += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="5.5" fill="#fff" stroke="#1c1c1e" stroke-width="2.5"/>`;
+        if (p) out += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="5.5" fill="${C.ink}" stroke="${C.ring}" stroke-width="2.5"/>`;
       }
       return `<section class="card mcard">${head(key, icon, name)}${plot(out)}</section>`;
     };
@@ -440,9 +463,9 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
         if (!e || e.sleepMin == null) return;
         const top = Math.min(y(e.sleepMin), BOT - 3);
         out += `<rect x="${(cx(i) - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${(BOT - top).toFixed(1)}" rx="${rx.toFixed(1)}"
-          fill="${pick == null || pick === i ? '#fff' : '#636366'}"/>`;
+          fill="${pick == null || pick === i ? C.ink : C.faint}"/>`;
       });
-      if (all != null) out += `<line x1="0" x2="${W}" y1="${y(all).toFixed(1)}" y2="${y(all).toFixed(1)}" stroke="#aeaeb2" stroke-dasharray="2 4" stroke-linecap="round"/>`;
+      if (all != null) out += `<line x1="0" x2="${W}" y1="${y(all).toFixed(1)}" y2="${y(all).toFixed(1)}" stroke="${C.muted}" stroke-dasharray="2 4" stroke-linecap="round"/>`;
       return `<section class="card mcard">${head('sleepMin', IC.moon, T('수면'), true)}${plot(out)}
         <div class="mnote">${T('점선은 지금까지의 내 평균 수면')}${all != null ? ` (${durText(Math.round(all))})` : ''}</div></section>`;
     };
@@ -463,12 +486,12 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
     };
 
     // 증상·생리·약: 날짜별 칸
-    const SHADE = ['#2c2c2e', '#5a5a5e', '#8e8e93', '#c7c7cc', '#fff'];
+    const SHADE = ['${C.grid}', '#5a5a5e', C.muted, '#c7c7cc', C.ink];
     const strip = (name, cell) => `<div class="srow"><svg width="${W}" height="18">${days.map((e, i) => (e ? cell(e, i) : '')).join('')}${
-      pick == null ? '' : `<rect x="${(col * pick).toFixed(1)}" y="0" width="${col.toFixed(1)}" height="18" rx="4" fill="none" stroke="#fff"/>`}</svg><span>${name}</span></div>`;
+      pick == null ? '' : `<rect x="${(col * pick).toFixed(1)}" y="0" width="${col.toFixed(1)}" height="18" rx="4" fill="none" stroke="${C.ink}"/>`}</svg><span>${name}</span></div>`;
     const gap = isWeek ? 4 : 1.5;
     const level = (key) => (e, i) => `<rect x="${(col * i + gap / 2).toFixed(1)}" y="2" width="${(col - gap).toFixed(1)}" height="14" rx="${isWeek ? 5 : 3}" fill="${SHADE[e[key] || 0]}"/>`;
-    const dot = (test) => (e, i) => (test(e) ? `<circle cx="${cx(i).toFixed(1)}" cy="9" r="${isWeek ? 4.5 : Math.min(3, col / 2 - 1)}" fill="#fff"/>` : '');
+    const dot = (test) => (e, i) => (test(e) ? `<circle cx="${cx(i).toFixed(1)}" cy="9" r="${isWeek ? 4.5 : Math.min(3, col / 2 - 1)}" fill="${C.ink}"/>` : '');
     const symptoms = `<section class="card mcard"><div class="mt">${IC.wave}${T('증상 · 생리 · 약')}</div>
       <div class="plot strips" data-n="${r.n}" data-w="${W}">
         ${strip(T('우울'), level('dep'))}${strip(T('고조'), level('elev'))}${strip(T('불안'), level('anx'))}
@@ -498,6 +521,15 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
       <button data-act="tab" data-tab="trend" aria-pressed="${ui.tab === 'trend'}">${IC.chart}<span>${T('흐름')}</span></button></nav>`);
   }
 
+  const themeQuery = matchMedia('(prefers-color-scheme: light)');
+  function applyTheme() {
+    const pref = db.settings.theme || 'auto', light = pref === 'light' || (pref === 'auto' && themeQuery.matches);
+    document.documentElement.dataset.theme = light ? 'light' : 'dark';
+    const meta = $('meta[name=theme-color]');
+    if (meta) meta.content = light ? '#eef0f3' : '#000000';
+  }
+  themeQuery.addEventListener('change', () => { applyTheme(); if (sheet.hidden) render(); });
+
   function applyFont() {
     document.documentElement.style.setProperty('--font', (FONTS[db.settings.font] || FONTS.system)[1]);
     document.documentElement.style.setProperty('--fs', fontScale());
@@ -513,7 +545,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
     return {
       date, mood: 5, energy: 5, conf: 5, dep: 0, elev: 0, anx: 0,
       bed: last ? last.bed : '23:30', wake: last ? last.wake : '07:00',
-      tired: false, period: false, appetite: 5, caffeine: 0, meds: [], note: '', signs: {},
+      tired: false, period: false, appetite: 5, caffeine: 0, meds: (db.taken[date] || []).slice(), note: '', signs: {},
     };
   }
 
@@ -630,6 +662,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
       tired: !!d.tired, period: !!d.period, appetite: d.appetite, caffeine: d.caffeine,
       meds: d.meds, note: (d.note || '').trim(), signs, updatedAt: new Date().toISOString(),
     };
+    delete db.taken[d.date];
     if (!save()) return;
     closeSheet();
     render();
@@ -654,6 +687,19 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
 
       <div class="sec">${T('언어 · Language')}</div>
       <section class="card list">${pick('lang', 'data-lang="ko"', !EN, '한국어')}${pick('lang', 'data-lang="en"', EN, 'English')}</section>
+
+      <div class="sec">${T('화면 모드')}</div>
+      <section class="card list">${[['auto', T('자동 (아이폰 설정 따라감)')], ['light', T('라이트')], ['dark', T('다크')]].map(([k, label]) =>
+        pick('theme', `data-theme-pick="${k}"`, (db.settings.theme || 'auto') === k, label)).join('')}</section>
+
+      <div class="sec">${T('알림')}</div>
+      <section class="card list">
+        <label class="li"><span class="lk">${T('기록 알림')}</span><input type="time" id="r-log" value="${esc(remind().log || '')}"></label>
+        <label class="li"><span class="lk">${T('약 알림 1')}</span><input type="time" id="r-med1" value="${esc(remind().med1 || '')}"></label>
+        <label class="li"><span class="lk">${T('약 알림 2')}</span><input type="time" id="r-med2" value="${esc(remind().med2 || '')}"></label>
+        <button class="li add" data-act="ics">${T('캘린더에 알림 추가')}</button>
+      </section>
+      <p class="secnote">${T('아이폰 웹앱은 정해진 시간에 스스로 알림을 보낼 수 없어요. 대신 매일 반복되는 캘린더 알림 파일을 만들어 드려요. 시간을 정하고 버튼을 누른 뒤 “캘린더에 추가”를 고르세요. 안 쓰는 알림은 시간을 비워 두면 돼요.')}</p>
 
       <div class="sec">${T('글씨체')}</div>
       <section class="card list">${Object.keys(FONTS).map((k) => pick('font', `data-font="${k}"`, (db.settings.font || 'system') === k,
@@ -684,26 +730,40 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
     showSheet();
   }
 
-  async function exportData() {
-    const name = `tide-backup-${today()}.json`;
-    const text = JSON.stringify(Object.assign({ app: 'tide', exportedAt: new Date().toISOString() }, db), null, 2);
+  const remind = () => (db.settings.remind || (db.settings.remind = { log: '21:30', med1: '', med2: '' }));
+  // 매일 반복되는 캘린더 알림 파일(.ics)을 만든다
+  function makeIcs() {
+    const r = remind(), day = today().replace(/-/g, '');
+    const stamp = `${new Date().toISOString().replace(/[-:]/g, '').slice(0, 15)}Z`;
+    const url = location.href.split('#')[0];
+    const ev = (uid, time, title) => (time ? ['BEGIN:VEVENT', `UID:${uid}@tide-app`, `DTSTAMP:${stamp}`, `DTSTART:${day}T${time.replace(':', '')}00`,
+      'DURATION:PT5M', 'RRULE:FREQ=DAILY', `SUMMARY:${title}`, `URL:${url}`, 'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${title}`, 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT'] : []);
+    return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Tide//Reminders//KO', 'CALSCALE:GREGORIAN',
+      ...ev('log', r.log, T('Tide 기록하기')), ...ev('med1', r.med1, T('약 먹을 시간')), ...ev('med2', r.med2, T('약 먹을 시간')), 'END:VCALENDAR'].join('\r\n');
+  }
+
+  // 파일 건네기: 아이폰에서는 공유 창, 그 밖에는 내려받기
+  async function giveFile(name, text, type) {
     try {
-      const file = new File([text], name, { type: 'application/json' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file] });   // 아이폰: 공유 창에서 “파일에 저장”
-        return;
-      }
+      const file = new File([text], name, { type });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); return true; }
     } catch (e) {
-      if (e && e.name === 'AbortError') return;     // 사용자가 공유 창을 닫음
+      if (e && e.name === 'AbortError') return false;
     }
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    a.href = URL.createObjectURL(new Blob([text], { type }));
     a.download = name;
     document.body.appendChild(a);
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-    toast(T('백업 파일을 만들었어요'));
+    return true;
+  }
+
+  async function exportData() {
+    const name = `tide-backup-${today()}.json`;
+    const text = JSON.stringify(Object.assign({ app: 'tide', exportedAt: new Date().toISOString() }, db), null, 2);
+    if (await giveFile(name, text, 'application/json')) toast(T('백업 파일을 만들었어요'));
   }
 
   function importData(file) {
@@ -724,6 +784,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
       (Array.isArray(inc.meds) ? inc.meds : []).forEach((m) => {
         if (m && m.name && !db.meds.some((s) => medKey(s) === medKey(m))) db.meds.push({ name: String(m.name), dose: String(m.dose || '') });
       });
+      Object.keys(inc.taken || {}).forEach((k) => { if (!db.taken[k] && !db.entries[k] && Array.isArray(inc.taken[k])) db.taken[k] = inc.taken[k]; });
       if (!save()) return;
       render();
       openSettings();
@@ -739,6 +800,13 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
   // ---------- 이벤트 ----------
   const actions = {
     tab: (el) => { ui.tab = el.dataset.tab; window.scrollTo(0, 0); render(); },
+    theme: (el) => { db.settings.theme = el.dataset.themePick; save(); applyTheme(); render(); openSettings(); },
+    takeMed: (el) => { toggleMed(ui.selected, el.dataset.med); render(); },
+    ics: async () => {
+      const r = remind();
+      if (!r.log && !r.med1 && !r.med2) { toast(T('알림 시간을 먼저 정해 주세요')); return; }
+      await giveFile('tide-reminders.ics', makeIcs(), 'text/calendar');
+    },
     lang: (el) => { db.settings.lang = el.dataset.lang; if (save()) location.reload(); },
     size: (el) => { db.settings.size = el.dataset.size; save(); applyFont(); render(); openSettings(); },
     font: (el) => { db.settings.font = el.dataset.font; save(); applyFont(); openSettings(); },
@@ -811,6 +879,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
 
   sheet.addEventListener('input', (ev) => {
     const d = ui.draft, el = ev.target;
+    if (el.id.startsWith('r-')) { remind()[el.id.slice(2)] = el.value; save(); return; }
     if (!d) return;
     const k = el.id.slice(2);
     if (SLIDERS.includes(k)) d[k] = Number(el.value);
@@ -849,6 +918,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
   });
 
   // ---------- 시작 ----------
+  applyTheme();
   applyFont();
   render();
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
