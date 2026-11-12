@@ -350,6 +350,8 @@
         C.text(ctx, 'layout.stampText', '다 끝냈을 때 도장 글씨'),
         C.toggle(ctx, 'layout.cutOn', '하루 시작 컷 (날짜 바뀐 뒤 처음 켤 때)'),
         C.toggle(ctx, 'layout.fxOn', '화려한 연출 (등장·넘김·체크 효과)'),
+        C.text(ctx, 'layout.noonCut', '점심 뒤 컷 시각 (예: 13:30, 비우면 안 함)'),
+        C.toggle(ctx, 'layout.soft', '화면 전체 아주 살짝 흐리게'),
       );
       // 스킨 그림 묶음: 파일 이름으로 자리를 찾음 (cut-city, cloud-1~3, wd-0~6, pointup, pointup-bg, rankup, rankup-bg, bubble, reply)
       const SKIN_KEYS = ['cut-city', 'cloud-1', 'cloud-2', 'cloud-3', 'wd-0', 'wd-1', 'wd-2', 'wd-3', 'wd-4', 'wd-5', 'wd-6', 'pointup', 'pointup-bg', 'rankup', 'rankup-bg', 'bubble', 'empty', 'mask', 'dagger', 'gatsu', 'app-icon',
@@ -543,6 +545,20 @@
       const ok = res.filter((r) => !r.error && r.count);
       if (!ok.length) { if (res.length) D.toast(res[0].error || 'zip 안에서 그림(png)을 못 찾았어요.', 6000); return; }
       let last = null;
+      // 로열판 zip 은 그림이 뿌옇게 저장돼 있어서(감마 차이) 원래 색으로 맞춰 다시 저장
+      const fixGamma = async (url) => {
+        const b64 = await window.diary.readAsset(url.split('/').pop()); if (!b64) return url;
+        const img = new Image(); await new Promise((ok2, no) => { img.onload = ok2; img.onerror = no; img.src = 'data:image/png;base64,' + b64; });
+        const cv = document.createElement('canvas'); cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+        const c2 = cv.getContext('2d'); c2.drawImage(img, 0, 0);
+        const d = c2.getImageData(0, 0, cv.width, cv.height), p = d.data;
+        const lut = new Uint8ClampedArray(256); for (let v = 0; v < 256; v++) lut[v] = Math.round(255 * Math.pow(v / 255, 2.2));
+        for (let k = 0; k < p.length; k += 4) { p[k] = lut[p[k]]; p[k + 1] = lut[p[k + 1]]; p[k + 2] = lut[p[k + 2]]; }
+        c2.putImageData(d, 0, 0);
+        const saved = await window.diary.writeAsset('fixed-' + url.split('/').pop().replace(/\.[a-z0-9]+$/i, '') + '.png', cv.toDataURL('image/png').split(',')[1]);
+        return saved.url;
+      };
+      for (const r of ok) if (r.royal) { const done = new Map(); for (const k of Object.keys(r.faces)) { const u = r.faces[k].url; if (!done.has(u)) done.set(u, await fixGamma(u).catch(() => u)); r.faces[k] = { ...r.faces[k], url: done.get(u) }; } }
       for (const r of ok) last = D.castApplyZip(state.theme, r.label, r.faces);
       D.castSwitch(state.theme, last.id);
       commit(); D.renderAll(); render();

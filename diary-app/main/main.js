@@ -811,7 +811,7 @@ function registerIpc() {
         const picked = pickFaces(z.entries);
         const faces = {};
         for (const [mood, e] of Object.entries(picked)) { const a = saveAsset(z.read(e), path.basename(e.name)); faces[mood] = { url: a.url, name: a.name }; }
-        out.push({ label: labelFromFile(path.basename(file)), faces, count: Object.keys(faces).length });
+        out.push({ label: labelFromFile(path.basename(file)), faces, count: Object.keys(faces).length, royal: /royal/i.test(path.basename(file)) });
       } catch (err) { out.push({ label: path.basename(file), error: String(err.message || err) }); }
     }
     return out;

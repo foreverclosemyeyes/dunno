@@ -66,6 +66,7 @@
     document.body.classList.toggle('no-texture', !L.textureOn);
     document.body.classList.toggle('layout-bigcal', L.mode === 'bigcal');
     document.body.classList.toggle('no-panel', !L.panelOn);
+    document.body.classList.toggle('soft', L.soft !== false);
     document.body.classList.toggle('dialog-angular', L.dialog !== 'flat');
     (theme.fonts || []).forEach(D.fonts.registerUploaded);
     renderBackground(theme);

@@ -1786,3 +1786,11 @@ body.layout-bigcal #assistant { margin-bottom: clamp(20px, 5vh, 56px); }
 
 /* HIDE: 비서 영역을 통째로 숨김 (나중 규칙의 display 가 hidden 을 덮지 않게) */
 #assistant[hidden] { display: none !important; }
+
+/* ===== 살짝 흐리게: 화면 전체를 아주 조금만 흐림 (색·밝기는 그대로). 설정 창과 작은 메뉴는 또렷하게 둠 ===== */
+body.soft #bg, body.soft #app, body.soft .cut, body.soft .pu, body.soft .pup, body.soft .ps2, body.soft #chat-log { filter: blur(var(--soft, .35px)); }
+
+/* 단검: 숫자 오른쪽 위에 비스듬히 꽂힘 (칼끝은 숫자 윗부분, 손잡이는 오른쪽 위) */
+.cut-dagger { left: 56% !important; top: 14% !important; width: 150% !important; rotate: -57deg !important; transform-origin: 0 50% !important; translate: 14vh -22vh; }
+.cut.pop .cut-dagger { translate: 0 0; }
+.cut-dagger { left: 62% !important; top: -22% !important; width: 140% !important; rotate: -60deg !important; }

@@ -554,6 +554,18 @@
     매력: ['존재감 있는', '눈길 가는', '세련된', '카리스마', '댄디한'],
   };
   D.paramRank = (s, lv) => RANKS[s][lv - 1];
+  // 능력치 하나의 '자람' 0~1: Lv1 시작 = 0, Lv5 = 1. 등급 사이에서도 조금씩 자람
+  const growOf = (v) => { const lv = lvOf(v || 0); if (lv >= 5) return 1; return (lv - 1 + ((v || 0) - LV[lv - 1]) / (LV[lv] - LV[lv - 1])) / 4; };
+  // 가운데 별의 꼭짓점 10개: 능력치마다(위·오른쪽·오른쪽 아래·왼쪽 아래·왼쪽) 끝이 그 능력치만큼 뻗음
+  function statStarPts(totals, cx, cy, rMin, rMax, inner = 0.42) {
+    const tip = STATS.map((st) => rMin + (rMax - rMin) * growOf(totals[st]));
+    return Array.from({ length: 10 }, (_, k) => {
+      const a = -Math.PI / 2 + (k * Math.PI) / 5;
+      const i = k >> 1;
+      const rad = k % 2 ? Math.min(tip[i], tip[(i + 1) % 5]) * inner * 0.5 + rMin * inner * 0.5 : tip[i];
+      return [cx + Math.cos(a) * rad, cy + Math.sin(a) * rad];
+    });
+  }
   function monthTotals(dateISO) { // 이름은 그대로지만 이제 처음부터 dateISO 까지의 전체 누적
     const month = '';
     const totals = Object.fromEntries(STATS.map((s) => [s, 0]));
@@ -600,14 +612,13 @@
     [104, 82, 60].forEach((R, i) => {
       el('polygon', { points: poly(R, R * ratio), class: 'ps-ring ps-ring' + i });
     });
-    // 가운데 별: 평균 등급만큼 커짐, 면을 나눠 입체로
-    const avg = STATS.reduce((n, s) => n + lvOf(totals[s]), 0) / STATS.length;
-    const R = 20 + (avg - 1) * 8;
+    // 가운데 별: 능력치마다 그쪽 꼭짓점이 뻗어 나감 (Lv1 = 가장 안쪽, Lv5 = 바깥 겹 별까지)
+    const sp = statStarPts(totals, C, CY, 24, 104);
     for (let k = 0; k < 10; k++) {
-      const a = pt(k, R, R * 0.42), b = pt(k + 1, R, R * 0.42);
-      el('polygon', { points: `${C},${CY} ${a.join(',')} ${b.join(',')}`, class: k % 2 ? 'ps-core-a' : 'ps-core-b' });
+      const a = sp[k], b = sp[(k + 1) % 10];
+      el('polygon', { points: `${C},${CY} ${a.map((v) => v.toFixed(1)).join(',')} ${b.map((v) => v.toFixed(1)).join(',')}`, class: k % 2 ? 'ps-core-a' : 'ps-core-b' });
     }
-    el('polygon', { points: poly(R, R * 0.42), class: 'ps-core-edge' });
+    el('polygon', { points: sp.map((q) => q.map((v) => v.toFixed(1)).join(',')).join(' '), class: 'ps-core-edge' });
     return svg;
   }
 
@@ -675,7 +686,7 @@
     svg.append(svgEl('polygon', { points: P(starPts(44, 18.5)), class: 'pu-ring r1' }), svgEl('polygon', { points: P(starPts(36, 15)), class: 'pu-ring r2' }));
     // 가운데 금색 별: 면을 번갈아 밝고 어둡게
     const gold = svgEl('g', { class: 'pu-gold' });
-    const gp = starPts(30, 12.5);
+    const gp = statStarPts(totals, 0, 0, 18, 44, 0.42); // 능력치만큼 꼭짓점이 뻗은 별
     gp.forEach((p, k) => { const q = gp[(k + 1) % 10]; gold.append(svgEl('polygon', { points: P([[0, 0], p, q]), class: k % 2 ? 'f1' : 'f2' })); });
     svg.append(gold);
     // 큰 별 다섯 끝의 어두운 그림: 안경(지식) · 번개(배짱) · 톱니(손재주) · 하트(친절) · 반짝임(매력)
@@ -785,12 +796,11 @@
     el('polygon', { points: poly(300, 300 * ratio), class: 's-big' });
     // 겹 별: 회색 띠 + 검은 틈 (바깥 → 안)
     [[150, 'ring'], [132, 'gap'], [118, 'ring'], [100, 'gap'], [86, 'ring'], [68, 'gap']].forEach(([R, c]) => el('polygon', { points: poly(R, R * ratio), class: 's-' + c }));
-    // 가운데 노란 별: 면을 나눠 입체
-    const avg = STATS.reduce((n, s) => n + lvOf(totals[s]), 0) / STATS.length;
-    const R = 46 + (avg - 1) * 4;
+    // 가운데 노란 별: 능력치마다 그쪽 꼭짓점이 뻗어 나감 (Lv1 = 가장 안쪽, Lv5 = 바깥 겹 별까지)
+    const sp = statStarPts(totals, C, CY, 50, 150, 0.45);
     for (let k = 0; k < 10; k++) {
-      const a = pt(k, R, R * 0.45), b = pt(k + 1, R, R * 0.45);
-      el('polygon', { points: `${C},${CY} ${a.join(',')} ${b.join(',')}`, class: k % 2 ? 's-core-a' : 's-core-b' });
+      const a = sp[k], b = sp[(k + 1) % 10];
+      el('polygon', { points: `${C},${CY} ${a.map((v) => v.toFixed(1)).join(',')} ${b.map((v) => v.toFixed(1)).join(',')}`, class: k % 2 ? 's-core-a' : 's-core-b' });
     }
     return svg;
   }
