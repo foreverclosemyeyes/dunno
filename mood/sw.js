@@ -1,6 +1,6 @@
 // 오프라인에서도 열리도록 앱 파일을 저장해 둔다.
 // 인터넷이 될 때는 항상 최신 파일을 먼저 받아오고, 안 될 때만 저장본을 쓴다.
-const CACHE = 'harugyeol-v1';
+const CACHE = 'tide-v2';
 const FILES = ['./', 'index.html', 'app.css', 'app.js', 'manifest.webmanifest',
   'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png'];
 

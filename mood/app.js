@@ -2,7 +2,7 @@
   'use strict';
 
   // ---------- 고정 값 ----------
-  const KEY = 'harugyeol.v1';
+  const KEY = 'tide.v1', OLD_KEY = 'harugyeol.v1';
   const LEVELS = ['없음', '약간', '보통', '높음', '매우 높음'];
   const APPETITE = ['낮음', '보통', '높음'];
   const CAFFEINE = ['없음', '조금', '많음'];
@@ -24,7 +24,7 @@
   const blank = () => ({ version: 1, entries: {}, meds: [], settings: {} });
   function load() {
     try {
-      const raw = JSON.parse(localStorage.getItem(KEY));
+      const raw = JSON.parse(localStorage.getItem(KEY) || localStorage.getItem(OLD_KEY));
       if (raw && typeof raw === 'object' && raw.entries) return Object.assign(blank(), raw);
     } catch (e) { /* 처음 실행이거나 읽기 실패 */ }
     return blank();
@@ -56,12 +56,29 @@
     return `${h < 12 ? '오전' : '오후'} ${h % 12 || 12}:${pad(m)}`;
   };
 
-  // 기분 색: 낮으면 파랑, 가운데는 회색, 높으면 주황
-  function moodColor(v) {
-    const lo = [79, 132, 224], mid = [150, 160, 178], hi = [240, 146, 74];
-    const t = Math.abs(v - 5) / 5, to = v < 5 ? lo : hi;
-    return `rgb(${mid.map((c, i) => Math.round(c + (to[i] - c) * t)).join(',')})`;
+  // 흑백: 기분이 낮을수록 어둡게, 높을수록 밝게
+  function moodFill(v) {
+    const g = Math.round(55 + v * 20);
+    return `background:rgb(${g},${g},${g});color:${v >= 5 ? '#000' : '#fff'}`;
   }
+
+  // ---------- 아이콘 (선 그림) ----------
+  const svg = (inner) => `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
+  const IC = {
+    // 기분: 값에 따라 입꼬리가 바뀌는 얼굴
+    face: (v) => { const e = 15 - (v - 5) * 0.3, c = 15 + (v - 5) * 0.8;
+      return svg(`<circle cx="12" cy="12" r="9"/><path d="M9 9.5v.6M15 9.5v.6" stroke-width="2"/><path d="M8 ${e}Q12 ${c} 16 ${e}"/>`); },
+    // 에너지: 값만큼 차는 배터리
+    battery: (v) => svg(`<rect x="2.5" y="7.5" width="17" height="9" rx="2.5"/><path d="M22 10.5v3"/>${v > 0 ? `<rect x="4.5" y="9.5" width="${(13 * v / 10).toFixed(1)}" height="5" rx="1" fill="currentColor" stroke="none"/>` : ''}`),
+    moon: svg('<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>'),
+    drop: svg('<path d="M12 3.5c3 4 5.5 6.8 5.5 10a5.5 5.5 0 0 1-11 0c0-3.2 2.5-6 5.5-10z"/>'),
+    pill: svg('<rect x="3" y="8.5" width="18" height="7" rx="3.5" transform="rotate(-45 12 12)"/><path d="M9.5 9.5l5 5"/>'),
+    coffee: svg('<path d="M5 9h11v5a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4zM16 10.5h1.5a2.25 2.25 0 0 1 0 4.5H16M8.5 3v2.5M12.5 3v2.5"/>'),
+    fork: svg('<path d="M7 3v6.5a2 2 0 0 0 4 0V3M9 3v18M17.5 3c-2 2-2.5 5-2.5 8h2.5v10"/>'),
+    note: svg('<path d="M4 20h4L19 9l-4-4L4 16z"/>'),
+    wave: svg('<path d="M3 12c2-5 4-5 6 0s4 5 6 0 4-5 6 0"/>'),
+    sliders: svg('<path d="M4 7h8M18 7h2M4 17h2M12 17h8"/><circle cx="15" cy="7" r="2.5"/><circle cx="9" cy="17" r="2.5"/>'),
+  };
 
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const $ = (sel, root) => (root || document).querySelector(sel);
@@ -91,7 +108,7 @@
       const d = addDays(ws, i), en = db.entries[d], dt = parse(d);
       const cls = ['day', d === t ? 'today' : '', d === sel ? 'sel' : ''].join(' ');
       const dot = en
-        ? `<span class="dot on" style="background:${moodColor(en.mood)}">${en.mood}</span>`
+        ? `<span class="dot on" style="${moodFill(en.mood)}">${en.mood}</span>`
         : '<span class="dot"></span>';
       return `<button class="${cls}" data-act="pick" data-date="${d}" ${d > t ? 'disabled' : ''}
         aria-label="${longDate(d)}${en ? `, 기분 ${en.mood}` : ', 기록 없음'}">
@@ -107,7 +124,7 @@
     app.innerHTML = `
       <header class="top">
         <div><h1>${sel === t ? '오늘' : '지난 기록'}</h1><div class="sub">${longDate(sel)}</div></div>
-        <button class="icon-btn" data-act="settings" aria-label="설정과 백업">⚙︎</button>
+        <button class="icon-btn" data-act="settings" aria-label="설정과 백업">${IC.sliders}</button>
       </header>
       ${hint}
       <section class="card week">
@@ -130,26 +147,28 @@
   }
 
   function summary(e) {
-    const lv = (v) => `<span class="lv l${v}">${LEVELS[v]}</span>`;
-    const row = (k, v) => `<div class="row"><span class="k">${k}</span><span class="v">${v}</span></div>`;
-    const sleepBig = e.sleepMin == null ? '–' : `${Math.floor(e.sleepMin / 60)}:${pad(e.sleepMin % 60)}`;
+    const lv = (label, v) => `<span style="white-space:nowrap;margin-left:10px">${label} <span class="bars">${
+      [1, 2, 3, 4].map((i) => `<i class="${i <= v ? 'on' : ''}"></i>`).join('')}</span></span>`;
+    const row = (icon, k, v) => `<div class="row"><span class="k">${icon}${k}</span><span class="v">${v}</span></div>`;
+    const sleepBig = e.sleepMin == null ? '–'
+      : `${Math.floor(e.sleepMin / 60)}<small>시간</small>${e.sleepMin % 60 ? `${e.sleepMin % 60}<small>분</small>` : ''}`;
     const signs = SIGNS.filter(([k]) => e.signs && e.signs[k]).map(([, label]) => label);
     const meds = (e.meds || []).map((x) => esc(x.name) + (x.dose ? ` ${esc(x.dose)}` : '')).join(', ');
     return `
-      <div class="big-row">
-        <div class="big"><div class="n" style="color:${moodColor(e.mood)}">${e.mood}</div><div class="l">기분</div></div>
-        <div class="big"><div class="n">${e.energy}</div><div class="l">에너지</div></div>
-        <div class="big"><div class="n">${sleepBig}</div><div class="l">수면 (시간:분)</div></div>
+      <div class="tiles">
+        <div class="tile">${IC.face(e.mood)}<div class="n">${e.mood}</div><div class="l">기분</div></div>
+        <div class="tile">${IC.battery(e.energy)}<div class="n">${e.energy}</div><div class="l">에너지</div></div>
+        <div class="tile">${IC.moon}<div class="n">${sleepBig}</div><div class="l">수면</div></div>
       </div>
       <div class="rows">
-        ${row('우울 · 고조 · 불안', `${lv(e.dep)} ${lv(e.elev)} ${lv(e.anx)}`)}
-        ${e.bed && e.wake ? row('잠든 시각 → 깬 시각', `${ampm(e.bed)} → ${ampm(e.wake)}`) : ''}
-        ${e.tired != null ? row('일어났을 때', e.tired ? '피곤했어요' : '피곤하지 않았어요') : ''}
-        ${e.appetite != null ? row('식욕', APPETITE[e.appetite]) : ''}
-        ${e.caffeine != null ? row('카페인', CAFFEINE[e.caffeine]) : ''}
-        ${row('약', meds || '복용 기록 없음')}
-        ${signs.length ? row('체크한 항목', signs.map(esc).join('<br>')) : ''}
-        ${e.note ? row('메모', esc(e.note)) : ''}
+        ${row(IC.wave, '', `${lv('우울', e.dep)}${lv('고조', e.elev)}${lv('불안', e.anx)}`)}
+        ${e.bed && e.wake ? row(IC.moon, '잠든 → 깬', `${ampm(e.bed)} → ${ampm(e.wake)}${e.tired == null ? '' : e.tired ? ' · 피곤' : ' · 개운'}`) : ''}
+        ${e.period ? row(IC.drop, '생리', '생리 중') : ''}
+        ${e.appetite != null ? row(IC.fork, '식욕', APPETITE[e.appetite]) : ''}
+        ${e.caffeine != null ? row(IC.coffee, '카페인', CAFFEINE[e.caffeine]) : ''}
+        ${row(IC.pill, '약', meds || '기록 없음')}
+        ${signs.length ? row('', '체크', signs.map(esc).join('<br>')) : ''}
+        ${e.note ? row(IC.note, '메모', esc(e.note)) : ''}
       </div>
       <button class="btn ghost" data-act="record">수정하기</button>`;
   }
@@ -157,13 +176,13 @@
   // ---------- 기록 화면 ----------
   function newDraft(date) {
     const old = db.entries[date];
-    if (old) return JSON.parse(JSON.stringify(Object.assign({ signs: {}, meds: [] }, old)));
+    if (old) return JSON.parse(JSON.stringify(Object.assign({ signs: {}, meds: [], period: false }, old)));
     // 잠든·깬 시각은 가장 최근 기록을 기본값으로 (대부분 비슷하니까 덜 만져도 되게)
     const last = Object.keys(db.entries).sort().reverse().map((k) => db.entries[k]).find((x) => x.bed && x.wake);
     return {
       date, mood: 5, energy: 5, dep: 0, elev: 0, anx: 0,
       bed: last ? last.bed : '23:30', wake: last ? last.wake : '07:00',
-      tired: null, appetite: 1, caffeine: null, meds: [], note: '', signs: {},
+      tired: null, period: false, appetite: 1, caffeine: null, meds: [], note: '', signs: {},
     };
   }
 
@@ -203,47 +222,51 @@
         <button class="icon-btn" data-act="close" aria-label="닫기">✕</button>
       </div>
 
-      <div class="card field">
-        <div class="lab"><b>기분</b><span class="slider-val" id="v-mood">${d.mood}</span></div>
+      <div class="card">
+        <div class="lab"><b><span id="i-mood"></span>기분</b><span class="slider-val" id="v-mood">${d.mood}</span></div>
         <input type="range" id="f-mood" min="0" max="10" step="1" value="${d.mood}" aria-label="기분 0에서 10">
         <div class="ticks"><span>가라앉음</span><span>보통</span><span>들뜸</span></div>
       </div>
-      <div class="card field">
-        <div class="lab"><b>에너지</b><span class="slider-val" id="v-energy">${d.energy}</span></div>
+      <div class="card">
+        <div class="lab"><b><span id="i-energy"></span>에너지</b><span class="slider-val" id="v-energy">${d.energy}</span></div>
         <input type="range" id="f-energy" min="0" max="10" step="1" value="${d.energy}" aria-label="에너지 0에서 10">
         <div class="ticks"><span>바닥</span><span>보통</span><span>넘침</span></div>
       </div>
 
-      <div class="card field signs" id="signs" hidden>
+      <div class="card signs" id="signs" hidden>
         <div class="lab"><b>오늘 이런 점이 있었나요?</b><span>해당하는 것만</span></div>
         ${signsHtml()}
       </div>
 
-      <div class="card field">
+      <div class="card">
         ${SYMPTOMS.map(([k, label]) => `<div class="sub-field"><div class="sub-lab">${label}</div>${seg(k, LEVELS, d[k])}</div>`).join('')}
       </div>
 
-      <div class="card field">
-        <div class="lab"><b>지난밤 수면</b><span id="v-sleep"></span></div>
+      <div class="card">
+        <div class="lab"><b>${IC.moon}지난밤 수면</b><span id="v-sleep"></span></div>
         <div class="times">
           <label>잠든 시각<input type="time" id="f-bed" value="${esc(d.bed || '')}"></label>
           <label>깬 시각<input type="time" id="f-wake" value="${esc(d.wake || '')}"></label>
         </div>
-        <div class="sub-field"><div class="sub-lab">일어났을 때 피곤했나요?</div>${seg('tired', ['아니오', '예'], d.tired == null ? null : +d.tired, 'seg3')}</div>
+        <div class="sub-field"><div class="sub-lab">일어났을 때 피곤했나요?</div>${seg('tired', ['아니오', '예'], d.tired == null ? null : +d.tired)}</div>
       </div>
 
-      <div class="card field">
-        <div class="sub-field"><div class="sub-lab">식욕</div>${seg('appetite', APPETITE, d.appetite, 'seg3')}</div>
-        <div class="sub-field"><div class="sub-lab">카페인</div>${seg('caffeine', CAFFEINE, d.caffeine, 'seg3')}</div>
+      <div class="card">
+        <button type="button" class="tog solo" data-flag="period" aria-pressed="${!!d.period}"><span>${IC.drop}생리 중</span><i></i></button>
       </div>
 
-      <div class="card field">
-        <div class="lab"><b>오늘 먹은 약</b><span>탭해서 선택</span></div>
+      <div class="card">
+        <div class="sub-field"><div class="sub-lab">${IC.fork}식욕</div>${seg('appetite', APPETITE, d.appetite)}</div>
+        <div class="sub-field"><div class="sub-lab">${IC.coffee}카페인</div>${seg('caffeine', CAFFEINE, d.caffeine)}</div>
+      </div>
+
+      <div class="card">
+        <div class="lab"><b>${IC.pill}오늘 먹은 약</b><span>탭해서 선택</span></div>
         <div id="meds">${medsHtml()}</div>
       </div>
 
-      <div class="card field">
-        <div class="lab"><b>메모</b><span>선택</span></div>
+      <div class="card">
+        <div class="lab"><b>${IC.note}메모</b><span>선택</span></div>
         <input type="text" id="f-note" maxlength="120" placeholder="한 줄로 남기기" value="${esc(d.note || '')}" autocomplete="off" style="margin-top:0">
       </div>
 
@@ -259,7 +282,8 @@
     const d = ui.draft;
     if (!d) return;
     $('#v-mood').textContent = d.mood;
-    $('#v-mood').style.color = moodColor(d.mood);
+    $('#i-mood').innerHTML = IC.face(d.mood);
+    $('#i-energy').innerHTML = IC.battery(d.energy);
     $('#v-energy').textContent = d.energy;
     $('#signs').hidden = !(d.mood >= SIGN_THRESHOLD || d.energy >= SIGN_THRESHOLD);
     const min = sleepMinutes(d.bed, d.wake);
@@ -274,7 +298,7 @@
     db.entries[d.date] = {
       date: d.date, mood: d.mood, energy: d.energy, dep: d.dep, elev: d.elev, anx: d.anx,
       bed: d.bed || null, wake: d.wake || null, sleepMin: sleepMinutes(d.bed, d.wake),
-      tired: d.tired, appetite: d.appetite, caffeine: d.caffeine,
+      tired: d.tired, period: !!d.period, appetite: d.appetite, caffeine: d.caffeine,
       meds: d.meds, note: (d.note || '').trim(), signs, updatedAt: new Date().toISOString(),
     };
     if (!save()) return;
@@ -318,8 +342,8 @@
   }
 
   async function exportData() {
-    const name = `harugyeol-backup-${today()}.json`;
-    const text = JSON.stringify(Object.assign({ app: 'harugyeol', exportedAt: new Date().toISOString() }, db), null, 2);
+    const name = `tide-backup-${today()}.json`;
+    const text = JSON.stringify(Object.assign({ app: 'tide', exportedAt: new Date().toISOString() }, db), null, 2);
     try {
       const file = new File([text], name, { type: 'application/json' });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -419,6 +443,9 @@
       const next = (cur === v && !required) ? null : v;   // 선택 항목은 다시 누르면 해제
       d[f] = f === 'tired' ? (next == null ? null : !!next) : next;
       segEl.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.v) === next)));
+    } else if (t.dataset.flag) {                   // 단독 토글 (생리 중)
+      d[t.dataset.flag] = !d[t.dataset.flag];
+      t.setAttribute('aria-pressed', String(!!d[t.dataset.flag]));
     } else if (t.dataset.sign) {                   // 조건부 체크리스트
       d.signs[t.dataset.sign] = !d.signs[t.dataset.sign];
       t.setAttribute('aria-pressed', String(!!d.signs[t.dataset.sign]));
