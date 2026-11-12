@@ -1603,3 +1603,5 @@ body.layout-bigcal .bc-d, body.layout-bigcal #bc-grid .bc-h { padding-left: 0 !i
 #bc-grid .bc-d .el-calNum { scale: .84 1.2; }
 body.layout-bigcal .bc-d, body.layout-bigcal #bc-grid .bc-h { padding-left: 2px !important; padding-right: 2px !important; }
 #bc-grid .bc-d .el-calNum { scale: .8 1; }
+/* 오늘의 기록 위쪽 검은 일정 띠(진행 중 업무와 겹치는 내용)는 숨김 */
+#record-events { display: none !important; }
