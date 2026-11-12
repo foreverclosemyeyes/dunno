@@ -416,6 +416,12 @@
       toast(`비서: ${state.theme.assistant.name}`);
     };
     const msg = state.lastAssistant;
+    // 새 말이 오면 말풍선이 꼬리 쪽에서 '탁' 펼쳐짐
+    const stamp = msg ? `${msg.at || ''}|${msg.thinking ? 't' : ''}|${a.name}` : a.name;
+    if (stamp !== renderAssistant._stamp) {
+      renderAssistant._stamp = stamp;
+      const b = $('#asst-bubble'); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
+    }
     const text = $('#asst-text');
     text.classList.toggle('thinking', !!(msg && msg.thinking));
     let span = text.querySelector('.el-bubble');

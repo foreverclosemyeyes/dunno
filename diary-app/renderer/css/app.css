@@ -1467,3 +1467,35 @@ body.skin-bubble #asst-bubble { max-width: 430px; margin: 74px 0 44px 8%; }
 body.skin-bubble #asst-bubble { margin: 62px 0 38px 112px; }
 body.skin-bubble #asst-name { top: -76%; }
 body.skin-bubble #asst-name { top: -68%; }
+
+/* ===== 대화 구도 (레퍼런스 영상): 캐릭터 목 옆에서 시작해 화면 아래에 붙는 말풍선 ===== */
+body.skin-bubble #assistant { align-items: flex-end; }
+body.skin-bubble #asst-col { flex: 0 1 auto; gap: 0; align-self: flex-end; }
+body.skin-bubble #asst-bubble { width: min(400px, 31vw); max-width: none; min-height: 66px; margin: 92px 0 52px 44px; }
+body.skin-bubble #asst-controls { margin: 0 0 4px 20px !important; gap: 6px; }
+body.skin-bubble .asst-actions { gap: 8px; flex-wrap: nowrap; }
+/* 답하는 칸: 원본 칸 모양, 뾰족한 쪽이 오른쪽 */
+body.skin-reply #chat-form { width: min(330px, 26vw); min-height: 50px !important; margin: 0 0 0 auto !important; transform: none !important;
+  background: none !important; padding: 6px 40px 6px 54px !important; position: relative; }
+body.skin-reply #chat-form::before { content: ''; position: absolute; inset: -6px -4px; z-index: -1; background: var(--skin-reply) center / 100% 100% no-repeat; }
+/* 새 말: 꼬리 쪽에서 펼쳐지고, 이름표가 뒤따라 톡 */
+@keyframes bubPop { 0% { transform: scale(.25, .5); opacity: 0; } 60% { transform: scale(1.04, 1.06); opacity: 1; } 100% { transform: none; } }
+@keyframes namePop { 0%, 45% { opacity: 0; scale: .4; } 80% { opacity: 1; scale: 1.12; } 100% { scale: 1; } }
+body.skin-bubble #asst-bubble.pop::before { animation: bubPop .22s cubic-bezier(.2,.9,.3,1.2) both; transform-origin: 8% 60%; }
+body.skin-bubble #asst-bubble.pop #asst-name { animation: namePop .34s ease-out both; }
+/* 생각하는 중엔 말풍선이 어두워짐 */
+body.skin-bubble #asst-bubble:has(#asst-text.thinking)::before { filter: brightness(.55); transition: filter .2s; }
+/* 답하는 칸과 버튼을 한 줄로 → 말풍선이 캐릭터 입 높이까지 내려옴 */
+body.skin-bubble #asst-bubble { margin: 92px 0 30px 44px; }
+body.skin-bubble #asst-controls { flex-direction: row !important; align-items: center; gap: 8px; margin: 0 0 6px 30px !important; }
+body.skin-bubble #asst-controls .asst-actions { order: 1; gap: 6px; }
+body.skin-bubble #asst-controls .asst-actions .chip, body.skin-bubble #asst-controls .asst-actions label { font-size: 11px; padding-left: 9px; padding-right: 9px; white-space: nowrap; }
+body.skin-reply #chat-form { order: 2; width: 230px; min-height: 40px !important; margin: 0 !important; padding: 4px 34px 4px 40px !important; }
+body.skin-reply #chat-form::before { inset: -9px -6px -7px -6px; transform: scaleX(-1); }
+body.skin-reply #chat-input { font-size: 13px; min-width: 0; }
+body.skin-reply .reply-send { right: 18px; }
+
+body.skin-bubble #asst-bubble { margin: 92px 0 46px 78px; }
+body.skin-bubble #asst-controls { position: relative; z-index: 4; }
+body.skin-bubble #chat-form { order: 2; width: 250px; min-height: 40px !important; margin: 0 !important; padding: 4px 44px 4px 18px !important; transform: none !important; }
+body.skin-bubble #chat-input { font-size: 13px; min-width: 0; }

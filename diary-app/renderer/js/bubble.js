@@ -100,7 +100,7 @@
   function skin() {
     const sk = (D.state && D.state.theme && D.state.theme.layout.skin) || {};
     document.body.classList.toggle('skin-bubble', !!sk.bubble);
-    document.body.classList.toggle('skin-reply', !!sk.reply);
+    document.body.classList.remove('skin-reply'); // 답하는 칸은 직접 그린 모양이 더 깔끔해서 그림을 쓰지 않음
     for (const k of ['mask']) {
       document.body.classList.toggle('skin-has-' + k, !!sk[k]);
       document.body.style.setProperty('--skin-' + k, sk[k] ? `url("${sk[k]}")` : 'none');
