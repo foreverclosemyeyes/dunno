@@ -264,6 +264,34 @@
   window.addEventListener('resize', () => fitBigCal());
 
   // ---------- 오른쪽 ----------
+  // '→' 를 누르면 뜨는 작은 메뉴: 내일 / 다음 주 월요일 / 날짜 고르기
+  function moveMenu(anchor, item, row) {
+    const old = $('.mv-menu'); if (old) old.remove();
+    const base = parse(state.selected);
+    const next = new Date(base); do { next.setDate(next.getDate() + 1); } while (next.getDay() === 0 || next.getDay() === 6); // 다음 평일
+    const mon = new Date(base); do { mon.setDate(mon.getDate() + 1); } while (mon.getDay() !== 1);
+    const label = (d) => `${d.getMonth() + 1}/${d.getDate()} (${WD[d.getDay()]})`;
+    const menu = h('div', 'mv-menu');
+    const go = async (date) => {
+      menu.remove(); row.classList.add('busy');
+      const r = await window.diary.moveTodo(item.id, date);
+      row.classList.remove('busy');
+      toast(r.ok ? `${label(parse(date))}로 넘겼어요.` : r.message, r.ok ? 2500 : 6000);
+    };
+    const opt = (text, date) => { const b = h('button', null, text); b.onclick = (e) => { e.stopPropagation(); go(date); }; return b; };
+    menu.append(h('b', null, '언제로 넘길까요?'), opt(`다음 날  ${label(next)}`, iso(next)));
+    if (iso(mon) !== iso(next)) menu.append(opt(`다음 주 월요일  ${label(mon)}`, iso(mon)));
+    const pick = h('input'); pick.type = 'date'; pick.min = iso(new Date(base.getFullYear(), base.getMonth(), base.getDate() + 1));
+    pick.onclick = (e) => e.stopPropagation();
+    pick.onchange = () => pick.value && go(pick.value);
+    const pr = h('label', 'mv-pick'); pr.append(h('span', null, '날짜 고르기'), pick); menu.append(pr);
+    document.body.append(menu);
+    const r = anchor.getBoundingClientRect();
+    menu.style.left = `${Math.max(8, Math.min(innerWidth - menu.offsetWidth - 8, r.right - menu.offsetWidth))}px`;
+    menu.style.top = `${Math.min(innerHeight - menu.offsetHeight - 8, r.bottom + 6)}px`;
+    const close = (e) => { if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('pointerdown', close, true); } };
+    setTimeout(() => document.addEventListener('pointerdown', close, true), 0);
+  }
   function todoNode(item) {
     const wrap = document.createDocumentFragment();
     const row = h('div', 'todo' + (item.checked ? ' done' : ''));
@@ -278,6 +306,12 @@
       const r = await window.diary.deleteTodo(item.id);
       if (!r.ok) { row.classList.remove('busy'); toast(r.message, 5000); }
     };
+    // 다른 날짜로 넘기기 (안 끝난 것만)
+    if (!item.checked) {
+      const mv = h('button', 'todo-mv', '→'); mv.title = '다른 날짜로 넘기기';
+      mv.onclick = (e) => { e.stopPropagation(); moveMenu(mv, item, row); };
+      row.append(mv);
+    }
     row.append(del);
     row.title = item.checked ? '눌러서 체크 풀기 (노션에도 반영)' : '눌러서 완료 체크 (노션에도 반영)';
     row.onclick = async () => {

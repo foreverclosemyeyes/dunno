@@ -403,6 +403,24 @@ async function deleteTodo(id) {
   }
 }
 
+// ---------- 체크리스트를 다른 날짜로 넘기기 ----------
+// 넘길 날짜에 먼저 적고(하위 항목 중 안 끝난 것도 같이), 다 적힌 뒤에 원래 것을 지움 → 중간에 실패해도 사라지지 않음
+async function moveTodo(id, toDate) {
+  let found = null, fromDate = null;
+  const walk = (items, date) => { for (const x of items || []) { if (x.id === id) { found = x; fromDate = date; return true; } if (walk(x.children, date)) return true; } return false; };
+  for (const w of state.weeks) { for (const [date, items] of Object.entries(w.days || {})) if (walk(items, date)) break; if (found) break; }
+  if (!found) return { ok: false, message: '항목을 못 찾았어요. 새로고침 후 다시 해 주세요.' };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(toDate) || toDate === fromDate) return { ok: false, message: '넘길 날짜를 다시 골라 주세요.' };
+  const texts = [found.text, ...(found.children || []).filter((c) => !c.checked).map((c) => c.text)];
+  for (const t of texts) {
+    const r = await addTodo(toDate, t);
+    if (!r.ok) return { ok: false, message: r.message };
+  }
+  const d = await deleteTodo(id);
+  if (!d.ok) return { ok: false, message: `${toDate.slice(5).replace('-', '/')}에 적었지만 원래 항목은 못 지웠어요. 직접 지워 주세요.` };
+  return { ok: true, count: texts.length };
+}
+
 // ---------- 새 체크박스 추가 ----------
 async function addTodo(date, text) {
   text = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 300);
@@ -705,6 +723,7 @@ function registerIpc() {
   ipcMain.handle('chat:clear', () => { store.set('chat', []); push('chat', []); return []; });
   ipcMain.handle('todo:delete', (_e, id) => deleteTodo(String(id)));
   ipcMain.handle('todo:add', (_e, date, text) => addTodo(String(date), String(text)));
+  ipcMain.handle('todo:move', (_e, id, date) => moveTodo(String(id), String(date)));
   ipcMain.handle('todo:toggle', (_e, id, checked) => toggleTodo(String(id), !!checked));
   ipcMain.handle('theme:save', (_e, theme) => { store.set('theme', theme); return true; });
   ipcMain.handle('themes:save', (_e, list) => { store.set('themes', list); return true; });
