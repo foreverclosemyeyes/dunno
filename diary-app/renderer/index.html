@@ -116,7 +116,13 @@
       <section id="bottom">
         <div id="assistant">
           <div id="chat-log" hidden>
-            <div class="chat-head"><b>대화</b><span><button id="btn-chat-clear" class="chip">지우기</button><button id="btn-chat-close" class="chip">닫기</button></span></div>
+            <div class="log-side">
+              <div class="log-title"><span>LoG</span><em>&amp;</em><span>TaLK</span></div>
+              <div class="log-strip"><span id="log-date"></span></div>
+              <div class="log-part" id="log-part"></div>
+              <i class="log-bar"></i>
+            </div>
+            <div class="log-keys"><button id="btn-chat-close" class="log-key"><b>Esc</b>뒤로</button><button id="btn-chat-clear" class="log-key dim"><b>×</b>지우기</button></div>
             <div id="chat-list" class="scroll"></div>
           </div>
           <div id="asst-figure"></div>

@@ -508,21 +508,37 @@
     $('#btn-claude').hidden = !(state.settings.claudeUrl || !state.hasKeys.anthropic);
   }
 
+  // 대화 기록: 화면 전체를 덮는 로그 화면. 왼쪽에 제목·날짜, 오른쪽에 말한 사람 이름(주황) + 대사, 내 말은 들여쓰기
   function renderChat() {
     const list = $('#chat-list'); list.innerHTML = '';
-    if (!state.chat.length) list.append(h('div', 'msg auto', '아직 대화가 없어요. 아래 칸에 말을 걸어 보세요.'));
-    for (const m of state.chat) {
-      if (m.auto) { list.append(h('div', 'msg auto', `정시 체크 ${new Date(m.at).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' })}`)); continue; }
-      const el = h('div', 'msg ' + m.role, m.text);
-      const t = h('time', null, new Date(m.at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }));
-      el.append(t);
-      list.append(el);
-    }
+    const fmtDay = (d) => `${d.getMonth() + 1}월 ${d.getDate()}일 (${WD[d.getDay()]})`;
+    const partOf = (d) => { const hr = d.getHours(); return hr < 5 ? '심야' : hr < 12 ? '오전' : hr < 18 ? '오후' : hr < 22 ? '저녁' : '밤'; };
+    const msgs = state.chat.filter((m) => !(m.auto && m.role === 'user'));
+    const last = msgs.length ? new Date(msgs[msgs.length - 1].at) : new Date();
+    $('#log-date').textContent = fmtDay(last);
+    $('#log-part').textContent = partOf(last);
+    if (!msgs.length) list.append(h('div', 'log-empty', '아직 대화가 없어요. 아래 칸에 말을 걸어 보세요.'));
+    let day = '';
+    msgs.forEach((m, k) => {
+      const d = new Date(m.at), key = iso(d);
+      if (key !== day) { day = key; list.append(h('div', 'log-day', fmtDay(d))); }
+      const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      if (m.role === 'user') {
+        const el = h('div', 'log-me'); el.append(h('span', null, m.text), h('time', null, time));
+        list.append(el);
+      } else {
+        const el = h('div', 'log-it' + (k === msgs.length - 1 ? ' cur' : ''));
+        const who = h('div', 'log-who'); who.append(h('i'), h('b', null, m.name || state.theme.assistant.name), h('time', null, time));
+        el.append(who, h('p', null, m.text));
+        list.append(el);
+      }
+    });
     list.scrollTop = list.scrollHeight;
   }
   function openChat(on) {
-    $('#chat-log').hidden = !on;
-    $('#btn-chatlog').textContent = on ? '대화 닫기' : '대화 보기';
+    const log = $('#chat-log');
+    if (log.parentElement !== document.body) document.body.append(log); // 화면 전체를 덮도록 맨 바깥으로
+    log.hidden = !on;
     if (on) renderChat();
   }
 
@@ -643,11 +659,85 @@
   }
 
   // POINT UP!! / RANK UP!! 알림
+  // POINT UP 연출: 검은 사선 띠 → 큰 별과 다섯 능력치 → 음표가 날아와 가운데 별이 금색으로 → 'POINT UP!!' 이 회색→흰색→노랑
+  const NS_SVG = 'http://www.w3.org/2000/svg';
+  const svgEl = (tag, attrs) => { const e = document.createElementNS(NS_SVG, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+  const starPts = (R, r, rot = -90) => Array.from({ length: 10 }, (_, k) => { const a = ((rot + k * 36) * Math.PI) / 180, q = k % 2 ? r : R; return [q * Math.cos(a), q * Math.sin(a)]; });
+  function pointUpShow(ups, totals) {
+    const sk = state.theme.layout.skin || {};
+    const box = h('div', 'pu');
+    box.append(h('div', 'pu-dim'), h('div', 'pu-band'));
+    const stage = h('div', 'pu-stage');
+    const svg = svgEl('svg', { viewBox: '-100 -100 200 200', class: 'pu-star' });
+    const P = (pts) => pts.map((p) => p.map((v) => v.toFixed(1)).join(',')).join(' ');
+    svg.append(svgEl('polygon', { points: P(starPts(98, 50)), class: 'pu-big' }));
+    svg.append(svgEl('polygon', { points: P(starPts(44, 18.5)), class: 'pu-ring r1' }), svgEl('polygon', { points: P(starPts(36, 15)), class: 'pu-ring r2' }));
+    // 가운데 금색 별: 면을 번갈아 밝고 어둡게
+    const gold = svgEl('g', { class: 'pu-gold' });
+    const gp = starPts(30, 12.5);
+    gp.forEach((p, k) => { const q = gp[(k + 1) % 10]; gold.append(svgEl('polygon', { points: P([[0, 0], p, q]), class: k % 2 ? 'f1' : 'f2' })); });
+    svg.append(gold);
+    // 큰 별 다섯 끝의 어두운 그림: 안경(지식) · 번개(배짱) · 톱니(손재주) · 하트(친절) · 반짝임(매력)
+    const ICONS = [
+      'M-9 0 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0 M1 0 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0 M-1 -1 h2',
+      'M2 -9 L-5 1 H0 L-2 9 L6 -2 H1 Z',
+      'M0 -8 L2 -5 L5 -6 L5 -2 L8 0 L5 2 L5 6 L2 5 L0 8 L-2 5 L-5 6 L-5 2 L-8 0 L-5 -2 L-5 -6 L-2 -5 Z M-2.5 0 a2.5 2.5 0 1 0 5 0 a2.5 2.5 0 1 0 -5 0',
+      'M0 7 C-10 0 -8 -8 -3 -7 C-1 -7 0 -5 0 -4 C0 -5 1 -7 3 -7 C8 -8 10 0 0 7 Z',
+      'M0 -9 L2 -2 L9 0 L2 2 L0 9 L-2 2 L-9 0 L-2 -2 Z',
+    ];
+    ICONS.forEach((d, k) => { const a = ((-90 + k * 72) * Math.PI) / 180; svg.append(svgEl('path', { d, class: 'pu-ico', 'fill-rule': 'evenodd', transform: `translate(${(Math.cos(a) * 74).toFixed(1)} ${(Math.sin(a) * 74).toFixed(1)}) scale(1.25)` })); });
+    stage.append(svg);
+    // 다섯 능력치 딱지 (별 꼭짓점 쪽)
+    const upped = new Set(ups.map((c) => c.stat));
+    STATS.forEach((sName, k) => {
+      const a = ((-90 + k * 72) * Math.PI) / 180, lv = lvOf(totals[sName] || 0);
+      const lab = h('div', 'pu-lab' + (upped.has(sName) ? ' up' : ''));
+      lab.style.left = `${50 + Math.cos(a) * 29}%`; lab.style.top = `${50 + Math.sin(a) * 29}%`;
+      lab.style.setProperty('--d', `${k * 45}ms`); lab.style.setProperty('--r', `${[-8, 6, -5, 7, -6][k]}deg`);
+      const tag = h('b', null, sName); tag.append(h('i', null, lv >= 5 ? 'MAX' : String(lv)));
+      lab.append(tag, h('span', null, RANKS[sName][lv - 1] || ''));
+      stage.append(lab);
+    });
+    // 음표 세 개가 바깥에서 가운데로
+    [[-92, -30, -18], [-70, 60, 14], [86, -64, -10]].forEach(([x, y, r], k) => {
+      const n = svgEl('svg', { viewBox: '0 0 60 90', class: 'pu-note' });
+      n.append(svgEl('path', { d: 'M22 4 L52 18 L46 40 L30 30 L30 66 A14 12 0 1 1 22 56 Z', class: 'n-body' }));
+      n.append(svgEl('path', { d: 'M6 66 L10 72 L14 66 L18 72 L22 66 L26 72', class: 'n-teeth' }));
+      n.style.setProperty('--x', `${x}vh`); n.style.setProperty('--y', `${y}vh`); n.style.setProperty('--r', `${r}deg`); n.style.setProperty('--d', `${380 + k * 130}ms`);
+      stage.append(n);
+    });
+    // 글자
+    const title = h('div', 'pup-title pu-title');
+    if (sk.pointup) {
+      title.classList.add('img');
+      if (sk['pointup-bg']) { const bg = h('i', 'pup-bg'); bg.style.setProperty('--m', `url("${sk['pointup-bg']}")`); title.append(bg); }
+      const fg = h('i', 'pup-fg'); fg.style.setProperty('--m', `url("${sk.pointup}")`); title.append(fg);
+    } else Array.from('POINT UP!!').forEach((ch, k) => {
+      const sp = h('span', ch === ' ' ? 'sp' : (k % 3 === 1 ? 'alt' : ''), ch);
+      sp.style.setProperty('--r', `${[-6, 4, -3, 7, -5, 3, -8, 5, -2, 6][k % 10]}deg`);
+      title.append(sp);
+    });
+    stage.append(title);
+    box.append(stage);
+    const what = ups.slice(-2).map((c) => c.text).filter(Boolean).join(' · ');
+    if (what) box.append(h('div', 'pu-what', what));
+    let timers = [];
+    const close = () => { timers.forEach(clearTimeout); box.classList.add('out'); setTimeout(() => box.remove(), 320); };
+    box.onclick = close;
+    document.body.append(box);
+    const at = (ms, cls) => timers.push(setTimeout(() => box.classList.add(cls), ms));
+    void box.offsetWidth; // 처음 상태를 한 번 그린 뒤에 시작
+    box.classList.add('in');
+    at(900, 'gold'); at(1250, 't1'); at(1480, 't2'); at(1750, 't3'); at(3300, 'tout');
+    timers.push(setTimeout(close, 4200));
+  }
+
   function pointUp(ups) {
     if (!ups.length) return;
     const before = monthTotals(state.today);
-    const old = $('.pup'); if (old) old.remove();
+    document.querySelectorAll('.pup, .pu').forEach((e) => e.remove());
     const rankUps = ups.filter((c) => lvOf(before[c.stat]) > lvOf(before[c.stat] - 1) && LV.includes(before[c.stat]));
+    if (!rankUps.length) return pointUpShow(ups, before);
     const box = h('div', 'pup' + (rankUps.length ? ' rank' : ''));
     box.append(h('div', 'pup-burst'));
     const title = h('div', 'pup-title');
@@ -927,6 +1017,7 @@
     };
     $('#btn-chatlog').onclick = () => openChat($('#chat-log').hidden);
     $('#btn-chat-close').onclick = () => openChat(false);
+    window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#chat-log').hidden) openChat(false); });
     $('#btn-chat-clear').onclick = async () => { if (confirm('비서와의 대화 기록을 지울까요?')) state.chat = await window.diary.clearChat(); renderChat(); };
     $('#btn-claude').onclick = () => window.diary.open(state.settings.claudeUrl || 'https://claude.ai/new');
     $('#chk-hourly').onchange = (e) => window.diary.setSettings({ hourly: e.target.checked });

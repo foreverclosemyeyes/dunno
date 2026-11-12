@@ -308,7 +308,7 @@ async function runAssistant({ notify }) {
   msg.at = new Date().toISOString();
   store.set('lastAssistant', msg);
   push('assistant', msg);
-  if (msg.source === 'claude') addChat({ role: 'user', text: assistant.CHECK_PROMPT, auto: true, at: msg.at }, { role: 'assistant', text: msg.text, at: msg.at });
+  if (msg.source === 'claude') addChat({ role: 'user', text: assistant.CHECK_PROMPT, auto: true, at: msg.at }, { role: 'assistant', text: msg.text, at: msg.at, name: msg.name });
   if (notify && Notification.isSupported()) {
     const n = new Notification({ title: msg.name || persona().name, body: msg.text, silent: false });
     n.on('click', showWindow);
@@ -332,7 +332,7 @@ async function chatWithAssistant(text) {
     msg = { text: assistant.friendlyError(e), source: 'local', name: persona().name, error: true };
   }
   msg.at = new Date().toISOString();
-  addChat({ role: 'assistant', text: msg.text, at: msg.at, ...(msg.source === 'claude' && !msg.error ? {} : { local: true }) });
+  addChat({ role: 'assistant', text: msg.text, at: msg.at, name: msg.name, ...(msg.source === 'claude' && !msg.error ? {} : { local: true }) });
   store.set('lastAssistant', msg);
   push('assistant', msg);
   return msg;
