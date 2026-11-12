@@ -1442,3 +1442,10 @@ body.layout-bigcal .nb-holes, body.layout-bigcal .nb-sheet-back::after, body.lay
 .cut.dark::before { opacity: 1; }
 .cut.out { opacity: 0; transition: opacity .45s; }
 .cut.out .cut-stage { scale: 1; opacity: 1; }
+/* 스킨 말풍선: 글이 검은 몸통 한가운데에 오도록 (그림 속 안전 영역 = 왼 19% · 오른 17.5% · 위 36% · 아래 13%) */
+body.skin-bubble #asst-bubble { padding: 4px 14px 6px !important; min-height: 64px; display: flex; flex-direction: column; justify-content: center; }
+body.skin-bubble #asst-bubble::before { inset: -71% -27.5% -25% -29.5%; }
+body.skin-bubble #asst-name { left: -9%; top: -52%; }
+body.skin-bubble #asst-bubble { aspect-ratio: 4.45; min-height: 84px; box-sizing: border-box; }
+body.skin-bubble #asst-name { left: -4%; top: -55%; }
+body.skin-bubble #asst-name { top: -36%; }
