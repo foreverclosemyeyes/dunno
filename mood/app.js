@@ -189,10 +189,14 @@
   const NAMES = EN ? {
     mood: ['Very low', 'Low', 'Down', 'A bit down', 'Slightly flat', 'Neutral', 'Slightly good', 'Good', 'Elevated', 'Very elevated', 'Extremely elevated'],
     energy: ['Empty', 'Almost none', 'Drained', 'Tired', 'A bit low', 'Normal', 'A bit lively', 'Energetic', 'Overflowing', 'Very high', 'Hard to contain'],
+    appetite: ['None', 'Almost none', 'Poor', 'Low', 'A bit low', 'Normal', 'Good', 'Hearty', 'Strong', 'Constant', 'Insatiable'],
+    caffeine: ['None', 'A sip', 'A little', 'Half a cup', 'One cup', '1–2 cups', 'Two cups', '2–3 cups', '3+ cups', 'A lot', 'Too much'],
     conf: ['Very withdrawn', 'Withdrawn', 'Unsure', 'A bit unsure', 'Slightly unsure', 'Normal', 'Slightly confident', 'Confident', 'Very confident', 'Can do anything', 'Unstoppable'],
   } : {
     mood: ['바닥', '많이 우울', '우울', '가라앉음', '살짝 다운', '그럭저럭', '괜찮음', '좋음', '신남', '붕 뜸', '날아갈 듯'],
     energy: ['방전', '녹초', '기진맥진', '축 처짐', '좀 피곤', '보통', '괜찮음', '쌩쌩', '기운 넘침', '가만 못 있음', '멈출 수 없음'],
+    appetite: ['전혀 없음', '거의 없음', '입맛 없음', '별로 안 당김', '조금 적음', '보통', '잘 먹음', '입맛 돎', '많이 당김', '계속 당김', '끝없이 당김'],
+    caffeine: ['안 마심', '한 모금', '조금', '반 잔쯤', '한 잔', '한두 잔', '두 잔', '두세 잔', '세 잔 이상', '많이', '과하게'],
     conf: ['완전 쭈그러듦', '많이 위축', '주눅 듦', '소심해짐', '살짝 자신 없음', '보통', '할 만함', '자신 있음', '자신만만', '뭐든 될 듯', '무적'],
   };
   const nameOf = (key, v) => (v == null || !NAMES[key] ? '' : NAMES[key][Math.round(v)] || '');
@@ -436,14 +440,14 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
   function detailHtml(e) {
     const signs = SIGNS.filter(([k]) => e.signs && e.signs[k]).map(([, label]) => label);
     const extra = (e.meds || []).filter((m) => !db.meds.some((x) => medKey(x) === medKey(m))).map((x) => esc(x.name) + (x.dose ? ` ${esc(x.dose)}` : '')).join(', ');
-    const ten = (v) => `${v}<span class="of"> / 10</span>`;
+    const ten = (key, v) => `${nameOf(key, v)}<span class="of"> ${v}</span>`;
     const sym = (label, v) => (v ? li(label, `${LEVELS[v]}${bars(v)}`) : '');
     return `<section class="card list">
         ${sym(T('우울'), e.dep)}${sym(T('고조'), e.elev)}${sym(T('불안'), e.anx)}
         ${e.tired ? li(`${IC.moon}${T('일어났을 때')}`, T('피곤')) : ''}
         ${e.period ? li(`${IC.drop}${T('생리')}`, T('생리 중')) : ''}
-        ${e.appetite != null ? li(`${IC.fork}${T('식욕')}`, ten(e.appetite)) : ''}
-        ${e.caffeine != null ? li(`${IC.coffee}${T('카페인')}`, ten(e.caffeine)) : ''}
+        ${e.appetite != null ? li(`${IC.fork}${T('식욕')}`, ten('appetite', e.appetite)) : ''}
+        ${e.caffeine != null ? li(`${IC.coffee}${T('카페인')}`, ten('caffeine', e.caffeine)) : ''}
         ${extra ? li(`${IC.pill}${T('약')}`, extra) : ''}
         ${signs.length ? li(T('체크'), signs.map(esc).join('<br>')) : ''}
         ${e.note ? li(`${IC.note}${T('메모')}`, esc(e.note)) : ''}
