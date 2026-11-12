@@ -49,6 +49,7 @@
     '복사한 글을 Claude나 ChatGPT 같은 AI 앱에 붙여 넣으면 기록 전체를 읽고 패턴을 정리해 줘요. 붙여 넣는 순간 그 기록은 해당 AI 서비스로 전송돼요.': 'Paste the copied text into an AI app such as Claude or ChatGPT and it can read the whole log and summarise patterns. Once pasted, that log is sent to that AI service.',
     '위 문장들은 내 기록을 계산한 관찰이에요. 원인이나 진단을 뜻하지 않아요.': 'These sentences are observations calculated from your log. They do not indicate a cause or a diagnosis.',
     '복사했어요. AI 앱에 붙여 넣으세요': 'Copied. Paste it into an AI app',
+    '몬스터': 'Monster', '커피': 'Coffee', '차': 'Tea', '콜라': 'Cola', '약 {0}mg': '~{0} mg',
     '취소': 'Cancel', '완료': 'Done', '설정': 'Settings', '증상': 'Symptoms', '몸': 'Body',
     '수면 시간': 'Time asleep', '일어났을 때 피곤함': 'Tired on waking', '일어났을 때': 'On waking', '피곤': 'Tired',
     '높음': 'High',
@@ -190,13 +191,13 @@
     mood: ['Very low', 'Low', 'Down', 'A bit down', 'Slightly flat', 'Neutral', 'Slightly good', 'Good', 'Elevated', 'Very elevated', 'Extremely elevated'],
     energy: ['Empty', 'Almost none', 'Drained', 'Tired', 'A bit low', 'Normal', 'A bit lively', 'Energetic', 'Overflowing', 'Very high', 'Hard to contain'],
     appetite: ['None', 'Almost none', 'Poor', 'Low', 'A bit low', 'Normal', 'Good', 'Hearty', 'Strong', 'Constant', 'Insatiable'],
-    caffeine: ['None', 'A sip', 'A little', 'Half a cup', 'One cup', '1–2 cups', 'Two cups', '2–3 cups', '3+ cups', 'A lot', 'Too much'],
+    caffeine: ['None', 'Very little', 'A little', 'A little', 'Moderate', 'Moderate', 'Quite a bit', 'A lot', 'A lot', 'Very high', 'Too much'],
     conf: ['Very withdrawn', 'Withdrawn', 'Unsure', 'A bit unsure', 'Slightly unsure', 'Normal', 'Slightly confident', 'Confident', 'Very confident', 'Can do anything', 'Unstoppable'],
   } : {
     mood: ['바닥', '많이 우울', '우울', '가라앉음', '살짝 다운', '그럭저럭', '괜찮음', '좋음', '신남', '붕 뜸', '날아갈 듯'],
     energy: ['방전', '녹초', '기진맥진', '축 처짐', '좀 피곤', '보통', '괜찮음', '쌩쌩', '기운 넘침', '가만 못 있음', '멈출 수 없음'],
     appetite: ['전혀 없음', '거의 없음', '입맛 없음', '별로 안 당김', '조금 적음', '보통', '잘 먹음', '입맛 돎', '많이 당김', '계속 당김', '끝없이 당김'],
-    caffeine: ['안 마심', '한 모금', '조금', '반 잔쯤', '한 잔', '한두 잔', '두 잔', '두세 잔', '세 잔 이상', '많이', '과하게'],
+    caffeine: ['안 마심', '아주 조금', '조금', '조금', '적당히', '적당히', '꽤', '많이', '많이', '아주 많이', '과하게'],
     conf: ['완전 쭈그러듦', '많이 위축', '주눅 듦', '소심해짐', '살짝 자신 없음', '보통', '할 만함', '자신 있음', '자신만만', '뭐든 될 듯', '무적'],
   };
   const nameOf = (key, v) => (v == null || !NAMES[key] ? '' : NAMES[key][Math.round(v)] || '');
@@ -214,6 +215,11 @@
   ];
   // 잠에 영향을 주는 약 (안정제·수면제). 전날 이 약을 체크했으면 그날 밤 잠은 '약 먹고 잔 밤'으로 본다.
   const SEDATIVES = ['알프람', '자낙스', '아티반', '리보트릴', '바리움', '스틸녹스', '서카딘'];
+  // 카페인은 마신 것을 개수로 적는다. mg는 대략적인 값 (제품·크기에 따라 다름).
+  const DRINKS = [['monster', T('몬스터'), 100], ['coffee', T('커피'), 150], ['tea', T('차'), 40], ['cola', T('콜라'), 35]];
+  const cafMg = (dr) => DRINKS.reduce((sum, [k, , mg]) => sum + ((dr && dr[k]) || 0) * mg, 0);
+  const cafScore = (dr) => Math.min(10, Math.round(cafMg(dr) / 40));   // 400mg 이상이면 10
+  const drinkText = (dr) => DRINKS.filter(([k]) => dr && dr[k]).map(([k, name]) => `${name} ${dr[k]}`).join(' · ');
   const SIGN_THRESHOLD = 7;
   const isHigh = (d) => d.mood >= SIGN_THRESHOLD || d.energy >= SIGN_THRESHOLD || (d.conf != null && d.conf >= SIGN_THRESHOLD);
   const FONTS = {
@@ -447,7 +453,8 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
         ${e.tired ? li(`${IC.moon}${T('일어났을 때')}`, T('피곤')) : ''}
         ${e.period ? li(`${IC.drop}${T('생리')}`, T('생리 중')) : ''}
         ${e.appetite != null ? li(`${IC.fork}${T('식욕')}`, ten('appetite', e.appetite)) : ''}
-        ${e.caffeine != null ? li(`${IC.coffee}${T('카페인')}`, ten('caffeine', e.caffeine)) : ''}
+        ${e.drinks ? li(`${IC.coffee}${T('카페인')}`, cafMg(e.drinks) ? `${drinkText(e.drinks)}<span class="of"> · ${F('약 {0}mg', cafMg(e.drinks))}</span>` : nameOf('caffeine', 0))
+          : e.caffeine != null ? li(`${IC.coffee}${T('카페인')}`, ten('caffeine', e.caffeine)) : ''}
         ${extra ? li(`${IC.pill}${T('약')}`, extra) : ''}
         ${signs.length ? li(T('체크'), signs.map(esc).join('<br>')) : ''}
         ${e.note ? li(`${IC.note}${T('메모')}`, esc(e.note)) : ''}
@@ -694,7 +701,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
       const signs = SIGNS.filter(([k]) => e.signs && e.signs[k]).map(([, l]) => l).join(', ');
       lines.push([d, `기분 ${e.mood}`, `에너지 ${e.energy}`, e.conf != null ? `자신감 ${e.conf}` : '', `우울 ${e.dep}/4`, `고조 ${e.elev}/4`, `불안 ${e.anx}/4`,
         e.sleepMin != null ? `수면 ${Math.floor(e.sleepMin / 60)}시간 ${e.sleepMin % 60}분${aided(e) ? '(전날 안정제·수면제 복용)' : ''}` : '', e.tired ? '기상 시 피곤' : '', e.period ? '생리 중' : '',
-        e.appetite != null ? `식욕 ${e.appetite}` : '', e.caffeine != null ? `카페인 ${e.caffeine}` : '', `약: ${meds || '없음'}`, signs ? `체크: ${signs}` : '', e.note ? `메모: ${e.note}` : '']
+        e.appetite != null ? `식욕 ${e.appetite}` : '', e.drinks ? `카페인 약 ${cafMg(e.drinks)}mg(${drinkText(e.drinks) || '없음'})` : e.caffeine != null ? `카페인 ${e.caffeine}/10` : '', `약: ${meds || '없음'}`, signs ? `체크: ${signs}` : '', e.note ? `메모: ${e.note}` : '']
         .filter(Boolean).join(' | '));
     }
     return `아래는 내가 직접 적은 최근 4주 기분·수면·복약 기록이야 (기분·에너지·자신감·식욕·카페인은 0~10, 우울·고조·불안은 0~4).
@@ -749,20 +756,25 @@ ${lines.join('\n') || '(기록 없음)'}`;
   function newDraft(date) {
     const old = db.entries[date];
     if (old) return JSON.parse(JSON.stringify(Object.assign({ signs: {}, meds: [], period: false }, old, {
-      conf: old.conf == null ? 5 : old.conf, appetite: old.appetite == null ? 5 : old.appetite, caffeine: old.caffeine == null ? 0 : old.caffeine })));
+      conf: old.conf == null ? 5 : old.conf, appetite: old.appetite == null ? 5 : old.appetite, caffeine: old.caffeine == null ? 0 : old.caffeine, drinks: Object.assign({}, old.drinks) })));
     // 잠든·깬 시각은 가장 최근 기록을 기본값으로 (대부분 비슷하니까 덜 만져도 되게)
     const last = Object.keys(db.entries).sort().reverse().map((k) => db.entries[k]).find((x) => x.bed && x.wake);
     return {
       date, mood: 5, energy: 5, conf: 5, dep: 0, elev: 0, anx: 0,
       bed: last ? last.bed : '23:30', wake: last ? last.wake : '07:00',
-      tired: false, period: false, appetite: 5, caffeine: 0, meds: (db.taken[date] || []).slice(), note: '', signs: {},
+      tired: false, period: false, appetite: 5, caffeine: 0, drinks: {}, meds: (db.taken[date] || []).slice(), note: '', signs: {},
     };
   }
 
   const medKey = (m) => `${m.name}|${m.dose || ''}`;
   const seg = (field, labels, value) => `<div class="seg" data-field="${field}">${
     labels.map((l, i) => `<button type="button" data-v="${i}" aria-pressed="${value === i}">${l}</button>`).join('')}</div>`;
-  const SLIDERS = ['mood', 'energy', 'conf', 'appetite', 'caffeine'];
+  const SLIDERS = ['mood', 'energy', 'conf', 'appetite'];
+  const cafHead = (dr) => (cafMg(dr) ? `${nameOf('caffeine', cafScore(dr))} · ${F('약 {0}mg', cafMg(dr))}` : nameOf('caffeine', 0));
+  const drinksHtml = (d) => `<div class="li col"><div class="slh"><span class="lk">${IC.coffee}${T('카페인')}</span><span class="nm" id="v-caf">${cafHead(d.drinks)}</span></div>
+    <div class="steps">${DRINKS.map(([k, name]) => `<div class="step"><span>${name}</span>
+      <button type="button" data-drink="${k}" data-d="-1" aria-label="${name} −">−</button><b id="c-${k}">${d.drinks[k] || 0}</b>
+      <button type="button" data-drink="${k}" data-d="1" aria-label="${name} +">+</button></div>`).join('')}</div></div>`;
   const slider = (id, icon, label, v, lo, hi) => `<div class="li sl">
     <div class="slh"><span class="lk"><span id="i-${id}">${icon}</span>${label}</span><span class="slv"><span class="nm" id="n-${id}"></span><b id="v-${id}">${v}</b></span></div>
     <input type="range" id="f-${id}" min="0" max="10" step="1" value="${v}" style="--v:${v / 10}" aria-label="${label}">
@@ -838,7 +850,7 @@ ${lines.join('\n') || '(기록 없음)'}`;
       <section class="card list">
         ${sw('data-flag="period"', d.period, T('생리 중'), IC.drop)}
         ${slider('appetite', IC.fork, T('식욕'), d.appetite, T('없음'), T('많음'))}
-        ${slider('caffeine', IC.coffee, T('카페인'), d.caffeine, T('없음'), T('많음'))}
+        ${drinksHtml(d)}
       </section>
 
       <div class="sec">${T('오늘 먹은 약')}</div>
@@ -876,12 +888,16 @@ ${lines.join('\n') || '(기록 없음)'}`;
   function saveEntry() {
     const d = ui.draft;
     const showSigns = isHigh(d);
+    const prev = db.entries[d.date];
+    const keepOldCaf = !!prev && !prev.drinks && !Object.keys(d.drinks).length;
     const signs = {};
     if (showSigns) SIGNS.forEach(([k]) => { if (d.signs[k]) signs[k] = true; });
     db.entries[d.date] = {
       date: d.date, mood: d.mood, energy: d.energy, conf: d.conf, dep: d.dep, elev: d.elev, anx: d.anx,
       bed: d.bed || null, wake: d.wake || null, sleepMin: sleepMinutes(d.bed, d.wake),
-      tired: !!d.tired, period: !!d.period, appetite: d.appetite, caffeine: d.caffeine,
+      tired: !!d.tired, period: !!d.period, appetite: d.appetite,
+      // 예전(슬라이더) 기록을 음료 입력 없이 수정하면 예전 카페인 값을 그대로 둔다
+      caffeine: keepOldCaf ? d.caffeine : cafScore(d.drinks), drinks: keepOldCaf ? undefined : d.drinks,
       meds: d.meds, note: (d.note || '').trim(), signs, updatedAt: new Date().toISOString(),
     };
     delete db.taken[d.date];
@@ -1110,6 +1126,11 @@ ${lines.join('\n') || '(기록 없음)'}`;
       const next = (cur === v && !required) ? null : v;   // 선택 항목은 다시 누르면 해제
       d[f] = f === 'tired' ? (next == null ? null : !!next) : next;
       segEl.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.v) === next)));
+    } else if (t.dataset.drink) {                  // 카페인 음료 개수
+      const k = t.dataset.drink, n = Math.max(0, Math.min(9, (d.drinks[k] || 0) + Number(t.dataset.d)));
+      if (n) d.drinks[k] = n; else delete d.drinks[k];
+      $(`#c-${k}`).textContent = n;
+      $('#v-caf').textContent = cafHead(d.drinks);
     } else if (t.dataset.flag) {                   // 단독 토글 (생리 중)
       d[t.dataset.flag] = !d[t.dataset.flag];
       t.setAttribute('aria-pressed', String(!!d[t.dataset.flag]));
