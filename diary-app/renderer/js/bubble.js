@@ -100,7 +100,7 @@
     const sk = (D.state && D.state.theme && D.state.theme.layout.skin) || {};
     document.body.classList.toggle('skin-bubble', !!sk.bubble);
     document.body.classList.toggle('skin-reply', !!sk.reply);
-    for (const k of ['change', 'mask']) {
+    for (const k of ['mask']) {
       document.body.classList.toggle('skin-has-' + k, !!sk[k]);
       document.body.style.setProperty('--skin-' + k, sk[k] ? `url("${sk[k]}")` : 'none');
     }

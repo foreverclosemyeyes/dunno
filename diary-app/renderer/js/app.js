@@ -380,9 +380,6 @@
       meta.append(h('span', 'st', q.status || ''), h('span', null, q.end ? `마감 ${q.end.slice(5).replace('-', '/')}` : '마감일 없음'));
       row.append(meta);
       row.append(h('div', 'dd', d === null ? '—' : d === 0 ? 'D-DAY' : d > 0 ? `D-${d}` : `D+${-d}`));
-      // 스킨 딱지: 마감 지남 = CRITICAL, 오늘 마감 = WEAK, 3일 이내 = TECHNICAL
-      const skq = state.theme.layout.skin || {}, tag = d === null ? null : d < 0 ? 'tag-critical' : d === 0 ? 'tag-weak' : d <= 3 ? 'tag-technical' : null;
-      if (tag && skq[tag]) { const im = h('img', 'q-tag'); im.src = skq[tag]; row.classList.add('has-tag'); row.append(im); }
       row.title = '노션에서 열기';
       row.onclick = () => window.diary.open(q.url);
       const x = h('button', 'q-hide', '×'); x.title = '이 업무 숨기기 (휴지통에 있는 업무 등)';
@@ -781,7 +778,7 @@
       state.theme.castReady = true;
       if ((state.theme.castActive || 'ren') === 'ren') {
         state.theme.assistant.tone = D.CAST[0][2];
-        if (!state.theme.assistant.name || state.theme.assistant.name === '업무비서') state.theme.assistant.name = D.CAST[0][1];
+        state.theme.assistant.name = D.CAST[0][1];
       }
       window.diary.saveTheme(state.theme);
     }
