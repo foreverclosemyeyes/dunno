@@ -21,7 +21,7 @@
     '평소와 비슷': 'About your usual', '평소보다 {0} 김': '{0} more than usual', '평소보다 {0} 짧음': '{0} less than usual',
     '색': 'Colour', '흑백': 'Black & white', '초록': 'Green', '노랑': 'Yellow', '파랑': 'Blue', '보라': 'Purple', '분홍': 'Pink',
     '기분·에너지·자신감이 낮은 날은 회색, 높을수록 고른 색으로 물들어요.': 'Mood, energy and confidence stay grey on low days and shift toward your chosen colour as they rise.',
-    '약 저장': 'Save med', '먹는 약 등록하기': 'Add your medications', '잠드는 약 먹고 잠': 'Took something to sleep',
+    '약 저장': 'Save med', '먹는 약 등록하기': 'Add your medications', 
     '에너지와 수면 패턴이 달라지고 있어요. 지켜볼 만해요.': 'Your energy and sleep pattern are shifting. Worth keeping an eye on.',
     '들뜬 상태가 며칠째 이어지고 있어요. 진료 때 이야기해 보세요.': 'An elevated state has continued for several days. Consider mentioning it at your appointment.',
     '우울한 날이 2주 가까이 이어지고 있어요. 진료 때 이야기해 보세요.': 'Low days have continued for nearly two weeks. Consider mentioning it at your appointment.',
@@ -37,7 +37,7 @@
     '카페인을 많이 마신 날은 식욕이 높은 편이에요.': 'Appetite tends to be higher on high-caffeine days.',
     '생리 중인 날은 기분 평균이 다른 날보다 {0} 낮아요.': 'Average mood on period days is {0} lower than on other days.',
     '생리 중인 날은 기분 평균이 다른 날보다 {0} 높아요.': 'Average mood on period days is {0} higher than on other days.',
-    '잠드는 약을 먹은 밤에는 평균 {0}, 안 먹은 밤에는 평균 {1} 잤어요.': 'You slept {0} on average on nights with a sleep aid and {1} without.',
+    '안정제·수면제를 체크한 날 밤에는 평균 {0}, 아닌 날 밤에는 평균 {1} 잤어요.': 'You slept {0} on average on nights after checking a sedative or sleep medication, and {1} on other nights.',
     '최근 7일 기분 평균이 그 전 7일보다 {0} 높아요.': 'Average mood over the last 7 days is {0} higher than the 7 days before.',
     '최근 7일 기분 평균이 그 전 7일보다 {0} 낮아요.': 'Average mood over the last 7 days is {0} lower than the 7 days before.',
     '최근 7일은 그 전 7일보다 하루 평균 {0} 덜 잤어요.': 'Over the last 7 days you slept {0} less per night than the 7 days before.',
@@ -208,6 +208,8 @@
     ['아빌리파이', '아리피프라졸'], ['쎄로켈', '쿠에티아핀'], ['자이프렉사', '올란자핀'], ['리스페달', '리스페리돈'], ['인베가', '팔리페리돈'],
     ['라투다', '루라시돈'], ['렉설티', '브렉스피프라졸'],
   ];
+  // 잠에 영향을 주는 약 (안정제·수면제). 전날 이 약을 체크했으면 그날 밤 잠은 '약 먹고 잔 밤'으로 본다.
+  const SEDATIVES = ['알프람', '자낙스', '아티반', '리보트릴', '바리움', '스틸녹스', '서카딘'];
   const SIGN_THRESHOLD = 7;
   const isHigh = (d) => d.mood >= SIGN_THRESHOLD || d.energy >= SIGN_THRESHOLD || (d.conf != null && d.conf >= SIGN_THRESHOLD);
   const FONTS = {
@@ -404,6 +406,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
     if (db.entries[date]) { db.entries[date].meds = list; db.entries[date].updatedAt = new Date().toISOString(); } else db.taken[date] = list;
     save();
   }
+  const aided = (e) => medsFor(addDays(e.date, -1)).some((m) => SEDATIVES.includes(m.name));
   function medCard(date) {
     if (!db.meds.length) return `<section class="card list"><button class="li add" data-act="medSetup">${IC.pill}&nbsp; ${T('먹는 약 등록하기')}</button></section>`;
     const taken = new Set(medsFor(date).map(medKey));
@@ -437,7 +440,6 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
     const sym = (label, v) => (v ? li(label, `${LEVELS[v]}${bars(v)}`) : '');
     return `<section class="card list">
         ${sym(T('우울'), e.dep)}${sym(T('고조'), e.elev)}${sym(T('불안'), e.anx)}
-        ${e.aid ? li(`${IC.moon}${T('수면')}`, T('잠드는 약 먹고 잠')) : ''}
         ${e.tired ? li(`${IC.moon}${T('일어났을 때')}`, T('피곤')) : ''}
         ${e.period ? li(`${IC.drop}${T('생리')}`, T('생리 중')) : ''}
         ${e.appetite != null ? li(`${IC.fork}${T('식욕')}`, ten(e.appetite)) : ''}
@@ -662,8 +664,8 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
       const d = avg(per.map((e) => e.mood)) - avg(non.map((e) => e.mood));
       if (Math.abs(d) >= 0.8) out.push(F(d < 0 ? '생리 중인 날은 기분 평균이 다른 날보다 {0} 낮아요.' : '생리 중인 날은 기분 평균이 다른 날보다 {0} 높아요.', Math.abs(d).toFixed(1)));
     }
-    const aid = sl.filter((e) => e.aid), noAid = sl.filter((e) => !e.aid);
-    if (aid.length >= 2 && noAid.length >= 2) out.push(F('잠드는 약을 먹은 밤에는 평균 {0}, 안 먹은 밤에는 평균 {1} 잤어요.', durText(Math.round(sleepOf(aid))), durText(Math.round(sleepOf(noAid)))));
+    const aid = sl.filter(aided), noAid = sl.filter((e) => !aided(e));
+    if (aid.length >= 2 && noAid.length >= 2) out.push(F('안정제·수면제를 체크한 날 밤에는 평균 {0}, 아닌 날 밤에는 평균 {1} 잤어요.', durText(Math.round(sleepOf(aid))), durText(Math.round(sleepOf(noAid)))));
     // 최근 7일과 그 전 7일
     const t = today(), span = (from, to) => all.filter((e) => e.date > addDays(t, -from) && e.date <= addDays(t, -to));
     const now = span(7, 0), was = span(14, 7);
@@ -687,7 +689,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
       if (!e) { if (meds) lines.push(`${d} | (기록 없음) | 약: ${meds}`); continue; }
       const signs = SIGNS.filter(([k]) => e.signs && e.signs[k]).map(([, l]) => l).join(', ');
       lines.push([d, `기분 ${e.mood}`, `에너지 ${e.energy}`, e.conf != null ? `자신감 ${e.conf}` : '', `우울 ${e.dep}/4`, `고조 ${e.elev}/4`, `불안 ${e.anx}/4`,
-        e.sleepMin != null ? `수면 ${Math.floor(e.sleepMin / 60)}시간 ${e.sleepMin % 60}분${e.aid ? '(잠드는 약 복용)' : ''}` : '', e.tired ? '기상 시 피곤' : '', e.period ? '생리 중' : '',
+        e.sleepMin != null ? `수면 ${Math.floor(e.sleepMin / 60)}시간 ${e.sleepMin % 60}분${aided(e) ? '(전날 안정제·수면제 복용)' : ''}` : '', e.tired ? '기상 시 피곤' : '', e.period ? '생리 중' : '',
         e.appetite != null ? `식욕 ${e.appetite}` : '', e.caffeine != null ? `카페인 ${e.caffeine}` : '', `약: ${meds || '없음'}`, signs ? `체크: ${signs}` : '', e.note ? `메모: ${e.note}` : '']
         .filter(Boolean).join(' | '));
     }
@@ -825,7 +827,6 @@ ${lines.join('\n') || '(기록 없음)'}`;
         <label class="li"><span class="lk">${T('잠든 시각')}</span><input type="time" id="f-bed" value="${esc(d.bed || '')}"></label>
         <label class="li"><span class="lk">${T('깬 시각')}</span><input type="time" id="f-wake" value="${esc(d.wake || '')}"></label>
         <div class="li"><span class="lk">${T('수면 시간')}</span><span class="lv" id="v-sleep"></span></div>
-        ${sw('data-flag="aid"', d.aid, T('잠드는 약 먹고 잠'))}
         ${sw('data-flag="tired"', d.tired, T('일어났을 때 피곤함'))}
       </section>
 
@@ -876,7 +877,7 @@ ${lines.join('\n') || '(기록 없음)'}`;
     db.entries[d.date] = {
       date: d.date, mood: d.mood, energy: d.energy, conf: d.conf, dep: d.dep, elev: d.elev, anx: d.anx,
       bed: d.bed || null, wake: d.wake || null, sleepMin: sleepMinutes(d.bed, d.wake),
-      tired: !!d.tired, aid: !!d.aid, period: !!d.period, appetite: d.appetite, caffeine: d.caffeine,
+      tired: !!d.tired, period: !!d.period, appetite: d.appetite, caffeine: d.caffeine,
       meds: d.meds, note: (d.note || '').trim(), signs, updatedAt: new Date().toISOString(),
     };
     delete db.taken[d.date];
