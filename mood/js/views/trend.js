@@ -41,7 +41,7 @@ export function smoothPath(pts, yMin, yMax) {
 
 export function viewTrend() {
   const C = document.documentElement.dataset.theme === 'light'
-    ? { ink: '#0b0b0c', ring: '#fff', grid: 'rgba(0,0,0,.08)', muted: '#6b6b70', faint: '#a0a0a6' }
+    ? { ink: '#3a3a3c', ring: '#fff', grid: 'rgba(60,60,67,.1)', muted: '#7c7c82', faint: '#b0b0b6' }
     : { ink: '#fff', ring: '#1c1c1e', grid: 'rgba(255,255,255,.1)', muted: '#9a9aa0', faint: '#6a6a70' };
   const t = today(), r = trendRange(trend.anchor), prev = trendRange(shiftAnchor(trend.anchor, -1));
   const days = rangeEntries(r), got = days.filter(Boolean), before = rangeEntries(prev).filter(Boolean);

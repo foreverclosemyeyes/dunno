@@ -3,8 +3,15 @@
   font-weight: 45 920;
   font-style: normal;
   font-display: swap;
-  src: url("fonts/PretendardVariable.woff2") format("woff2-variations");
+  src: url("fonts/PretendardVariable.woff2") format("woff2-variations"), url("fonts/PretendardVariable.woff2") format("woff2");
 }
+/* 고운돋움·고운바탕: 한글 파일을 먼저 두고, 숫자·영문은 뒤의 latin 파일이 맡는다 */
+@font-face { font-family: "Gowun Dodum"; font-weight: 400; font-display: swap; src: url("fonts/gowun-dodum-korean-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Gowun Dodum"; font-weight: 400; font-display: swap; src: url("fonts/gowun-dodum-latin-400-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+2000-206F, U+20AC, U+2122, U+2190-2193; }
+@font-face { font-family: "Gowun Batang"; font-weight: 400; font-display: swap; src: url("fonts/gowun-batang-korean-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Gowun Batang"; font-weight: 400; font-display: swap; src: url("fonts/gowun-batang-latin-400-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+2000-206F, U+20AC, U+2122, U+2190-2193; }
+@font-face { font-family: "Gowun Batang"; font-weight: 700; font-display: swap; src: url("fonts/gowun-batang-korean-700-normal.woff2") format("woff2"); }
+@font-face { font-family: "Gowun Batang"; font-weight: 700; font-display: swap; src: url("fonts/gowun-batang-latin-700-normal.woff2") format("woff2"); unicode-range: U+0000-00FF, U+2000-206F, U+20AC, U+2122, U+2190-2193; }
 
 /* 색: 흑백 유리. 다크가 기본, 라이트는 data-theme=light */
 :root {
@@ -32,20 +39,21 @@
 }
 :root[data-theme=light] {
   color-scheme: light;
-  --bg: #e9ebef;
-  --ink: #0b0b0c;
+  /* 라이트는 대비를 낮춘다: 새까만 색 대신 짙은 회색, 바탕은 아이폰 설정 화면의 옅은 회색 */
+  --bg: #f2f2f7;
+  --ink: #3a3a3c;
   --ink-inv: #fff;
-  --text: #0b0b0c;
-  --muted: #6b6b70;
-  --faint: #a0a0a6;
-  --card: rgba(255, 255, 255, .55);
-  --card2: rgba(0, 0, 0, .055);
+  --text: #1d1d1f;
+  --muted: #7c7c82;
+  --faint: #b0b0b6;
+  --card: rgba(255, 255, 255, .8);
+  --card2: rgba(118, 118, 128, .1);
   --stroke: rgba(255, 255, 255, .85);
-  --fill: rgba(0, 0, 0, .13);
-  --line: rgba(0, 0, 0, .09);
+  --fill: rgba(118, 118, 128, .2);
+  --line: rgba(60, 60, 67, .11);
   --sel: #fff;
-  --bar: rgba(240, 241, 244, .6);
-  --shadow: 0 8px 28px rgba(0, 0, 0, .06);
+  --bar: rgba(248, 248, 250, .74);
+  --shadow: 0 1px 1px rgba(0, 0, 0, .02), 0 6px 20px rgba(0, 0, 0, .035);
   --glow: radial-gradient(60% 40% at 10% 0%, #fff, transparent 70%);
 }
 

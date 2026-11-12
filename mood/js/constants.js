@@ -49,9 +49,10 @@ export const SIGN_THRESHOLD = 7;
 export const isHigh = (d) => d.mood >= SIGN_THRESHOLD || d.energy >= SIGN_THRESHOLD || (d.conf != null && d.conf >= SIGN_THRESHOLD);
 export const FONTS = {
   system: [T('기본'), '-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif'],
-  gothic: [T('애플 고딕'), '"Apple SD Gothic Neo", "AppleGothic", "Noto Sans KR", sans-serif'],
+  // 아래 셋은 앱에 넣어 둔 글꼴 파일(mood/fonts)을 쓴다. 고르면 그때 내려받는다.
   pretendard: ['Pretendard', '"Pretendard Variable", -apple-system, "Apple SD Gothic Neo", sans-serif'],
-  myungjo: [T('명조'), '"AppleMyungjo", "Nanum Myeongjo", "Noto Serif KR", serif'],
+  dodum: [T('고운돋움'), '"Gowun Dodum", -apple-system, "Apple SD Gothic Neo", sans-serif'],
+  batang: [T('고운바탕'), '"Gowun Batang", "AppleMyungjo", serif'],
 };
 export const SIZES = { s: [T('작게'), 1], m: [T('보통 '), 1.12], l: [T('크게'), 1.25], xl: [T('아주 크게'), 1.4] };
 

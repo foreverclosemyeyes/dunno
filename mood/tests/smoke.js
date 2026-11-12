@@ -166,6 +166,11 @@ function seed() {
   await page.click('[data-act=settings]'); await page.click('[data-lang=ko]'); await page.waitForLoadState('load'); await page.waitForSelector('h1');
   await page.click('[data-act=settings]'); await page.click('[data-theme-pick=light]');
   check('라이트 모드', (await page.evaluate(() => document.documentElement.dataset.theme)) === 'light');
+  await page.click('[data-font=batang]');
+  await page.waitForFunction(() => document.fonts.check('16px "Gowun Batang"', '가1'));
+  check('글씨체를 고르면 본문과 큰 숫자에 적용', await page.evaluate(() => getComputedStyle(document.body).fontFamily.includes('Gowun Batang')
+    && getComputedStyle(document.documentElement).getPropertyValue('--round').includes('Gowun Batang')));
+  await page.click('[data-font=system]');
   await page.click('[data-color-pick=off]'); await page.click('[data-size=xl]'); await page.click('[data-act=close]');
   check('아주 큰 글씨에서도 옆으로 안 넘침', !(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)));
 
