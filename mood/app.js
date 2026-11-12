@@ -204,106 +204,143 @@
   };
   const rangeEntries = (r) => Array.from({ length: r.n }, (_, i) => db.entries[addDays(r.start, i)] || null);
 
+  // 점들을 부드러운 곡선으로 잇는다
+  function smoothPath(pts, yMin, yMax) {
+    if (!pts.length) return '';
+    let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+    const clamp = (y) => Math.max(yMin, Math.min(yMax, y));
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+      const c1 = [p1[0] + (p2[0] - p0[0]) / 6, clamp(p1[1] + (p2[1] - p0[1]) / 6)];
+      const c2 = [p2[0] - (p3[0] - p1[0]) / 6, clamp(p2[1] - (p3[1] - p1[1]) / 6)];
+      d += `C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+    }
+    return d;
+  }
+
   function viewTrend() {
     const t = today(), r = trendRange(trend.anchor), prev = trendRange(shiftAnchor(trend.anchor, -1));
     const days = rangeEntries(r), got = days.filter(Boolean), before = rangeEntries(prev).filter(Boolean);
+    const isWeek = trend.mode === 'week';
     const sD = parse(r.start), eD = parse(addDays(r.start, r.n - 1));
-    const title = trend.mode === 'week'
+    const title = isWeek
       ? `${sD.getMonth() + 1}월 ${sD.getDate()}일 – ${eD.getMonth() + 1}월 ${eD.getDate()}일`
       : `${sD.getFullYear()}년 ${sD.getMonth() + 1}월`;
-    const word = trend.mode === 'week' ? '지난주' : '지난달';
+    const word = isWeek ? '지난주' : '지난달';
+    const pick = trend.pick, pickDate = pick == null ? null : addDays(r.start, pick), pickE = pickDate ? db.entries[pickDate] : null;
+    const pickLabel = pickDate ? (() => { const d = parse(pickDate); return `${d.getMonth() + 1}월 ${d.getDate()}일 ${WD[d.getDay()]}요일`; })() : '';
 
-    // 평균 타일 + 직전 기간과 비교
-    const avgTile = (key, icon, label, isSleep) => {
-      const a = mean(got, key), b = mean(before, key);
-      const n = a == null ? '–' : isSleep ? `${Math.floor(a / 60)}<small>시간</small>${Math.round(a % 60)}<small>분</small>` : a.toFixed(1);
-      let sub = '';
-      if (a != null && b != null) {
-        const diff = a - b, mag = isSleep ? `${Math.round(Math.abs(diff))}분` : Math.abs(diff).toFixed(1);
-        sub = Math.abs(diff) < (isSleep ? 5 : 0.05) ? `${word}와 비슷` : `${word}보다 ${diff > 0 ? '▲' : '▼'}${mag}`;
+    // 크기: 오른쪽에 눈금 숫자 자리를 남기고 나머지를 날짜 수로 나눈다
+    const AX = 28, W = Math.max(160, Math.min(app.clientWidth, 480) - 28 - 32 - AX), col = W / r.n;
+    const cx = (i) => col * (i + 0.5);
+    const TOP = 8, BOT = 104, H = 124;
+    const xLabels = days.map((_, i) => {
+      const d = addDays(r.start, i), dt = parse(d);
+      if (!isWeek && (dt.getDate() - 1) % 7 !== 0) return '';
+      return `<text x="${cx(i).toFixed(1)}" y="${H - 4}" text-anchor="middle" font-size="10" fill="${d === t ? '#fff' : '#8e8e93'}">${isWeek ? WD[dt.getDay()] : dt.getDate()}</text>`;
+    }).join('');
+    const grid = (ticks, y) => ticks.map(([v, label]) => `<line x1="0" x2="${W}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="#2c2c2e"/>
+      <text x="${W + 6}" y="${(y(v) + 3.5).toFixed(1)}" font-size="10" fill="#636366">${label}</text>`).join('');
+    const plot = (inner) => `<div class="plot" data-n="${r.n}" data-w="${W}"><svg width="${W + AX}" height="${H}">${inner}${xLabels}</svg></div>`;
+
+    // 카드 머리: 평소에는 평균, 날짜를 누르면 그날 값
+    const fmtSleep = (m) => `${Math.floor(m / 60)}<small>시간</small> ${Math.round(m % 60)}<small>분</small>`;
+    const head = (key, icon, name, isSleep) => {
+      let big, sub;
+      if (pickDate) {
+        const v = pickE ? pickE[key] : null;
+        big = v == null ? '–' : isSleep ? fmtSleep(v) : v;
+        sub = pickLabel;
+      } else {
+        const a = mean(got, key), b = mean(before, key);
+        big = a == null ? '–' : isSleep ? fmtSleep(a) : a.toFixed(1);
+        sub = '평균';
+        if (a != null && b != null) {
+          const diff = a - b, mag = isSleep ? `${Math.round(Math.abs(diff))}분` : Math.abs(diff).toFixed(1);
+          sub += Math.abs(diff) < (isSleep ? 5 : 0.05) ? ` · ${word}와 비슷` : ` · ${word}보다 ${diff > 0 ? '↑' : '↓'} ${mag}`;
+        }
       }
-      return tile(typeof icon === 'function' ? icon(a == null ? 5 : Math.round(a)) : icon, n, label, sub);
+      return `<div class="mt">${icon}${name}</div><div class="mv"><b>${big}</b><span>${sub}</span></div>`;
     };
 
-    // 차트 크기: 화면 너비에 맞춰 날짜 한 칸의 폭을 정한다
-    const LABEL = 58, W = Math.max(180, Math.min(app.clientWidth, 480) - 28 - 28 - LABEL), col = W / r.n;
-    const cx = (i) => (col * (i + 0.5)).toFixed(1);
-    const band = (h) => (trend.pick == null ? '' : `<rect x="${(col * trend.pick).toFixed(1)}" y="0" width="${col.toFixed(1)}" height="${h}" fill="#fff" opacity=".1"/>`);
-    const trow = (icon, name, h, inner) => `<div class="trow"><div class="tl">${icon}<span>${name}</span></div><svg width="${W}" height="${h}">${band(h)}${inner}</svg></div>`;
-
-    const lineRow = (key, icon, name) => {
-      const H = 52, P = 6, y = (v) => (P + (1 - v / 10) * (H - 2 * P)).toFixed(1);
-      const rad = r.n <= 7 ? 4 : 2;
-      let out = `<line x1="0" x2="${W}" y1="${y(5)}" y2="${y(5)}" stroke="#2a2a2a"/>`, run = [];
-      const flush = () => { if (run.length > 1) out += `<polyline points="${run.join(' ')}" fill="none" stroke="#f2f2f2" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`; run = []; };
-      days.forEach((e, i) => { if (e && e[key] != null) run.push(`${cx(i)},${y(e[key])}`); else flush(); });
-      flush();
-      days.forEach((e, i) => { if (e && e[key] != null) out += `<circle cx="${cx(i)}" cy="${y(e[key])}" r="${rad}" fill="#f2f2f2" stroke="#111" stroke-width="1.5"/>`; });
-      return trow(icon, name, H, out);
+    const lineCard = (key, icon, name) => {
+      const y = (v) => TOP + (1 - v / 10) * (BOT - TOP);
+      const pts = [];
+      days.forEach((e, i) => { if (e && e[key] != null) pts.push([cx(i), y(e[key]), i]); });
+      let out = `<defs><linearGradient id="g-${key}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".26"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>`;
+      out += grid([[0, '0'], [5, '5'], [10, '10']], y);
+      if (pts.length > 1) {
+        const d = smoothPath(pts, TOP, BOT);
+        out += `<path d="${d}L${pts[pts.length - 1][0].toFixed(1)},${BOT}L${pts[0][0].toFixed(1)},${BOT}Z" fill="url(#g-${key})"/>
+          <path d="${d}" fill="none" stroke="#fff" stroke-width="${isWeek ? 2.5 : 2}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      }
+      if (isWeek || pts.length === 1) pts.forEach((p) => { out += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="4" fill="#fff" stroke="#1c1c1e" stroke-width="2"/>`; });
+      if (pick != null) {
+        out += `<line x1="${cx(pick).toFixed(1)}" x2="${cx(pick).toFixed(1)}" y1="${TOP - 4}" y2="${BOT}" stroke="#8e8e93"/>`;
+        const p = pts.find((q) => q[2] === pick);
+        if (p) out += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="5.5" fill="#fff" stroke="#1c1c1e" stroke-width="2.5"/>`;
+      }
+      return `<section class="card mcard">${head(key, icon, name)}${plot(out)}</section>`;
     };
 
-    const sleepRow = () => {
-      const H = 44, MAX = 12 * 60, bw = Math.max(3, Math.min(col - 2, 14));
+    const sleepCard = () => {
+      const MAX = 12 * 60, y = (m) => TOP + (1 - Math.min(m, MAX) / MAX) * (BOT - TOP);
+      const bw = isWeek ? 20 : Math.max(3, col - 3), rx = Math.min(bw / 2, 5);
       const all = mean(Object.values(db.entries), 'sleepMin');
-      let out = `<line x1="0" x2="${W}" y1="${H - 0.5}" y2="${H - 0.5}" stroke="#2a2a2a"/>`;
+      let out = grid([[0, '0'], [360, '6'], [720, '12시간']], y);
       days.forEach((e, i) => {
         if (!e || e.sleepMin == null) return;
-        const h = Math.max(2, Math.min(e.sleepMin, MAX) / MAX * (H - 2));
-        out += `<rect x="${(col * (i + 0.5) - bw / 2).toFixed(1)}" y="${(H - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="2" fill="#f2f2f2"/>`;
+        const top = Math.min(y(e.sleepMin), BOT - 3);
+        out += `<rect x="${(cx(i) - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${(BOT - top).toFixed(1)}" rx="${rx.toFixed(1)}"
+          fill="${pick == null || pick === i ? '#fff' : '#636366'}"/>`;
       });
-      if (all != null) { const ya = (H - Math.min(all, MAX) / MAX * (H - 2)).toFixed(1); out += `<line x1="0" x2="${W}" y1="${ya}" y2="${ya}" stroke="#858585" stroke-dasharray="3 3"/>`; }
-      return trow(IC.moon, '수면', H, out);
+      if (all != null) out += `<line x1="0" x2="${W}" y1="${y(all).toFixed(1)}" y2="${y(all).toFixed(1)}" stroke="#aeaeb2" stroke-dasharray="2 4" stroke-linecap="round"/>`;
+      return `<section class="card mcard">${head('sleepMin', IC.moon, '수면', true)}${plot(out)}
+        <div class="mnote">점선은 지금까지의 내 평균 수면${all != null ? ` (${durText(Math.round(all))})` : ''}</div></section>`;
     };
 
-    const SHADE = ['#1d1d1d', '#555', '#8a8a8a', '#c4c4c4', '#fff'];
-    const cellRow = (key, name) => trow('', name, 18, days.map((e, i) => (e
-      ? `<rect x="${(col * i + 1).toFixed(1)}" y="2" width="${(col - 2).toFixed(1)}" height="14" rx="3" fill="${SHADE[e[key] || 0]}"/>` : '')).join(''));
-    const markRow = (test, icon, name) => trow(icon, name, 18, days.map((e, i) => (e && test(e)
-      ? `<circle cx="${cx(i)}" cy="9" r="${r.n <= 7 ? 4 : 2.5}" fill="#f2f2f2"/>` : '')).join(''));
+    // 월: 기분 달력
+    const calendar = () => {
+      const lead = (sD.getDay() + 6) % 7;
+      const cells = Array.from({ length: lead }, () => '<span></span>').concat(days.map((e, i) => {
+        const d = addDays(r.start, i);
+        return `<button class="cday${pick === i ? ' sel' : ''}${d === t ? ' now' : ''}" data-act="pickDay" data-i="${i}" ${d > t ? 'disabled' : ''}
+          aria-label="${parse(d).getDate()}일${e ? `, 기분 ${e.mood}` : ', 기록 없음'}">
+          <span class="cdot" ${e ? `style="${moodFill(e.mood)}"` : ''}>${parse(d).getDate()}</span>${e && e.period ? '<i></i>' : ''}</button>`;
+      })).join('');
+      const scale = [0, 2.5, 5, 7.5, 10].map((v) => `<i style="${moodFill(v)}"></i>`).join('');
+      return `<section class="card mcard"><div class="mt">${IC.today}기분 달력</div>
+        <div class="cal">${['월', '화', '수', '목', '금', '토', '일'].map((w) => `<span class="cw">${w}</span>`).join('')}${cells}</div>
+        <div class="mnote calkey"><span>가라앉음 ${scale} 들뜸</span><span><i class="pdot"></i> 생리</span></div></section>`;
+    };
 
-    const axis = `<div class="trow"><div class="tl"></div><svg width="${W}" height="16">${days.map((_, i) => {
-      const d = addDays(r.start, i), dt = parse(d);
-      const show = trend.mode === 'week' || dt.getDate() === 1 || dt.getDate() % 5 === 0;
-      return show ? `<text x="${cx(i)}" y="12" text-anchor="middle" font-size="10" fill="${d === t ? '#fff' : '#858585'}"
-        ${d === t ? 'font-weight="700"' : ''}>${trend.mode === 'week' ? WD[dt.getDay()] : dt.getDate()}</text>` : '';
-    }).join('')}</svg></div>`;
-
-    // 누른 날짜의 값
-    let readout = '<span class="mut">그래프에서 날짜를 누르면 그날 값을 볼 수 있어요</span>';
-    if (trend.pick != null) {
-      const d = addDays(r.start, trend.pick), e = db.entries[d], dt = parse(d);
-      const head = `<b>${dt.getMonth() + 1}월 ${dt.getDate()}일 ${WD[dt.getDay()]}</b>`;
-      readout = e
-        ? `${head} 기분 ${e.mood} · 에너지 ${e.energy}${e.conf != null ? ` · 자신감 ${e.conf}` : ''}${e.sleepMin != null ? ` · 수면 ${durText(e.sleepMin)}` : ''}`
-        : `${head} <span class="mut">기록 없음</span>`;
-      readout = `<span>${readout}</span><button class="mini" data-act="openDay" data-date="${d}">열기</button>`;
-    }
+    // 증상·생리·약: 날짜별 칸
+    const SHADE = ['#2c2c2e', '#5a5a5e', '#8e8e93', '#c7c7cc', '#fff'];
+    const strip = (name, cell) => `<div class="srow"><svg width="${W}" height="18">${days.map((e, i) => (e ? cell(e, i) : '')).join('')}${
+      pick == null ? '' : `<rect x="${(col * pick).toFixed(1)}" y="0" width="${col.toFixed(1)}" height="18" rx="4" fill="none" stroke="#fff"/>`}</svg><span>${name}</span></div>`;
+    const gap = isWeek ? 4 : 1.5;
+    const level = (key) => (e, i) => `<rect x="${(col * i + gap / 2).toFixed(1)}" y="2" width="${(col - gap).toFixed(1)}" height="14" rx="${isWeek ? 5 : 3}" fill="${SHADE[e[key] || 0]}"/>`;
+    const dot = (test) => (e, i) => (test(e) ? `<circle cx="${cx(i).toFixed(1)}" cy="9" r="${isWeek ? 4.5 : Math.min(3, col / 2 - 1)}" fill="#fff"/>` : '');
+    const symptoms = `<section class="card mcard"><div class="mt">${IC.wave}증상 · 생리 · 약</div>
+      <div class="plot strips" data-n="${r.n}" data-w="${W}">
+        ${strip('우울', level('dep'))}${strip('고조', level('elev'))}${strip('불안', level('anx'))}
+        <div style="height:8px"></div>
+        ${strip('생리', dot((e) => e.period))}${strip('약', dot((e) => e.meds && e.meds.length))}
+      </div>
+      <div class="mnote calkey"><span>없음 ${SHADE.map((c) => `<i style="background:${c}"></i>`).join('')} 매우 높음</span></div></section>`;
 
     app.innerHTML = `
       <header class="top"><div><h1>흐름</h1><div class="sub">기록 ${got.length}일 / ${r.n}일</div></div>
-        <div class="seg mode"><button data-act="mode" data-mode="week" aria-pressed="${trend.mode === 'week'}">주</button>
-          <button data-act="mode" data-mode="month" aria-pressed="${trend.mode === 'month'}">월</button></div></header>
-      <section class="card week"><div class="week-head" style="padding-bottom:0">
+        <div class="segc"><button data-act="mode" data-mode="week" aria-pressed="${isWeek}">주</button>
+          <button data-act="mode" data-mode="month" aria-pressed="${!isWeek}">월</button></div></header>
+      <div class="pnav">
         <button data-act="shift" data-step="-1" aria-label="이전">‹</button><span>${title}</span>
-        <button data-act="shift" data-step="1" aria-label="다음" ${shiftAnchor(r.start, 1) > t ? 'disabled' : ''}>›</button></div></section>
-      <section class="card"><div class="tiles" style="margin:0">
-        ${avgTile('mood', IC.face, '기분 평균')}${avgTile('energy', IC.battery, '에너지 평균')}
-        ${avgTile('conf', IC.star, '자신감 평균')}${avgTile('sleepMin', IC.moon, '수면 평균', true)}
-      </div></section>
-      <section class="card">
-        <div class="readout">${readout}</div>
-        <div class="tchart" data-n="${r.n}" data-start="${r.start}">
-          ${lineRow('mood', IC.face(5), '기분')}${lineRow('energy', IC.battery(6), '에너지')}${lineRow('conf', IC.star, '자신감')}
-          ${sleepRow()}${axis}
-          <div class="tgap"></div>
-          ${cellRow('dep', '우울')}${cellRow('elev', '고조')}${cellRow('anx', '불안')}
-          <div class="tgap"></div>
-          ${markRow((e) => e.period, IC.drop, '생리')}${markRow((e) => e.meds && e.meds.length, IC.pill, '약')}
-        </div>
-        <div class="legend"><span>선 가운데 줄 = 5 · 수면 점선 = 내 평균</span>
-          <span>없음 ${SHADE.map((c) => `<i style="background:${c}"></i>`).join('')} 매우 높음</span></div>
-      </section>
-      <p class="foot">${DISCLAIMER}</p>`;
+        <button data-act="shift" data-step="1" aria-label="다음" ${shiftAnchor(r.start, 1) > t ? 'disabled' : ''}>›</button></div>
+      ${pickDate ? `<div class="pickbar"><span>${pickLabel}${pickE ? '' : ' · 기록 없음'}</span><button class="mini" data-act="openDay" data-date="${pickDate}">${pickE ? '기록 열기' : '기록하기'}</button></div>` : ''}
+      ${isWeek ? '' : calendar()}
+      ${lineCard('mood', IC.face(5), '기분')}${lineCard('energy', IC.battery(6), '에너지')}${lineCard('conf', IC.star, '자신감')}
+      ${sleepCard()}${symptoms}
+      <p class="foot">그래프나 달력에서 날짜를 누르면 그날 값을 볼 수 있어요.<br>${DISCLAIMER}</p>`;
   }
 
   function render() {
@@ -553,6 +590,7 @@
     font: (el) => { db.settings.font = el.dataset.font; save(); applyFont(); openSettings(); },
     mode: (el) => { trend.mode = el.dataset.mode; trend.pick = null; if (trend.anchor > today()) trend.anchor = today(); render(); },
     shift: (el) => { shiftTrend(Number(el.dataset.step)); render(); },
+    pickDay: (el) => { const i = Number(el.dataset.i); trend.pick = trend.pick === i ? null : i; render(); },
     openDay: (el) => { ui.selected = el.dataset.date; ui.tab = 'today'; window.scrollTo(0, 0); render(); },
     pick: (el) => { ui.selected = el.dataset.date; render(); },
     week: (el) => {
@@ -632,11 +670,11 @@
 
   // 흐름 그래프에서 날짜 칸을 누르면 그날 값을 보여 준다
   app.addEventListener('click', (ev) => {
-    const chart = ev.target.closest('.tchart');
-    if (!chart) return;
-    const box = chart.querySelector('svg').getBoundingClientRect(), n = Number(chart.dataset.n);
-    const i = Math.floor((ev.clientX - box.left) / (box.width / n));
-    if (i < 0 || i >= n || addDays(chart.dataset.start, i) > today()) return;
+    const plot = ev.target.closest('.plot');
+    if (!plot) return;
+    const box = plot.querySelector('svg').getBoundingClientRect(), n = Number(plot.dataset.n);
+    const i = Math.floor((ev.clientX - box.left) / (Number(plot.dataset.w) / n));
+    if (i < 0 || i >= n || addDays(trendRange(trend.anchor).start, i) > today()) return;
     trend.pick = trend.pick === i ? null : i;
     render();
   });
