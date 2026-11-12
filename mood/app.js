@@ -154,6 +154,17 @@
     ['projects', T('새로운 일·프로젝트에 몰두')],
     ['impulsive', T('충동적인 지출이나 결정')],
   ];
+  // 0~10 각 숫자에 붙는 이름
+  const NAMES = EN ? {
+    mood: ['Very low', 'Low', 'Down', 'A bit down', 'Slightly flat', 'Neutral', 'Slightly good', 'Good', 'Elevated', 'Very elevated', 'Extremely elevated'],
+    energy: ['Empty', 'Almost none', 'Drained', 'Tired', 'A bit low', 'Normal', 'A bit lively', 'Energetic', 'Overflowing', 'Very high', 'Hard to contain'],
+    conf: ['Very withdrawn', 'Withdrawn', 'Unsure', 'A bit unsure', 'Slightly unsure', 'Normal', 'Slightly confident', 'Confident', 'Very confident', 'Can do anything', 'Unstoppable'],
+  } : {
+    mood: ['아주 가라앉음', '많이 가라앉음', '가라앉음', '조금 가라앉음', '약간 처짐', '보통', '약간 좋음', '좋음', '들뜸', '많이 들뜸', '아주 들뜸'],
+    energy: ['바닥', '거의 없음', '많이 지침', '지침', '조금 처짐', '보통', '조금 활기', '활기참', '넘침', '많이 넘침', '주체하기 어려움'],
+    conf: ['아주 위축', '많이 위축', '위축', '조금 위축', '약간 자신 없음', '보통', '약간 자신 있음', '자신 있음', '자신만만', '뭐든 할 수 있을 듯', '못 할 게 없는 느낌'],
+  };
+  const nameOf = (key, v) => (v == null || !NAMES[key] ? '' : NAMES[key][Math.round(v)] || '');
   const SIGN_THRESHOLD = 7;
   const isHigh = (d) => d.mood >= SIGN_THRESHOLD || d.energy >= SIGN_THRESHOLD || (d.conf != null && d.conf >= SIGN_THRESHOLD);
   const FONTS = {
@@ -305,7 +316,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
       <button class="btn" data-act="record">${T('기록하기')}</button></section>`;
   }
 
-  const tile = (icon, n, label) => `<div class="tile"><div class="tl">${icon}${label}</div><div class="n">${n}</div></div>`;
+  const tile = (icon, n, label, name) => `<div class="tile"><div class="tl">${icon}${label}</div><div class="n">${n}</div>${name ? `<div class="nm">${name}</div>` : ''}</div>`;
   const bars = (v) => `<span class="bars">${[1, 2, 3, 4].map((i) => `<i class="${i <= v ? 'on' : ''}"></i>`).join('')}</span>`;
 
   // 그날 먹은 약: 기록이 있으면 기록 안에, 아직 없으면 따로 적어 둔다
@@ -328,9 +339,9 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
     const sleepBig = e.sleepMin == null ? '–'
       : `${Math.floor(e.sleepMin / 60)}<small>${T('시간')}</small>${e.sleepMin % 60 ? ` ${e.sleepMin % 60}<small>${T('분')}</small>` : ''}`;
     return `<div class="tiles">
-        ${tile(IC.face(e.mood), e.mood, T('기분'))}
-        ${tile(IC.battery(e.energy), e.energy, T('에너지'))}
-        ${tile(IC.star, e.conf == null ? '–' : e.conf, T('자신감'))}
+        ${tile(IC.face(e.mood), e.mood, T('기분'), nameOf('mood', e.mood))}
+        ${tile(IC.battery(e.energy), e.energy, T('에너지'), nameOf('energy', e.energy))}
+        ${tile(IC.star, e.conf == null ? '–' : e.conf, T('자신감'), nameOf('conf', e.conf))}
         ${tile(IC.moon, sleepBig, T('수면'))}
       </div>`;
   }
@@ -342,7 +353,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
     const sym = (label, v) => (v ? li(label, `${LEVELS[v]}${bars(v)}`) : '');
     return `<section class="card list">
         ${sym(T('우울'), e.dep)}${sym(T('고조'), e.elev)}${sym(T('불안'), e.anx)}
-        ${e.bed && e.wake ? li(`${IC.moon}${T('잠든 → 깬')}`, `${ampm(e.bed)} → ${ampm(e.wake)}${e.tired ? ` · ${T('피곤')}` : ''}`) : ''}
+        ${e.tired ? li(`${IC.moon}${T('일어났을 때')}`, T('피곤')) : ''}
         ${e.period ? li(`${IC.drop}${T('생리')}`, T('생리 중')) : ''}
         ${e.appetite != null ? li(`${IC.fork}${T('식욕')}`, ten(e.appetite)) : ''}
         ${e.caffeine != null ? li(`${IC.coffee}${T('카페인')}`, ten(e.caffeine)) : ''}
@@ -421,7 +432,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
       if (pickDate) {
         const v = pickE ? pickE[key] : null;
         big = v == null ? '–' : isSleep ? fmtSleep(v) : v;
-        sub = pickLabel;
+        sub = nameOf(key, v) || pickLabel;
       } else {
         const a = mean(got, key), b = mean(before, key);
         big = a == null ? '–' : isSleep ? fmtSleep(a) : a.toFixed(1);
@@ -554,7 +565,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
     labels.map((l, i) => `<button type="button" data-v="${i}" aria-pressed="${value === i}">${l}</button>`).join('')}</div>`;
   const SLIDERS = ['mood', 'energy', 'conf', 'appetite', 'caffeine'];
   const slider = (id, icon, label, v, lo, hi) => `<div class="li sl">
-    <div class="slh"><span class="lk"><span id="i-${id}">${icon}</span>${label}</span><b id="v-${id}">${v}</b></div>
+    <div class="slh"><span class="lk"><span id="i-${id}">${icon}</span>${label}</span><span class="slv"><span class="nm" id="n-${id}"></span><b id="v-${id}">${v}</b></span></div>
     <input type="range" id="f-${id}" min="0" max="10" step="1" value="${v}" style="--v:${v / 10}" aria-label="${label}">
     <div class="ends"><span>${lo}</span><span>${hi}</span></div></div>`;
   const sw = (attr, on, label, icon) => `<button type="button" class="li sw" ${attr} aria-pressed="${!!on}"><span class="lk">${icon || ''}${label}</span><i></i></button>`;
@@ -643,6 +654,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
     if (!d) return;
     SLIDERS.forEach((k) => {
       $(`#v-${k}`).textContent = d[k];
+      $(`#n-${k}`).textContent = nameOf(k, d[k]);
       $(`#f-${k}`).style.setProperty('--v', d[k] / 10);
     });
     $('#i-mood').innerHTML = IC.face(d.mood);
