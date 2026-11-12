@@ -1421,3 +1421,24 @@ body.layout-bigcal .nb-holes, body.layout-bigcal .nb-sheet-back::after, body.lay
 .cut-head.img .cut-year img { height: 7.5vh; width: auto; }
 .cut-head.img .cut-month img { height: 10.5vh; width: auto; }
 .cut-head.img .cut-gatsu { height: 5.4vh; width: auto; margin-left: -.6vh; rotate: 6deg; filter: none; }
+
+/* ===== 컷 흐름: 까만 화면 → 밤 도시 → 날짜 → 오늘 → 날이 밝음 → 까맣게 (레퍼런스 영상) ===== */
+.cut { background: #000 !important; }
+.cut-city { opacity: 0; filter: brightness(.3) saturate(.35) contrast(1.15); scale: 1.06 !important;
+  transition: opacity .7s ease-out, filter 1.3s ease-in-out !important; }
+.cut.in .cut-city { opacity: 1; }
+.cut.day .cut-city { filter: none; }
+.cut-cloud { opacity: 0; transition: opacity .9s .3s; }
+.cut.day .cut-cloud { opacity: 1; }
+/* 날짜는 도시가 뜬 뒤에 떨어짐 */
+.cut .cut-day > * { animation: none !important; }
+.cut .cut-day { visibility: hidden; }
+.cut.dates .cut-day { visibility: visible; }
+.cut.dates .cut-day > .cut-num, .cut.dates .cut-day > .cut-wd { animation: cutDrop .5s calc((var(--i, 0) - 2) * 60ms) cubic-bezier(.3,.9,.35,1) both !important; }
+.cut-head { opacity: 0; transition: opacity .4s; }
+.cut.in .cut-head { opacity: 1; }
+/* 끝: 까맣게 저문 뒤 사라짐 */
+.cut::before { content: ''; position: absolute; inset: 0; z-index: 20; background: #000; opacity: 0; pointer-events: none; transition: opacity .4s; }
+.cut.dark::before { opacity: 1; }
+.cut.out { opacity: 0; transition: opacity .45s; }
+.cut.out .cut-stage { scale: 1; opacity: 1; }

@@ -126,21 +126,27 @@
 
     playing = new Promise((resolve) => {
       const timers = [];
+      let done = false;
       const finish = () => {
+        if (done) return; done = true;
         timers.forEach(clearTimeout);
-        root.classList.add('out');
-        setTimeout(() => { root.remove(); playing = null; resolve(); }, 460);
         window.removeEventListener('keydown', onKey);
+        root.classList.add('dark'); // 먼저 까맣게 저물고
+        setTimeout(() => root.classList.add('out'), 420); // 그다음 앱 화면으로
+        setTimeout(() => { root.remove(); playing = null; resolve(); }, 900);
       };
       const onKey = (e) => { if (['Escape', 'Enter', ' '].includes(e.key)) finish(); };
       root.addEventListener('click', finish);
       window.addEventListener('keydown', onKey);
+      // 흐름: 까만 화면 → 밤 도시가 떠오름 → 날짜들이 떨어짐(어제가 가운데) → 오늘로 한 칸 → 단검 → 날이 밝음 → 까맣게
       requestAnimationFrame(() => root.classList.add('in'));
-      timers.push(setTimeout(() => { layout(0); root.classList.add('advance', 'moving'); }, 1250)); // 오늘로 한 칸 이동
-      timers.push(setTimeout(() => root.classList.remove('moving'), 1650));
-      timers.push(setTimeout(() => root.classList.add('pop'), 1750)); // 오늘 숫자 튀어나오기
-      timers.push(setTimeout(() => root.classList.add('note-in'), 2000));
-      timers.push(setTimeout(finish, 4300));
+      timers.push(setTimeout(() => root.classList.add('dates'), 700));
+      timers.push(setTimeout(() => { layout(0); root.classList.add('advance', 'moving'); }, 1700)); // 오늘로 한 칸 이동
+      timers.push(setTimeout(() => root.classList.remove('moving'), 2100));
+      timers.push(setTimeout(() => root.classList.add('pop'), 2200)); // 오늘 숫자 + 단검
+      timers.push(setTimeout(() => root.classList.add('day'), 2500)); // 날이 밝음
+      timers.push(setTimeout(() => root.classList.add('note-in'), 3000));
+      timers.push(setTimeout(finish, 5600));
     });
     return playing;
   }
