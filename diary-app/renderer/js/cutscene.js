@@ -90,9 +90,9 @@
     const layout = (focus) => {
       for (const { el, off } of items) {
         const p = place(off - focus);
-        el.style.left = `${p.x}%`;
-        el.style.top = `${p.y}%`;
-        el.style.transform = `translate(-50%, -50%) scale(${p.scale})`;
+        // 자리(무대의 x%, y%)를 transform 으로만 지정 → 이동이 끊기지 않음
+        el.style.transform = `translate(${p.x}vw, ${p.y}vh) translate(-50%, -50%) scale(${p.scale})`;
+        el.style.setProperty('--sc', String(p.scale));
         el.style.zIndex = String(100 - Math.abs(off - focus) * 10);
         el.style.opacity = (off - focus) < -2.5 || (off - focus) > 3.5 ? '0' : '1';
       }
@@ -142,8 +142,7 @@
       // 흐름: 까만 화면 → 밤 도시가 떠오름 → 날짜들이 떨어짐(어제가 가운데) → 오늘로 한 칸 → 단검 → 날이 밝음 → 까맣게
       requestAnimationFrame(() => root.classList.add('in'));
       timers.push(setTimeout(() => root.classList.add('dates'), 700));
-      timers.push(setTimeout(() => { layout(0); root.classList.add('advance', 'moving'); }, 1700)); // 오늘로 한 칸 이동
-      timers.push(setTimeout(() => root.classList.remove('moving'), 2100));
+      timers.push(setTimeout(() => { layout(0); root.classList.add('advance'); }, 1700)); // 오늘로 한 칸 이동
       timers.push(setTimeout(() => root.classList.add('pop'), 2000)); // 오늘 숫자 + 단검
       timers.push(setTimeout(() => root.classList.add('day'), 2500)); // 날이 밝음
       timers.push(setTimeout(() => root.classList.add('note-in'), 3000));

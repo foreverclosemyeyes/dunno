@@ -838,7 +838,8 @@ body.layout-bigcal .prank { font-size: 13px; letter-spacing: .02em; color: #0b0b
 .cut.in .cut-rings { transform: translate(-50%, -50%) scale(1.06); }
 .cut-year { font-size: 5.4vh; }
 .cut-month { font-size: 8vh; color: var(--accent); }
-.cut-day { position: absolute; text-align: center; transition: left .7s cubic-bezier(.6,-0.2,.25,1.25), top .7s cubic-bezier(.6,-0.2,.25,1.25), transform .7s cubic-bezier(.6,-0.2,.25,1.25), opacity .5s; }
+/* 날짜 한 칸 이동은 transform 만 바꿔서 화면 카드(GPU)가 직접 움직이게 함. left/top 을 바꾸면 매 프레임 외곽선 필터까지 다시 그려서 뚝뚝 끊김 */
+.cut-day { position: absolute; left: 0; top: 0; text-align: center; will-change: transform; transition: transform .7s cubic-bezier(.6,-0.2,.25,1.25), opacity .5s; }
 .cut-num { font-size: 27vh; line-height: .82; color: var(--card); letter-spacing: -.04em; -webkit-text-stroke: 16px #111; paint-order: stroke fill; filter: drop-shadow(10px 10px 0 #111); }
 .cut-day.sun .cut-num { color: var(--sun); }
 .cut-day.sat .cut-num { color: var(--sat); }
@@ -856,9 +857,8 @@ body.layout-bigcal .prank { font-size: 13px; letter-spacing: .02em; color: #0b0b
 .cut-skip { position: absolute; left: 50%; bottom: 2.6vh; transform: translateX(-50%); font: 600 12px "Noto Sans KR Variable", sans-serif; z-index: 5; color: #fff; text-shadow: 0 0 3px #000, 0 0 3px #000; opacity: .7; }
 .cut .cut-day.past .cut-num { color: #111; }
 /* 등장: 숫자들이 차례로 떨어짐, 넘어갈 때 살짝 흐려짐, 끝날 때 다가가며 사라짐 */
-@keyframes cutDrop { 0% { translate: 0 -70vh; } 70% { translate: 0 2vh; } 85% { translate: 0 -.8vh; } 100% { translate: 0 0; } }
-.cut.in .cut-day > .cut-num, .cut.in .cut-day > .cut-wd { animation: cutDrop .55s calc(var(--i, 0) * 55ms + 80ms) cubic-bezier(.3,.9,.35,1) both; }
-.cut.moving .cut-day { filter: blur(1.6px); }
+/* --sc = 그 날짜의 배율 (떨어지는 거리도 크기에 비례) */
+@keyframes cutDrop { 0% { translate: 0 calc(-70vh * var(--sc, 1)); } 70% { translate: 0 calc(2vh * var(--sc, 1)); } 85% { translate: 0 calc(-.8vh * var(--sc, 1)); } 100% { translate: 0 0; } }
 .cut-note { position: absolute; right: 5vw; bottom: 7vh; display: flex; flex-direction: column; gap: 4px; padding: 16px 28px 16px 22px; background: #111; color: var(--card); border: 3px solid var(--card); transform: rotate(-2deg) translateX(40px); opacity: 0; box-shadow: 9px 9px 0 var(--accent); transition: .45s cubic-bezier(.3,1.4,.4,1); font-family: "Noto Sans KR Variable", sans-serif; z-index: 5; word-break: keep-all; overflow-wrap: break-word; }
 .cut-note span { font-size: 16px; font-family: "Gasoek One", "Noto Sans KR Variable", sans-serif !important; font-weight: 400 !important; letter-spacing: .02em; }
 .cut-note b { font-size: 26px; font-weight: 400; color: var(--accent); font-family: "Anton", "Black Han Sans", sans-serif; }
@@ -871,10 +871,10 @@ body.layout-bigcal .prank { font-size: 13px; letter-spacing: .02em; color: #0b0b
 .cut .cut-wd-en i:nth-child(3n+2) { font-family: "Anton", sans-serif; font-size: 1.12em; }
 .cut-head .cut-year { font-size: 7vh; }
 .cut-head .cut-month { font-size: 8.5vh; color: #0b0b0b; font-family: "Archivo Black", "Black Han Sans", sans-serif !important; }
-.cut .cut-num { font-family: "Archivo Black", sans-serif !important; letter-spacing: -.06em; line-height: .9; color: #0b0b0b; -webkit-text-stroke: 2.6vh #fff; paint-order: stroke fill; filter: drop-shadow(.55vh 0 0 #0b0b0b) drop-shadow(-.55vh 0 0 #0b0b0b) drop-shadow(0 .55vh 0 #0b0b0b) drop-shadow(0 -.55vh 0 #0b0b0b); transform: scale(.8, 1.12); font-size: 20vh; }
+.cut .cut-num { font-family: "Archivo Black", sans-serif !important; letter-spacing: -.06em; line-height: .9; color: #0b0b0b; -webkit-text-stroke: 2.6vh #fff; paint-order: stroke fill; filter: drop-shadow(.55vh 0 0 #0b0b0b) drop-shadow(-.55vh 0 0 #0b0b0b) drop-shadow(0 .55vh 0 #0b0b0b) drop-shadow(0 -.55vh 0 #0b0b0b) blur(var(--cut-soft, 0px)); transform: scale(.8, 1.12); font-size: 20vh; }
 .cut.pop .cut-day.today .cut-num { transform: scale(.9, 1.25) rotate(-3deg); }
 .cut .cut-wd { background: none; clip-path: none; padding: 0; display: flex; align-items: baseline; width: fit-content; margin: -1.4vh auto 0; white-space: nowrap; position: relative; z-index: 3; font-family: "Archivo Black", sans-serif !important; color: #fff; transform: rotate(-5deg); paint-order: stroke fill; filter: drop-shadow(.4vh 0 0 #fff) drop-shadow(-.4vh 0 0 #fff) drop-shadow(0 .4vh 0 #fff) drop-shadow(0 -.4vh 0 #fff)
-          drop-shadow(.2vh 0 0 #0b0b0b) drop-shadow(-.2vh 0 0 #0b0b0b) drop-shadow(0 .2vh 0 #0b0b0b) drop-shadow(0 -.2vh 0 #0b0b0b); font-size: 4.6vh; -webkit-text-stroke: 1.15vh #0b0b0b; margin-top: -.4vh; letter-spacing: 0; }
+          drop-shadow(.2vh 0 0 #0b0b0b) drop-shadow(-.2vh 0 0 #0b0b0b) drop-shadow(0 .2vh 0 #0b0b0b) drop-shadow(0 -.2vh 0 #0b0b0b) blur(var(--cut-soft, 0px)); font-size: 4.6vh; -webkit-text-stroke: 1.15vh #0b0b0b; margin-top: -.4vh; letter-spacing: 0; }
 .cut .cut-day.today .cut-wd { font-size: 5vh; }
 .cut .cut-wd-en i { display: inline-block; font-style: normal; transform: translateY(var(--y)) rotate(var(--r)) scale(var(--s)); transform-origin: 50% 80%; margin: 0 .035em; }
 .cut .cut-wd b { font-family: "Nanum Gothic", sans-serif !important; font-weight: 800; margin-left: .25em; color: #fff; paint-order: stroke fill; text-shadow: none; -webkit-text-stroke: .9vh #0b0b0b; font-size: .68em; }
@@ -886,13 +886,13 @@ body.layout-bigcal .prank { font-size: 13px; letter-spacing: .02em; color: #0b0b
 .cut.pop .cut-day.today .cut-num.img { transform: scale(1.12) rotate(-3deg); }
 /* 컷 숫자(달력 시트의 원본 숫자): 속 색만 있는 그림에 흰 테두리 + 검은 바깥선을 둘러 줌 */
 .cut .cut-num.img { display: flex; justify-content: center; align-items: flex-end; -webkit-text-stroke: 0; transform: none; letter-spacing: 0; line-height: 0; filter: drop-shadow(1.3vh 0 0 #fff) drop-shadow(-1.3vh 0 0 #fff) drop-shadow(0 1.3vh 0 #fff) drop-shadow(0 -1.3vh 0 #fff)
-          drop-shadow(.45vh 0 0 #0b0b0b) drop-shadow(-.45vh 0 0 #0b0b0b) drop-shadow(0 .45vh 0 #0b0b0b) drop-shadow(0 -.45vh 0 #0b0b0b); }
+          drop-shadow(.45vh 0 0 #0b0b0b) drop-shadow(-.45vh 0 0 #0b0b0b) drop-shadow(0 .45vh 0 #0b0b0b) drop-shadow(0 -.45vh 0 #0b0b0b) blur(var(--cut-soft, 0px)); }
 .cut .cut-num.img img { width: auto; display: block; height: 17vh; margin: 0 .2vh; }
 .cut .cut-wd.img { -webkit-text-stroke: 0; transform: rotate(-3deg); filter: drop-shadow(.4vh 0 0 #fff) drop-shadow(-.4vh 0 0 #fff) drop-shadow(0 .4vh 0 #fff) drop-shadow(0 -.4vh 0 #fff)
-          drop-shadow(.2vh 0 0 #0b0b0b) drop-shadow(-.2vh 0 0 #0b0b0b) drop-shadow(0 .2vh 0 #0b0b0b) drop-shadow(0 -.2vh 0 #0b0b0b); margin-top: -.6vh; }
+          drop-shadow(.2vh 0 0 #0b0b0b) drop-shadow(-.2vh 0 0 #0b0b0b) drop-shadow(0 .2vh 0 #0b0b0b) drop-shadow(0 -.2vh 0 #0b0b0b) blur(var(--cut-soft, 0px)); margin-top: -.6vh; }
 /* 컷 왼쪽 위 연·월을 스킨 숫자로 */
 .cut-head.img { -webkit-text-stroke: 0; align-items: flex-end; gap: 1.6vh; left: 3.5vw; top: 5vh; filter: drop-shadow(.7vh 0 0 #fff) drop-shadow(-.7vh 0 0 #fff) drop-shadow(0 .7vh 0 #fff) drop-shadow(0 -.7vh 0 #fff)
-          drop-shadow(.35vh 0 0 #0b0b0b) drop-shadow(-.35vh 0 0 #0b0b0b) drop-shadow(0 .35vh 0 #0b0b0b) drop-shadow(0 -.35vh 0 #0b0b0b); }
+          drop-shadow(.35vh 0 0 #0b0b0b) drop-shadow(-.35vh 0 0 #0b0b0b) drop-shadow(0 .35vh 0 #0b0b0b) drop-shadow(0 -.35vh 0 #0b0b0b) blur(var(--cut-soft, 0px)); }
 .cut-head.img span { display: flex; align-items: flex-end; gap: .25vh; }
 .cut-head.img .cut-year img { height: 7.5vh; width: auto; }
 .cut-head.img .cut-month img { height: 10.5vh; width: auto; }
@@ -905,11 +905,10 @@ body.layout-bigcal .prank { font-size: 13px; letter-spacing: .02em; color: #0b0b
 .cut-cloud { position: absolute; z-index: 2; height: auto; pointer-events: none; animation: cutCloud 6s ease-in-out infinite alternate; opacity: 0; transition: opacity .9s .3s; }
 .cut.day .cut-cloud { opacity: 1; }
 /* 날짜는 도시가 뜬 뒤에 떨어짐 */
-.cut .cut-day > * { animation: none !important; }
 .cut .cut-day { visibility: hidden; }
 .cut.dates .cut-day { visibility: visible; }
-.cut.dates .cut-day > .cut-num, .cut.dates .cut-day > .cut-wd { animation: cutDrop .5s calc((var(--i, 0) - 2) * 60ms) cubic-bezier(.3,.9,.35,1) both !important; }
-.cut-head { position: absolute; left: 4vw; top: 5vh; display: flex; align-items: baseline; gap: 14px; transform: rotate(-4deg) translateY(-30px); z-index: 5; paint-order: stroke fill; font-family: "Archivo Black", "Black Han Sans", sans-serif !important; letter-spacing: -.05em; color: #0b0b0b; -webkit-text-stroke: 1.8vh #fff; filter: drop-shadow(.45vh 0 0 #0b0b0b) drop-shadow(-.45vh 0 0 #0b0b0b) drop-shadow(0 .45vh 0 #0b0b0b) drop-shadow(0 -.45vh 0 #0b0b0b); opacity: 0; transition: opacity .4s; }
+.cut.dates .cut-day { animation: cutDrop .5s calc((var(--i, 0) - 2) * 60ms) cubic-bezier(.3,.9,.35,1) both; }
+.cut-head { position: absolute; left: 4vw; top: 5vh; display: flex; align-items: baseline; gap: 14px; transform: rotate(-4deg) translateY(-30px); z-index: 5; paint-order: stroke fill; font-family: "Archivo Black", "Black Han Sans", sans-serif !important; letter-spacing: -.05em; color: #0b0b0b; -webkit-text-stroke: 1.8vh #fff; filter: drop-shadow(.45vh 0 0 #0b0b0b) drop-shadow(-.45vh 0 0 #0b0b0b) drop-shadow(0 .45vh 0 #0b0b0b) drop-shadow(0 -.45vh 0 #0b0b0b) blur(var(--cut-soft, 0px)); opacity: 0; transition: opacity .4s; }
 .cut.in .cut-head { transform: rotate(-4deg); opacity: 1; }
 /* 끝: 까맣게 저문 뒤 사라짐 */
 .cut::before { content: ''; position: absolute; inset: 0; z-index: 20; background: #000; opacity: 0; pointer-events: none; transition: opacity .4s; }
@@ -919,7 +918,9 @@ body.layout-bigcal .prank { font-size: 13px; letter-spacing: .02em; color: #0b0b
 .cut-note.only-hall { padding: 10px 14px; }
 .cut-note.only-hall .cut-hall { margin: 0; font-size: 18px; }
 /* ===== 살짝 흐리게: 화면 전체를 아주 조금만 흐림 (색·밝기는 그대로). 설정 창과 작은 메뉴는 또렷하게 둠 ===== */
-body.soft #bg, body.soft #app, body.soft .cut, body.soft .pu, body.soft .pup, body.soft .ps2, body.soft #chat-log { filter: blur(var(--soft, .35px)); }
+body.soft #bg, body.soft #app, body.soft .pu, body.soft .pup, body.soft .ps2, body.soft #chat-log { filter: blur(var(--soft, .35px)); }
+/* 날짜 컷은 화면 전체가 계속 움직이므로, 전체 흐림 대신 숫자·요일·연월에만 흐림을 같이 구워 넣음 (--cut-soft) */
+body.soft .cut { --cut-soft: var(--soft, .35px); }
 .cut.pop .cut-dagger { opacity: 1; translate: 0 0; }
 .cut-dagger { position: absolute; z-index: 4; opacity: 0; filter: drop-shadow(.5vh .5vh 0 rgba(0,0,0,.4)); transition: translate .09s cubic-bezier(.7,0,1,.6), opacity .04s; transform-origin: 0 50% !important; translate: 14vh -22vh; left: 62% !important; top: -22% !important; width: 140% !important; rotate: -60deg !important; }
 
