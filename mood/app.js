@@ -8,7 +8,6 @@
   const CAFFEINE = ['없음', '조금', '많음'];
   const SYMPTOMS = [['dep', '우울'], ['elev', '고조 (들뜸)'], ['anx', '불안']];
   const SIGNS = [
-    ['confidence', '자신감이 부풀어 오름'],
     ['lessSleep', '적게 자도 안 피곤함'],
     ['talkative', '말이 많아짐'],
     ['racing', '생각이 빠르게 튐'],
@@ -17,6 +16,13 @@
     ['impulsive', '충동적인 지출이나 결정'],
   ];
   const SIGN_THRESHOLD = 7;
+  const isHigh = (d) => d.mood >= SIGN_THRESHOLD || d.energy >= SIGN_THRESHOLD || (d.conf != null && d.conf >= SIGN_THRESHOLD);
+  const FONTS = {
+    system: ['기본', '-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif'],
+    gothic: ['애플 고딕', '"Apple SD Gothic Neo", "AppleGothic", "Noto Sans KR", sans-serif'],
+    pretendard: ['Pretendard', '"Pretendard Variable", -apple-system, "Apple SD Gothic Neo", sans-serif'],
+    myungjo: ['명조', '"AppleMyungjo", "Nanum Myeongjo", "Noto Serif KR", serif'],
+  };
   const WD = ['일', '월', '화', '수', '목', '금', '토'];
   const DISCLAIMER = '이 앱은 진단 도구가 아니에요. 내 상태를 기록해 두는 참고용이에요.';
 
@@ -77,6 +83,9 @@
     fork: svg('<path d="M7 3v6.5a2 2 0 0 0 4 0V3M9 3v18M17.5 3c-2 2-2.5 5-2.5 8h2.5v10"/>'),
     note: svg('<path d="M4 20h4L19 9l-4-4L4 16z"/>'),
     wave: svg('<path d="M3 12c2-5 4-5 6 0s4 5 6 0 4-5 6 0"/>'),
+    star: svg('<path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.8l-5.2 2.8 1-5.8-4.3-4.1 5.9-.8z"/>'),
+    today: svg('<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M8.5 3v4M15.5 3v4"/>'),
+    chart: svg('<path d="M4 19h16M6 15l4-5 3.5 3L19 6"/>'),
     sliders: svg('<path d="M4 7h8M18 7h2M4 17h2M12 17h8"/><circle cx="15" cy="7" r="2.5"/><circle cx="9" cy="17" r="2.5"/>'),
   };
 
@@ -94,11 +103,11 @@
   }
 
   // ---------- 화면 상태 ----------
-  const ui = { selected: today(), draft: null, addingMed: false };
+  const ui = { tab: 'today', selected: today(), draft: null, addingMed: false };
   const standalone = () => window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
 
   // ---------- 오늘 화면 ----------
-  function renderToday() {
+  function viewToday() {
     const t = today();
     const sel = ui.selected;
     const ws = weekStart(sel);
@@ -146,6 +155,8 @@
       <button class="btn" data-act="record">기록하기</button>`;
   }
 
+  const tile = (icon, n, label, sub) => `<div class="tile">${icon}<div><div class="n">${n}</div><div class="l">${label}${sub ? ` <span class="d">${sub}</span>` : ''}</div></div></div>`;
+
   function summary(e) {
     const lv = (label, v) => `<span style="white-space:nowrap;margin-left:10px">${label} <span class="bars">${
       [1, 2, 3, 4].map((i) => `<i class="${i <= v ? 'on' : ''}"></i>`).join('')}</span></span>`;
@@ -156,9 +167,10 @@
     const meds = (e.meds || []).map((x) => esc(x.name) + (x.dose ? ` ${esc(x.dose)}` : '')).join(', ');
     return `
       <div class="tiles">
-        <div class="tile">${IC.face(e.mood)}<div class="n">${e.mood}</div><div class="l">기분</div></div>
-        <div class="tile">${IC.battery(e.energy)}<div class="n">${e.energy}</div><div class="l">에너지</div></div>
-        <div class="tile">${IC.moon}<div class="n">${sleepBig}</div><div class="l">수면</div></div>
+        ${tile(IC.face(e.mood), e.mood, '기분')}
+        ${tile(IC.battery(e.energy), e.energy, '에너지')}
+        ${tile(IC.star, e.conf == null ? '–' : e.conf, '자신감')}
+        ${tile(IC.moon, sleepBig, '수면')}
       </div>
       <div class="rows">
         ${row(IC.wave, '', `${lv('우울', e.dep)}${lv('고조', e.elev)}${lv('불안', e.anx)}`)}
@@ -173,14 +185,146 @@
       <button class="btn ghost" data-act="record">수정하기</button>`;
   }
 
+  // ---------- 흐름 화면 (주 / 월) ----------
+  const trend = { mode: 'week', anchor: today(), pick: null };
+  function trendRange(anchor) {
+    if (trend.mode === 'week') return { start: weekStart(anchor), n: 7 };
+    const d = parse(anchor);
+    return { start: ds(new Date(d.getFullYear(), d.getMonth(), 1)), n: new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate() };
+  }
+  function shiftAnchor(anchor, step) {
+    if (trend.mode === 'week') return addDays(anchor, 7 * step);
+    const d = parse(anchor);
+    return ds(new Date(d.getFullYear(), d.getMonth() + step, 1));
+  }
+  function shiftTrend(step) { trend.anchor = shiftAnchor(trend.anchor, step); trend.pick = null; }
+  const mean = (list, key) => {
+    const v = list.map((e) => e[key]).filter((x) => x != null);
+    return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+  };
+  const rangeEntries = (r) => Array.from({ length: r.n }, (_, i) => db.entries[addDays(r.start, i)] || null);
+
+  function viewTrend() {
+    const t = today(), r = trendRange(trend.anchor), prev = trendRange(shiftAnchor(trend.anchor, -1));
+    const days = rangeEntries(r), got = days.filter(Boolean), before = rangeEntries(prev).filter(Boolean);
+    const sD = parse(r.start), eD = parse(addDays(r.start, r.n - 1));
+    const title = trend.mode === 'week'
+      ? `${sD.getMonth() + 1}월 ${sD.getDate()}일 – ${eD.getMonth() + 1}월 ${eD.getDate()}일`
+      : `${sD.getFullYear()}년 ${sD.getMonth() + 1}월`;
+    const word = trend.mode === 'week' ? '지난주' : '지난달';
+
+    // 평균 타일 + 직전 기간과 비교
+    const avgTile = (key, icon, label, isSleep) => {
+      const a = mean(got, key), b = mean(before, key);
+      const n = a == null ? '–' : isSleep ? `${Math.floor(a / 60)}<small>시간</small>${Math.round(a % 60)}<small>분</small>` : a.toFixed(1);
+      let sub = '';
+      if (a != null && b != null) {
+        const diff = a - b, mag = isSleep ? `${Math.round(Math.abs(diff))}분` : Math.abs(diff).toFixed(1);
+        sub = Math.abs(diff) < (isSleep ? 5 : 0.05) ? `${word}와 비슷` : `${word}보다 ${diff > 0 ? '▲' : '▼'}${mag}`;
+      }
+      return tile(typeof icon === 'function' ? icon(a == null ? 5 : Math.round(a)) : icon, n, label, sub);
+    };
+
+    // 차트 크기: 화면 너비에 맞춰 날짜 한 칸의 폭을 정한다
+    const LABEL = 58, W = Math.max(180, Math.min(app.clientWidth, 480) - 28 - 28 - LABEL), col = W / r.n;
+    const cx = (i) => (col * (i + 0.5)).toFixed(1);
+    const band = (h) => (trend.pick == null ? '' : `<rect x="${(col * trend.pick).toFixed(1)}" y="0" width="${col.toFixed(1)}" height="${h}" fill="#fff" opacity=".1"/>`);
+    const trow = (icon, name, h, inner) => `<div class="trow"><div class="tl">${icon}<span>${name}</span></div><svg width="${W}" height="${h}">${band(h)}${inner}</svg></div>`;
+
+    const lineRow = (key, icon, name) => {
+      const H = 52, P = 6, y = (v) => (P + (1 - v / 10) * (H - 2 * P)).toFixed(1);
+      const rad = r.n <= 7 ? 4 : 2;
+      let out = `<line x1="0" x2="${W}" y1="${y(5)}" y2="${y(5)}" stroke="#2a2a2a"/>`, run = [];
+      const flush = () => { if (run.length > 1) out += `<polyline points="${run.join(' ')}" fill="none" stroke="#f2f2f2" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`; run = []; };
+      days.forEach((e, i) => { if (e && e[key] != null) run.push(`${cx(i)},${y(e[key])}`); else flush(); });
+      flush();
+      days.forEach((e, i) => { if (e && e[key] != null) out += `<circle cx="${cx(i)}" cy="${y(e[key])}" r="${rad}" fill="#f2f2f2" stroke="#111" stroke-width="1.5"/>`; });
+      return trow(icon, name, H, out);
+    };
+
+    const sleepRow = () => {
+      const H = 44, MAX = 12 * 60, bw = Math.max(3, Math.min(col - 2, 14));
+      const all = mean(Object.values(db.entries), 'sleepMin');
+      let out = `<line x1="0" x2="${W}" y1="${H - 0.5}" y2="${H - 0.5}" stroke="#2a2a2a"/>`;
+      days.forEach((e, i) => {
+        if (!e || e.sleepMin == null) return;
+        const h = Math.max(2, Math.min(e.sleepMin, MAX) / MAX * (H - 2));
+        out += `<rect x="${(col * (i + 0.5) - bw / 2).toFixed(1)}" y="${(H - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="2" fill="#f2f2f2"/>`;
+      });
+      if (all != null) { const ya = (H - Math.min(all, MAX) / MAX * (H - 2)).toFixed(1); out += `<line x1="0" x2="${W}" y1="${ya}" y2="${ya}" stroke="#858585" stroke-dasharray="3 3"/>`; }
+      return trow(IC.moon, '수면', H, out);
+    };
+
+    const SHADE = ['#1d1d1d', '#555', '#8a8a8a', '#c4c4c4', '#fff'];
+    const cellRow = (key, name) => trow('', name, 18, days.map((e, i) => (e
+      ? `<rect x="${(col * i + 1).toFixed(1)}" y="2" width="${(col - 2).toFixed(1)}" height="14" rx="3" fill="${SHADE[e[key] || 0]}"/>` : '')).join(''));
+    const markRow = (test, icon, name) => trow(icon, name, 18, days.map((e, i) => (e && test(e)
+      ? `<circle cx="${cx(i)}" cy="9" r="${r.n <= 7 ? 4 : 2.5}" fill="#f2f2f2"/>` : '')).join(''));
+
+    const axis = `<div class="trow"><div class="tl"></div><svg width="${W}" height="16">${days.map((_, i) => {
+      const d = addDays(r.start, i), dt = parse(d);
+      const show = trend.mode === 'week' || dt.getDate() === 1 || dt.getDate() % 5 === 0;
+      return show ? `<text x="${cx(i)}" y="12" text-anchor="middle" font-size="10" fill="${d === t ? '#fff' : '#858585'}"
+        ${d === t ? 'font-weight="700"' : ''}>${trend.mode === 'week' ? WD[dt.getDay()] : dt.getDate()}</text>` : '';
+    }).join('')}</svg></div>`;
+
+    // 누른 날짜의 값
+    let readout = '<span class="mut">그래프에서 날짜를 누르면 그날 값을 볼 수 있어요</span>';
+    if (trend.pick != null) {
+      const d = addDays(r.start, trend.pick), e = db.entries[d], dt = parse(d);
+      const head = `<b>${dt.getMonth() + 1}월 ${dt.getDate()}일 ${WD[dt.getDay()]}</b>`;
+      readout = e
+        ? `${head} 기분 ${e.mood} · 에너지 ${e.energy}${e.conf != null ? ` · 자신감 ${e.conf}` : ''}${e.sleepMin != null ? ` · 수면 ${durText(e.sleepMin)}` : ''}`
+        : `${head} <span class="mut">기록 없음</span>`;
+      readout = `<span>${readout}</span><button class="mini" data-act="openDay" data-date="${d}">열기</button>`;
+    }
+
+    app.innerHTML = `
+      <header class="top"><div><h1>흐름</h1><div class="sub">기록 ${got.length}일 / ${r.n}일</div></div>
+        <div class="seg mode"><button data-act="mode" data-mode="week" aria-pressed="${trend.mode === 'week'}">주</button>
+          <button data-act="mode" data-mode="month" aria-pressed="${trend.mode === 'month'}">월</button></div></header>
+      <section class="card week"><div class="week-head" style="padding-bottom:0">
+        <button data-act="shift" data-step="-1" aria-label="이전">‹</button><span>${title}</span>
+        <button data-act="shift" data-step="1" aria-label="다음" ${shiftAnchor(r.start, 1) > t ? 'disabled' : ''}>›</button></div></section>
+      <section class="card"><div class="tiles" style="margin:0">
+        ${avgTile('mood', IC.face, '기분 평균')}${avgTile('energy', IC.battery, '에너지 평균')}
+        ${avgTile('conf', IC.star, '자신감 평균')}${avgTile('sleepMin', IC.moon, '수면 평균', true)}
+      </div></section>
+      <section class="card">
+        <div class="readout">${readout}</div>
+        <div class="tchart" data-n="${r.n}" data-start="${r.start}">
+          ${lineRow('mood', IC.face(5), '기분')}${lineRow('energy', IC.battery(6), '에너지')}${lineRow('conf', IC.star, '자신감')}
+          ${sleepRow()}${axis}
+          <div class="tgap"></div>
+          ${cellRow('dep', '우울')}${cellRow('elev', '고조')}${cellRow('anx', '불안')}
+          <div class="tgap"></div>
+          ${markRow((e) => e.period, IC.drop, '생리')}${markRow((e) => e.meds && e.meds.length, IC.pill, '약')}
+        </div>
+        <div class="legend"><span>선 가운데 줄 = 5 · 수면 점선 = 내 평균</span>
+          <span>없음 ${SHADE.map((c) => `<i style="background:${c}"></i>`).join('')} 매우 높음</span></div>
+      </section>
+      <p class="foot">${DISCLAIMER}</p>`;
+  }
+
+  function render() {
+    (ui.tab === 'trend' ? viewTrend : viewToday)();
+    app.insertAdjacentHTML('beforeend', `<nav class="tabbar">
+      <button data-act="tab" data-tab="today" aria-pressed="${ui.tab === 'today'}">${IC.today}<span>오늘</span></button>
+      <button data-act="tab" data-tab="trend" aria-pressed="${ui.tab === 'trend'}">${IC.chart}<span>흐름</span></button></nav>`);
+  }
+
+  function applyFont() {
+    document.documentElement.style.setProperty('--font', (FONTS[db.settings.font] || FONTS.system)[1]);
+  }
+
   // ---------- 기록 화면 ----------
   function newDraft(date) {
     const old = db.entries[date];
-    if (old) return JSON.parse(JSON.stringify(Object.assign({ signs: {}, meds: [], period: false }, old)));
+    if (old) return JSON.parse(JSON.stringify(Object.assign({ signs: {}, meds: [], period: false }, old, { conf: old.conf == null ? 5 : old.conf })));
     // 잠든·깬 시각은 가장 최근 기록을 기본값으로 (대부분 비슷하니까 덜 만져도 되게)
     const last = Object.keys(db.entries).sort().reverse().map((k) => db.entries[k]).find((x) => x.bed && x.wake);
     return {
-      date, mood: 5, energy: 5, dep: 0, elev: 0, anx: 0,
+      date, mood: 5, energy: 5, conf: 5, dep: 0, elev: 0, anx: 0,
       bed: last ? last.bed : '23:30', wake: last ? last.wake : '07:00',
       tired: null, period: false, appetite: 1, caffeine: null, meds: [], note: '', signs: {},
     };
@@ -231,6 +375,12 @@
         <div class="lab"><b><span id="i-energy"></span>에너지</b><span class="slider-val" id="v-energy">${d.energy}</span></div>
         <input type="range" id="f-energy" min="0" max="10" step="1" value="${d.energy}" aria-label="에너지 0에서 10">
         <div class="ticks"><span>바닥</span><span>보통</span><span>넘침</span></div>
+      </div>
+
+      <div class="card">
+        <div class="lab"><b>${IC.star}자신감</b><span class="slider-val" id="v-conf">${d.conf}</span></div>
+        <input type="range" id="f-conf" min="0" max="10" step="1" value="${d.conf}" aria-label="자신감 0에서 10">
+        <div class="ticks"><span>위축</span><span>보통</span><span>넘침</span></div>
       </div>
 
       <div class="card signs" id="signs" hidden>
@@ -285,25 +435,26 @@
     $('#i-mood').innerHTML = IC.face(d.mood);
     $('#i-energy').innerHTML = IC.battery(d.energy);
     $('#v-energy').textContent = d.energy;
-    $('#signs').hidden = !(d.mood >= SIGN_THRESHOLD || d.energy >= SIGN_THRESHOLD);
+    $('#v-conf').textContent = d.conf;
+    $('#signs').hidden = !isHigh(d);
     const min = sleepMinutes(d.bed, d.wake);
     $('#v-sleep').textContent = min == null ? '시각을 넣으면 자동 계산' : `${durText(min)} 잤어요`;
   }
 
   function saveEntry() {
     const d = ui.draft;
-    const showSigns = d.mood >= SIGN_THRESHOLD || d.energy >= SIGN_THRESHOLD;
+    const showSigns = isHigh(d);
     const signs = {};
     if (showSigns) SIGNS.forEach(([k]) => { if (d.signs[k]) signs[k] = true; });
     db.entries[d.date] = {
-      date: d.date, mood: d.mood, energy: d.energy, dep: d.dep, elev: d.elev, anx: d.anx,
+      date: d.date, mood: d.mood, energy: d.energy, conf: d.conf, dep: d.dep, elev: d.elev, anx: d.anx,
       bed: d.bed || null, wake: d.wake || null, sleepMin: sleepMinutes(d.bed, d.wake),
       tired: d.tired, period: !!d.period, appetite: d.appetite, caffeine: d.caffeine,
       meds: d.meds, note: (d.note || '').trim(), signs, updatedAt: new Date().toISOString(),
     };
     if (!save()) return;
     closeSheet();
-    renderToday();
+    render();
     toast('저장했어요');
   }
 
@@ -317,6 +468,10 @@
     sheet.innerHTML = `<div class="sheet-in">
       <div class="sheet-top"><div><h2>설정과 백업</h2><div class="sub">기록 ${n}일</div></div>
         <button class="icon-btn" data-act="close" aria-label="닫기">✕</button></div>
+
+      <div class="set-title">글씨체</div>
+      <div class="card"><div class="chips">${Object.keys(FONTS).map((k) => `<button class="chip" data-act="font" data-font="${k}"
+        style="font-family:${esc(FONTS[k][1])}" aria-pressed="${(db.settings.font || 'system') === k}">${FONTS[k][0]} 가나다 123</button>`).join('')}</div></div>
 
       <div class="set-title">백업</div>
       <div class="card">
@@ -381,7 +536,7 @@
         if (m && m.name && !db.meds.some((s) => medKey(s) === medKey(m))) db.meds.push({ name: String(m.name), dose: String(m.dose || '') });
       });
       if (!save()) return;
-      renderToday();
+      render();
       openSettings();
       toast(`${n}일치 기록을 불러왔어요`);
     };
@@ -394,14 +549,19 @@
 
   // ---------- 이벤트 ----------
   const actions = {
-    pick: (el) => { ui.selected = el.dataset.date; renderToday(); },
+    tab: (el) => { ui.tab = el.dataset.tab; window.scrollTo(0, 0); render(); },
+    font: (el) => { db.settings.font = el.dataset.font; save(); applyFont(); openSettings(); },
+    mode: (el) => { trend.mode = el.dataset.mode; trend.pick = null; if (trend.anchor > today()) trend.anchor = today(); render(); },
+    shift: (el) => { shiftTrend(Number(el.dataset.step)); render(); },
+    openDay: (el) => { ui.selected = el.dataset.date; ui.tab = 'today'; window.scrollTo(0, 0); render(); },
+    pick: (el) => { ui.selected = el.dataset.date; render(); },
     week: (el) => {
       const next = addDays(ui.selected, 7 * Number(el.dataset.step));
       ui.selected = next > today() ? today() : next;
-      renderToday();
+      render();
     },
-    goToday: () => { ui.selected = today(); renderToday(); },
-    closeHint: () => { db.settings.hintClosed = true; save(); renderToday(); },
+    goToday: () => { ui.selected = today(); render(); },
+    closeHint: () => { db.settings.hintClosed = true; save(); render(); },
     record: () => openRecord(ui.selected),
     settings: openSettings,
     close: closeSheet,
@@ -409,7 +569,7 @@
     deleteEntry: () => {
       if (!confirm('이 날 기록을 삭제할까요?')) return;
       delete db.entries[ui.draft.date];
-      save(); closeSheet(); renderToday(); toast('삭제했어요');
+      save(); closeSheet(); render(); toast('삭제했어요');
     },
     addMed: () => { ui.addingMed = !ui.addingMed; $('#meds').innerHTML = medsHtml(); if (ui.addingMed) $('#med-name').focus(); },
     saveMed: () => {
@@ -462,12 +622,25 @@
     if (!d) return;
     if (el.id === 'f-mood') d.mood = Number(el.value);
     else if (el.id === 'f-energy') d.energy = Number(el.value);
+    else if (el.id === 'f-conf') d.conf = Number(el.value);
     else if (el.id === 'f-bed') d.bed = el.value;
     else if (el.id === 'f-wake') d.wake = el.value;
     else if (el.id === 'f-note') d.note = el.value;
     else return;
     syncForm();
   });
+
+  // 흐름 그래프에서 날짜 칸을 누르면 그날 값을 보여 준다
+  app.addEventListener('click', (ev) => {
+    const chart = ev.target.closest('.tchart');
+    if (!chart) return;
+    const box = chart.querySelector('svg').getBoundingClientRect(), n = Number(chart.dataset.n);
+    const i = Math.floor((ev.clientX - box.left) / (box.width / n));
+    if (i < 0 || i >= n || addDays(chart.dataset.start, i) > today()) return;
+    trend.pick = trend.pick === i ? null : i;
+    render();
+  });
+  window.addEventListener('resize', () => { if (ui.tab === 'trend' && sheet.hidden) render(); });
 
   $('#importFile').addEventListener('change', (ev) => {
     const f = ev.target.files[0];
@@ -481,11 +654,12 @@
     if (document.hidden || today() === lastDay) return;
     if (ui.selected === lastDay) ui.selected = today();
     lastDay = today();
-    if (sheet.hidden) renderToday();
+    if (sheet.hidden) render();
   });
 
   // ---------- 시작 ----------
-  renderToday();
+  applyFont();
+  render();
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
