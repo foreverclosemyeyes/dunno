@@ -22,14 +22,14 @@
     return f;
   };
   // 모드: assistant.looks = { glasses|joker|hurt|plain|think: {url} }, assistant.look = 'auto'(기본) | 'off' | 모드 id
-  // 자동: 생각하는 중 → 생각 중 / 진지 → 조커 / 눈감음(지침) → 다친 모습 / 웃음·윙크 → 안경 벗음 / 그 밖엔 원래 그림
+  // 자동: 생각하는 중 → 생각 중 / 진지 → 조커 / 눈감음(지침) → 다친 모습 / 웃음 → 안경 벗음 / 윙크 → 안경 반사 / 그 밖엔 원래 그림
   const lookFor = (key) => {
     const a = D.state.theme.assistant, L = a.looks || {};
     const sel = a.look || 'auto';
     if (sel === 'off') return null;
     if (sel !== 'auto') return L[sel] || null;
     const thinking = D.state.lastAssistant && D.state.lastAssistant.thinking;
-    const id = thinking ? 'think' : key === 'serious' ? 'joker' : key === 'closed' ? 'hurt' : (key === 'smile' || key === 'wink') ? 'plain' : null;
+    const id = thinking ? 'think' : key === 'serious' ? 'joker' : key === 'closed' ? 'hurt' : key === 'smile' ? 'plain' : key === 'wink' ? (L.glare ? 'glare' : 'plain') : null;
     return id ? L[id] || null : null;
   };
   const urlOf = (key) => { const l = lookFor(key); if (l && l.url) return l.url; const f = faces(); return (f[key] || f.base || null)?.url || null; };

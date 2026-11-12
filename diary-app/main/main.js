@@ -805,6 +805,7 @@ function registerIpc() {
     for (const file of r.filePaths) {
       try {
         const z = readZip(fs.readFileSync(file));
+        if (z.entries.filter((e) => /\.png$/i.test(e.name)).every((e) => /(^|\/)cutin/i.test(e.name))) throw new Error('이 zip은 대화 컷인 그림이라 캐릭터 그림으로 쓸 수 없어요. 모드 그림(look-….png)을 써 주세요.');
         const picked = pickFaces(z.entries);
         const faces = {};
         for (const [mood, e] of Object.entries(picked)) { const a = saveAsset(z.read(e), path.basename(e.name)); faces[mood] = { url: a.url, name: a.name }; }

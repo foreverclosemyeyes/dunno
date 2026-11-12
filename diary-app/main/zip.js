@@ -45,9 +45,21 @@ function pickFaces(entries) {
   const items = pngs.map((e) => {
     const parts = e.name.split('/'); const folder = (parts.length > 1 ? parts[parts.length - 2] : parts[parts.length - 1]).toLowerCase();
     const num = parseInt(folder, 10);
-    return { e, folder, variant: /\(/.test(folder), num: Number.isFinite(num) ? num : 999 };
+    return { e, folder, variant: /\((?![^)]*(eye|mouth))/.test(folder), num: Number.isFinite(num) ? num : 999 };
   }).sort((a, b) => (a.variant - b.variant) || (a.num - b.num) || a.e.name.localeCompare(b.e.name));
+  // 번호로 된 파일(b108_000_00.png …): 000 기본 / 001 웃음 / 002 짜증·진지 / 003 우울 / 004 놀람 / 006·008 홍조·반짝. 100 번대 이상이나 _01 은 옷이 다른 버전
+  const CODE = { base: [0], smile: [1, 11], serious: [2, 3], closed: [3, 5], talk: [4, 7, 10], wink: [6, 8, 11] };
+  const flat = items.every((i) => !Object.values(MOOD_WORDS).some((res) => res.some((re) => re.test(i.folder))));
+  for (const i of items) {
+    const m = i.e.name.match(/_(\d{3})_(\d{2})\.png$/i);
+    i.code = m ? parseInt(m[1], 10) : null;
+    if (m && (i.code >= 100 || m[2] !== '00')) i.variant = true;
+  }
   const out = {}, used = new Set();
+  if (flat) for (const mood of Object.keys(CODE)) for (const c of CODE[mood]) {
+    const hit = items.find((i) => !i.variant && i.code === c && !used.has(i.e));
+    if (hit) { out[mood] = hit.e; used.add(hit.e); break; }
+  }
   for (const mood of Object.keys(MOOD_WORDS)) {
     const hit = items.find((i) => !used.has(i.e) && !i.variant && MOOD_WORDS[mood].some((re) => re.test(i.folder)));
     if (hit) { out[mood] = hit.e; used.add(hit.e); }

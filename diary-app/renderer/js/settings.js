@@ -564,11 +564,11 @@
     lk.body.append(lrow, btn(haveLooks.length ? `모드 그림 ${haveLooks.length}/${D.LOOKS.length}장 (더 불러오기)` : '모드 그림 불러오기 (여러 장 한꺼번에)', '', async () => {
       const assets = await window.diary.pickAsset('image'); let n = 0;
       const next = { ...(state.theme.assistant.looks || {}) };
-      for (const as of assets) { const m = as.name.toLowerCase().match(/^look-(glasses|joker|hurt|plain|think)\./); if (m) { next[m[1]] = { url: as.url, name: as.name }; n++; } }
+      for (const as of assets) { const m = as.name.toLowerCase().match(/^look-(glasses|joker|hurt|plain|think|glare)\./); if (m) { next[m[1]] = { url: as.url, name: as.name }; n++; } }
       if (!n) return D.toast('모드 그림 이름이 아니에요. (look-joker.png, look-think.png …)', 5000);
       ctx.set('assistant.looks', next); commit(); D.renderAll(); render(); D.toast(`모드 그림 ${n}장을 넣었어요.`);
     }));
-    lk.body.append(note('자동: 생각하는 중엔 "생각 중", 진지할 땐 "조커", 지쳤을 땐 "다친 모습", 웃을 땐 "안경 벗음", 평소엔 원래 그림이 나와요.'));
+    lk.body.append(note('자동: 생각하는 중엔 "생각 중", 진지할 땐 "조커", 지쳤을 땐 "다친 모습", 웃을 땐 "안경 벗음", 장난칠 땐 "안경 반사", 평소엔 원래 그림이 나와요.'));
     body.append(lk.el);
     const a = C.section('이름 · 말투', true);
     a.body.append(
