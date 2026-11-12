@@ -1,10 +1,10 @@
 // 시작점: 누르기·입력 처리와 앱 시작
 import { aiSummary } from './analysis.js';
 import { addDays, today } from './dates.js';
-import { $, app, closeSheet, sheet, toast } from './dom.js';
+import { $, app, closeSheet, enterApp, sheet, sheetOpen, toast } from './dom.js';
 import { exportData, giveFile, importData, makeIcs, remind } from './files.js';
 import { T } from './i18n.js';
-import { medKey, sugHtml, toggleMed } from './meds.js';
+import { addDose, medKey, medsFor, normDose, setMeds, sugHtml } from './meds.js';
 import { render } from './render.js';
 import { trend, ui } from './state.js';
 import { db, save } from './store.js';
@@ -13,14 +13,23 @@ import { SLIDERS, cafHead, medsHtml, openRecord, saveEntry, syncForm } from './v
 import { openSettings } from './views/settings.js';
 import { shiftTrend, trendRange } from './views/trend.js';
 
-themeQuery.addEventListener('change', () => { applyTheme(); if (sheet.hidden) render(); });
+themeQuery.addEventListener('change', () => { applyTheme(); if (!sheetOpen()) render(); });
+
+// 약 먹은 기록을 고칠 목록: 기록 화면이 열려 있으면 그 초안, 아니면 보고 있는 날짜의 저장된 목록
+const doseList = () => (ui.draft ? ui.draft.meds : medsFor(ui.selected).map((m) => ({ ...m })));
+function commitDoses(list, redraw) {
+  if (ui.draft) { if (redraw) $('#meds').innerHTML = medsHtml(); return; }
+  setMeds(ui.selected, list);
+  if (redraw) render();
+}
 
 // ---------- 이벤트 ----------
 const actions = {
-  tab: (el) => { ui.tab = el.dataset.tab; window.scrollTo(0, 0); render(); },
+  tab: (el) => { if (ui.tab === el.dataset.tab) return; ui.tab = el.dataset.tab; window.scrollTo(0, 0); render(); enterApp(); },
   color: (el) => { db.settings.color = el.dataset.colorPick; save(); applyTheme(); render(); openSettings(); },
   theme: (el) => { db.settings.theme = el.dataset.themePick; save(); applyTheme(); render(); openSettings(); },
-  takeMed: (el) => { toggleMed(ui.selected, el.dataset.med); render(); },
+  doseAdd: (el) => { const list = doseList(); addDose(list, el.dataset.med); commitDoses(list, true); },
+  doseDel: (el) => { const list = doseList(); list.splice(Number(el.dataset.i), 1); commitDoses(list, true); },
   ics: async () => {
     const r = remind();
     if (!r.log && !r.med1 && !r.med2) { toast(T('알림 시간을 먼저 정해 주세요')); return; }
@@ -43,7 +52,7 @@ const actions = {
   mode: (el) => { trend.mode = el.dataset.mode; trend.pick = null; if (trend.anchor > today()) trend.anchor = today(); render(); },
   shift: (el) => { shiftTrend(Number(el.dataset.step)); render(); },
   pickDay: (el) => { const i = Number(el.dataset.i); trend.pick = trend.pick === i ? null : i; render(); },
-  openDay: (el) => { ui.selected = el.dataset.date; ui.tab = 'today'; window.scrollTo(0, 0); render(); },
+  openDay: (el) => { ui.selected = el.dataset.date; ui.tab = 'today'; window.scrollTo(0, 0); render(); enterApp(); },
   pick: (el) => { ui.selected = el.dataset.date; render(); },
   week: (el) => {
     const next = addDays(ui.selected, 7 * Number(el.dataset.step));
@@ -69,15 +78,13 @@ const actions = {
   pickSug: (el) => { $('#med-name').value = el.dataset.name; $('#med-sug').innerHTML = ''; $('#med-dose').focus(); },
   medSetup: () => { ui.addingMed = true; openSettings(); $('#sec-meds').scrollIntoView(); },
   saveMed: () => {
-    const name = $('#med-name').value.trim(), dose = $('#med-dose').value.trim();
+    const name = $('#med-name').value.trim(), dose = normDose($('#med-dose').value);
     if (!name) { toast(T('약 이름을 적어 주세요')); return; }
     const m = { name, dose };
     if (!db.meds.some((x) => medKey(x) === medKey(m))) { db.meds.push(m); save(); }
     ui.addingMed = false;
-    if (ui.draft) {
-      if (!ui.draft.meds.some((x) => medKey(x) === medKey(m))) ui.draft.meds.push(m);
-      $('#meds').innerHTML = medsHtml();
-    } else { const y = sheet.scrollTop; render(); openSettings(); sheet.scrollTop = y; }
+    if (ui.draft) $('#meds').innerHTML = medsHtml();
+    else { const y = sheet.scrollTop; render(); openSettings(); sheet.scrollTop = y; }
   },
   delMed: (el) => {
     db.meds = db.meds.filter((m) => medKey(m) !== el.dataset.med);
@@ -106,18 +113,23 @@ document.addEventListener('click', (ev) => {
     if (n) d.drinks[k] = n; else delete d.drinks[k];
     $(`#c-${k}`).textContent = n;
     $('#v-caf').textContent = cafHead(d.drinks);
-  } else if (t.dataset.flag) {                   // 단독 토글 (생리 중)
+  } else if (t.dataset.flag) {                   // 스위치 (생리 중, 피곤함, 수면 안 적기)
     d[t.dataset.flag] = !d[t.dataset.flag];
     t.setAttribute('aria-pressed', String(!!d[t.dataset.flag]));
+    syncForm();
   } else if (t.dataset.sign) {                   // 조건부 체크리스트
     d.signs[t.dataset.sign] = !d.signs[t.dataset.sign];
     t.setAttribute('aria-pressed', String(!!d.signs[t.dataset.sign]));
-  } else if (t.dataset.med) {                    // 약 선택
-    const k = t.dataset.med, i = d.meds.findIndex((m) => medKey(m) === k);
-    if (i >= 0) d.meds.splice(i, 1);
-    else { const m = db.meds.find((s) => medKey(s) === k); if (m) d.meds.push({ name: m.name, dose: m.dose }); }
-    t.setAttribute('aria-pressed', String(i < 0));
   }
+});
+
+// 약 먹은 시각을 고치면 바로 저장 (오늘 화면과 기록 화면 둘 다)
+document.addEventListener('change', (ev) => {
+  const el = ev.target;
+  if (!el.classList.contains('dose-at')) return;
+  const list = doseList();
+  list[Number(el.dataset.i)].at = el.value;
+  commitDoses(list, false);
 });
 
 sheet.addEventListener('input', (ev) => {
@@ -144,7 +156,7 @@ app.addEventListener('click', (ev) => {
   trend.pick = trend.pick === i ? null : i;
   render();
 });
-window.addEventListener('resize', () => { if (ui.tab === 'trend' && sheet.hidden) render(); });
+window.addEventListener('resize', () => { if (ui.tab === 'trend' && !sheetOpen()) render(); });
 
 $('#importFile').addEventListener('change', (ev) => {
   const f = ev.target.files[0];
@@ -158,7 +170,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden || today() === lastDay) return;
   if (ui.selected === lastDay) ui.selected = today();
   lastDay = today();
-  if (sheet.hidden) render();
+  if (!sheetOpen()) render();
 });
 
 // ---------- 시작 ----------

@@ -5,7 +5,7 @@ import { WD, addDays, durText, longDate, parse, today, weekStart } from '../date
 import { app, esc } from '../dom.js';
 import { F, T } from '../i18n.js';
 import { IC } from '../icons.js';
-import { medKey, medsFor } from '../meds.js';
+import { doseRowsHtml, medsFor, medsText } from '../meds.js';
 import { standalone, ui } from '../state.js';
 import { db } from '../store.js';
 import { moodFill, tone } from '../theme.js';
@@ -63,9 +63,7 @@ export const bars = (v) => `<span class="bars">${[1, 2, 3, 4].map((i) => `<i cla
 
 export function medCard(date) {
   if (!db.meds.length) return `<section class="card list"><button class="li add" data-act="medSetup">${IC.pill}&nbsp; ${T('먹는 약 등록하기')}</button></section>`;
-  const taken = new Set(medsFor(date).map(medKey));
-  return `<section class="card list">${db.meds.map((m) => `<button class="li med" data-act="takeMed" data-med="${esc(medKey(m))}" aria-pressed="${taken.has(medKey(m))}">
-    <span class="lk">${IC.pill}${esc(m.name)}${m.dose ? `<small>${esc(m.dose)}</small>` : ''}</span><span class="chk">${taken.has(medKey(m)) ? T('먹었어요') : T('먹으면 누르기')}</span></button>`).join('')}</section>`;
+  return `<section class="card list">${doseRowsHtml(medsFor(date))}</section>`;
 }
 
 export function tilesHtml(e) {
@@ -89,7 +87,8 @@ export function tilesHtml(e) {
 
 export function detailHtml(e) {
   const signs = SIGNS.filter(([k]) => e.signs && e.signs[k]).map(([, label]) => label);
-  const extra = (e.meds || []).filter((m) => !db.meds.some((x) => medKey(x) === medKey(m))).map((x) => esc(x.name) + (x.dose ? ` ${esc(x.dose)}` : '')).join(', ');
+  // 저장된 약 목록에 없는 약(목록에서 지운 약)만 여기 글로 보여 준다. 나머지는 위 약 카드에 있다.
+  const extra = db.meds.length ? '' : esc(medsText(e.meds || []));
   const ten = (key, v) => `${nameOf(key, v)}<span class="of"> ${v}</span>`;
   const sym = (label, v) => (v ? li(label, `${LEVELS[v]}${bars(v)}`) : '');
   return `<section class="card list">
@@ -101,7 +100,7 @@ export function detailHtml(e) {
         : e.caffeine != null ? li(`${IC.coffee}${T('카페인')}`, ten('caffeine', e.caffeine)) : ''}
       ${extra ? li(`${IC.pill}${T('약')}`, extra) : ''}
       ${signs.length ? li(T('체크'), signs.map(esc).join('<br>')) : ''}
-      ${e.note ? li(`${IC.note}${T('메모')}`, esc(e.note)) : ''}
+      ${e.note ? `<div class="li say note">${esc(e.note)}</div>` : ''}
     </section>
     <button class="btn gray" data-act="record">${T('수정하기')}</button>`;
 }

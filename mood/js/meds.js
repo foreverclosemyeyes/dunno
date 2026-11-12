@@ -1,23 +1,53 @@
-// 약: 그날 먹은 약, 약 추가 입력
+// 약: 그날 먹은 약(먹을 때마다 한 줄, 시각 포함), 약 추가 입력
 import { CATALOG, SEDATIVES } from './constants.js';
-import { addDays } from './dates.js';
+import { addDays, nowTime } from './dates.js';
 import { esc } from './dom.js';
 import { T } from './i18n.js';
+import { IC } from './icons.js';
 import { ui } from './state.js';
 import { db, save } from './store.js';
 
-// 그날 먹은 약: 기록이 있으면 기록 안에, 아직 없으면 따로 적어 둔다
+export const medKey = (m) => `${m.name}|${m.dose || ''}`;
+
+// 숫자만 적으면 mg를 붙인다 ("300" → "300mg"). 다른 단위를 직접 적었으면 그대로 둔다.
+export const normDose = (raw) => { const s = raw.trim(); return /^\d+(\.\d+)?$/.test(s) ? `${s}mg` : s; };
+
+// 그날 먹은 약 목록. 한 번 먹을 때마다 { name, dose, at: 'HH:MM' } 한 줄 (예전 기록은 at이 없다).
+// 그날 기록이 있으면 기록 안에, 아직 없으면 따로(taken) 적어 둔다.
 export const medsFor = (date) => (db.entries[date] ? db.entries[date].meds || [] : db.taken[date] || []);
-export function toggleMed(date, key) {
-  const list = medsFor(date).slice(), i = list.findIndex((m) => medKey(m) === key);
-  if (i >= 0) list.splice(i, 1);
-  else { const m = db.meds.find((x) => medKey(x) === key); if (m) list.push({ name: m.name, dose: m.dose }); }
+export function setMeds(date, list) {
   if (db.entries[date]) { db.entries[date].meds = list; db.entries[date].updatedAt = new Date().toISOString(); } else db.taken[date] = list;
   save();
 }
-export const aided = (e) => medsFor(addDays(e.date, -1)).some((m) => SEDATIVES.includes(m.name));
+export function addDose(list, key) {
+  const m = db.meds.concat(list).find((x) => medKey(x) === key);
+  if (m) list.push({ name: m.name, dose: m.dose, at: nowTime() });
+}
 
-export const medKey = (m) => `${m.name}|${m.dose || ''}`;
+// 전날 안정제·수면제를 먹었거나, 당일 새벽(06시 전)에 먹었으면 그날 밤 잠은 '약 먹고 잔 밤'으로 본다
+export const aided = (e) => medsFor(addDays(e.date, -1)).some((m) => SEDATIVES.includes(m.name))
+  || medsFor(e.date).some((m) => SEDATIVES.includes(m.name) && m.at && m.at < '06:00');
+
+// "콘서타 27mg (08:00, 13:00)" 같은 글
+export function medsText(list) {
+  const groups = new Map();
+  list.forEach((m) => { const k = medKey(m); if (!groups.has(k)) groups.set(k, { m, at: [] }); groups.get(k).at.push(m.at || '?'); });
+  return [...groups.values()].map(({ m, at }) => `${m.name}${m.dose ? ` ${m.dose}` : ''}${at.some((x) => x !== '?') || at.length > 1 ? ` (${at.join(', ')})` : ''}`).join(', ');
+}
+
+// 약마다 한 줄: 먹은 시각들(고칠 수 있음)과 '먹었어요' 버튼. 오늘 화면과 기록 화면이 같이 쓴다.
+export function doseRowsHtml(list) {
+  const all = db.meds.concat(list.filter((m, i) => !db.meds.some((x) => medKey(x) === medKey(m)) && list.findIndex((y) => medKey(y) === medKey(m)) === i));
+  return all.map((m) => {
+    const key = medKey(m), doses = list.map((x, i) => [x, i]).filter(([x]) => medKey(x) === key);
+    return `<div class="li med-row">
+      <span class="lk">${IC.pill}${esc(m.name)}${m.dose ? `<small>${esc(m.dose)}</small>` : ''}</span>
+      <span class="doses">${doses.map(([x, i]) => `<span class="dose"><input type="time" class="dose-at" data-i="${i}" value="${esc(x.at || '')}" aria-label="${T('먹은 시각')}">
+        <button type="button" data-act="doseDel" data-i="${i}" aria-label="${T('삭제')}">✕</button></span>`).join('')}
+        <button type="button" class="take" data-act="doseAdd" data-med="${esc(key)}">${doses.length ? T('+ 한 번 더') : T('먹었어요')}</button></span>
+    </div>`;
+  }).join('');
+}
 
 // 약 추가: 이름을 치면 목록에서 골라 넣을 수 있다
 export function sugHtml(q) {
@@ -29,7 +59,7 @@ export function medAddHtml() {
   return ui.addingMed
     ? `<div class="li med-new">
          <input type="text" id="med-name" placeholder="${T('약 이름')}" autocomplete="off" maxlength="30">
-         <input type="text" id="med-dose" placeholder="${T('용량 (예: 300mg)')}" autocomplete="off" maxlength="20">
+         <label class="unit"><input type="text" id="med-dose" inputmode="decimal" placeholder="${T('용량')}" autocomplete="off" maxlength="20"><span>mg</span></label>
          <div class="sugs" id="med-sug">${sugHtml('')}</div>
          <button type="button" class="btn gray" data-act="saveMed">${T('약 저장')}</button>
        </div>`

@@ -4,7 +4,7 @@ import { durText, longDate, sleepMinutes } from '../dates.js';
 import { $, closeSheet, esc, sheet, showSheet, toast } from '../dom.js';
 import { F, T } from '../i18n.js';
 import { IC } from '../icons.js';
-import { medAddHtml, medKey } from '../meds.js';
+import { doseRowsHtml, medAddHtml } from '../meds.js';
 import { render } from '../render.js';
 import { ui } from '../state.js';
 import { db, save } from '../store.js';
@@ -14,12 +14,16 @@ import { tone } from '../theme.js';
 export function newDraft(date) {
   const old = db.entries[date];
   if (old) return JSON.parse(JSON.stringify(Object.assign({ signs: {}, meds: [], period: false }, old, {
-    conf: old.conf == null ? 5 : old.conf, appetite: old.appetite == null ? 5 : old.appetite, caffeine: old.caffeine == null ? 0 : old.caffeine, drinks: Object.assign({}, old.drinks) })));
-  // 잠든·깬 시각은 가장 최근 기록을 기본값으로 (대부분 비슷하니까 덜 만져도 되게)
-  const last = Object.keys(db.entries).sort().reverse().map((k) => db.entries[k]).find((x) => x.bed && x.wake);
+    conf: old.conf == null ? 5 : old.conf, appetite: old.appetite == null ? 5 : old.appetite, caffeine: old.caffeine == null ? 0 : old.caffeine,
+    drinks: Object.assign({}, old.drinks), sleepOff: !old.bed && !old.wake && old.sleepMin == null })));
+  // 잠든·깬 시각은 가장 최근 기록을 기본값으로 (대부분 비슷하니까 덜 만져도 되게).
+  // 바로 전 기록에서 수면을 안 적었으면 이번에도 꺼 둔 채로 시작한다.
+  const recent = Object.keys(db.entries).sort().reverse().map((k) => db.entries[k]);
+  const last = recent.find((x) => x.bed && x.wake);
   return {
     date, mood: 5, energy: 5, conf: 5, dep: 0, elev: 0, anx: 0,
     bed: last ? last.bed : '23:30', wake: last ? last.wake : '07:00',
+    sleepOff: !!recent[0] && !recent[0].bed && !recent[0].wake && recent[0].sleepMin == null,
     tired: false, period: false, appetite: 5, caffeine: 0, drinks: {}, meds: (db.taken[date] || []).slice(), note: '', signs: {},
   };
 }
@@ -38,14 +42,7 @@ export const slider = (id, icon, label, v, lo, hi) => `<div class="li sl">
   <div class="ends"><span>${lo}</span><span>${hi}</span></div></div>`;
 export const sw = (attr, on, label, icon) => `<button type="button" class="li sw" ${attr} aria-pressed="${!!on}"><span class="lk">${icon || ''}${label}</span><i></i></button>`;
 
-export function medsHtml() {
-  const d = ui.draft;
-  const taken = new Set(d.meds.map(medKey));
-  const all = db.meds.concat(d.meds.filter((m) => !db.meds.some((x) => medKey(x) === medKey(m))));
-  const rows = all.map((m) => `<button type="button" class="li med" data-med="${esc(medKey(m))}" aria-pressed="${taken.has(medKey(m))}">
-    <span class="lk">${esc(m.name)}${m.dose ? `<small>${esc(m.dose)}</small>` : ''}</span><span class="chk">✓</span></button>`).join('');
-  return rows + medAddHtml();
-}
+export const medsHtml = () => doseRowsHtml(ui.draft.meds) + medAddHtml();
 
 export function signsHtml() {
   const d = ui.draft;
@@ -81,10 +78,11 @@ export function openRecord(date) {
 
     <div class="sec">${T('지난밤 수면')}</div>
     <section class="card list">
-      <label class="li"><span class="lk">${T('잠든 시각')}</span><input type="time" id="f-bed" value="${esc(d.bed || '')}"></label>
-      <label class="li"><span class="lk">${T('깬 시각')}</span><input type="time" id="f-wake" value="${esc(d.wake || '')}"></label>
-      <div class="li"><span class="lk">${T('수면 시간')}</span><span class="lv" id="v-sleep"></span></div>
-      ${sw('data-flag="tired"', d.tired, T('일어났을 때 피곤함'))}
+      ${sw('data-flag="sleepOff"', d.sleepOff, T('수면은 적지 않기'))}
+      <label class="li sleep-row"><span class="lk">${T('잠든 시각')}</span><input type="time" id="f-bed" value="${esc(d.bed || '')}"></label>
+      <label class="li sleep-row"><span class="lk">${T('깬 시각')}</span><input type="time" id="f-wake" value="${esc(d.wake || '')}"></label>
+      <div class="li sleep-row"><span class="lk">${T('수면 시간')}</span><span class="lv" id="v-sleep"></span></div>
+      ${sw('data-flag="tired" data-sleep-row', d.tired, T('일어났을 때 피곤함'))}
     </section>
 
     <div class="sec">${T('몸')}</div>
@@ -99,7 +97,7 @@ export function openRecord(date) {
 
     <div class="sec">${T('메모')}</div>
     <section class="card list">
-      <div class="li"><input type="text" id="f-note" maxlength="120" placeholder="${T('한 줄로 남기기')}" value="${esc(d.note || '')}" autocomplete="off"></div>
+      <div class="li"><textarea id="f-note" rows="4" maxlength="1000" placeholder="${T('오늘 있었던 일이나 느낀 점')}">${esc(d.note || '')}</textarea></div>
     </section>
 
     ${isEdit ? `<button class="btn plain danger" data-act="deleteEntry">${T('이 날 기록 삭제')}</button>` : ''}
@@ -124,6 +122,7 @@ export function syncForm() {
   $('#i-energy').innerHTML = IC.battery(d.energy);
   $('#signs').hidden = !isHigh(d);
   $('#v-sleep').textContent = durText(sleepMinutes(d.bed, d.wake));
+  sheet.querySelectorAll('.sleep-row, [data-sleep-row]').forEach((el) => { el.hidden = !!d.sleepOff; });
 }
 
 export function saveEntry() {
@@ -135,8 +134,8 @@ export function saveEntry() {
   if (showSigns) SIGNS.forEach(([k]) => { if (d.signs[k]) signs[k] = true; });
   db.entries[d.date] = {
     date: d.date, mood: d.mood, energy: d.energy, conf: d.conf, dep: d.dep, elev: d.elev, anx: d.anx,
-    bed: d.bed || null, wake: d.wake || null, sleepMin: sleepMinutes(d.bed, d.wake),
-    tired: !!d.tired, period: !!d.period, appetite: d.appetite,
+    bed: d.sleepOff ? null : d.bed || null, wake: d.sleepOff ? null : d.wake || null, sleepMin: d.sleepOff ? null : sleepMinutes(d.bed, d.wake),
+    tired: !d.sleepOff && !!d.tired, period: !!d.period, appetite: d.appetite,
     // 예전(슬라이더) 기록을 음료 입력 없이 수정하면 예전 카페인 값을 그대로 둔다
     caffeine: keepOldCaf ? d.caffeine : cafScore(d.drinks), drinks: keepOldCaf ? undefined : d.drinks,
     meds: d.meds, note: (d.note || '').trim(), signs, updatedAt: new Date().toISOString(),

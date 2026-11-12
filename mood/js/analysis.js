@@ -2,7 +2,7 @@
 import { SIGNS, cafMg, drinkText } from './constants.js';
 import { addDays, durText, today } from './dates.js';
 import { F, T } from './i18n.js';
-import { aided, medsFor } from './meds.js';
+import { aided, medsFor, medsText } from './meds.js';
 import { db } from './store.js';
 
 // ---------- 초기 신호 · 인사이트 (전부 이 폰 안에서 계산) ----------
@@ -78,7 +78,7 @@ export function insights() {
 export function aiSummary() {
   const t = today(), lines = [];
   for (let i = 27; i >= 0; i--) {
-    const d = addDays(t, -i), e = db.entries[d], meds = medsFor(d).map((m) => `${m.name}${m.dose ? ` ${m.dose}` : ''}`).join(', ');
+    const d = addDays(t, -i), e = db.entries[d], meds = medsText(medsFor(d));
     if (!e) { if (meds) lines.push(`${d} | (기록 없음) | 약: ${meds}`); continue; }
     const signs = SIGNS.filter(([k]) => e.signs && e.signs[k]).map(([, l]) => l).join(', ');
     lines.push([d, `기분 ${e.mood}`, `에너지 ${e.energy}`, e.conf != null ? `자신감 ${e.conf}` : '', `우울 ${e.dep}/4`, `고조 ${e.elev}/4`, `불안 ${e.anx}/4`,
