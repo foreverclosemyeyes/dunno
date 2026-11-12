@@ -7,7 +7,7 @@ import { T } from './i18n.js';
 import { addDose, medKey, medsFor, normDose, setMeds, sugHtml, toggleDoseTime } from './meds.js';
 import { render } from './render.js';
 import { onSwipe } from './swipe.js';
-import { trend, ui } from './state.js';
+import { standalone, trend, ui } from './state.js';
 import { db, save } from './store.js';
 import { applyFont, applyTheme, themeQuery } from './theme.js';
 import { SLIDERS, cafHead, medsHtml, openRecord, saveEntry, syncForm } from './views/record.js';
@@ -181,6 +181,11 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ---------- 시작 ----------
+// 홈 화면 앱이면 아래 고정 요소(탭바·저장 버튼)를 기기 화면 높이 기준으로 놓는다 (이유는 app.css의 .standalone 설명)
+if (standalone()) {
+  document.documentElement.classList.add('standalone');
+  document.documentElement.style.setProperty('--screen-h', `${Math.max(screen.height, screen.width)}px`);
+}
 applyTheme();
 applyFont();
 render();

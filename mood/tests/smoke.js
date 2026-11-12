@@ -174,6 +174,22 @@ function seed() {
   await page.click('[data-color-pick=off]'); await page.click('[data-size=xl]'); await page.click('[data-act=close]');
   check('아주 큰 글씨에서도 옆으로 안 넘침', !(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)));
 
+  // 6-1. 홈 화면 앱 배치: 화면 높이 기준으로 놓아도 탭바와 저장 버튼이 정확히 바닥에 붙는다
+  const edges = await page.evaluate(async () => {
+    const root = document.documentElement;
+    root.classList.add('standalone');
+    root.style.setProperty('--screen-h', `${innerHeight}px`);
+    const tab = document.querySelector('.tabbar').getBoundingClientRect().bottom;
+    document.querySelector('[data-act=record]').click();
+    await new Promise((r) => setTimeout(r, 450));
+    const saveBar = document.querySelector('.savebar').getBoundingClientRect().bottom;
+    document.querySelector('.sheet-top [data-act=close]').click();
+    await new Promise((r) => setTimeout(r, 300));
+    root.classList.remove('standalone');
+    return [Math.round(tab), Math.round(saveBar), innerHeight];
+  });
+  check('홈 화면 앱: 탭바·저장 줄이 화면 바닥에 맞음', edges[0] === edges[2] && edges[1] === edges[2], edges.join(', '));
+
   // 7. 백업 내보내기 → 지우기 → 불러오기
   await page.click('[data-act=settings]');
   const [dl] = await Promise.all([page.waitForEvent('download'), page.click('[data-act=export]')]);
