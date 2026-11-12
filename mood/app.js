@@ -13,6 +13,7 @@
     '약간': 'Mild',
     '보통': 'Moderate',
     '보통 ': 'Normal',
+    '글씨 크기': 'Text size', '작게': 'Small', '크게': 'Large', '아주 크게': 'Extra large',
     '취소': 'Cancel', '완료': 'Done', '설정': 'Settings', '증상': 'Symptoms', '몸': 'Body',
     '수면 시간': 'Time asleep', '일어났을 때 피곤함': 'Tired on waking', '일어났을 때': 'On waking', '피곤': 'Tired',
     '높음': 'High',
@@ -157,6 +158,8 @@
     pretendard: ['Pretendard', '"Pretendard Variable", -apple-system, "Apple SD Gothic Neo", sans-serif'],
     myungjo: [T('명조'), '"AppleMyungjo", "Nanum Myeongjo", "Noto Serif KR", serif'],
   };
+  const SIZES = { s: [T('작게'), 1], m: [T('보통 '), 1.12], l: [T('크게'), 1.25], xl: [T('아주 크게'), 1.4] };
+  const fontScale = () => (SIZES[db.settings.size] || SIZES.m)[1];
   const WD = () => (EN ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] : ['일', '월', '화', '수', '목', '금', '토']);
   const DISCLAIMER = T('이 앱은 진단 도구가 아니에요. 내 상태를 기록해 두는 참고용이에요.');
 
@@ -376,16 +379,16 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
     const pickLabel = pickDate ? longDate(pickDate) : '';
 
     // 크기: 오른쪽에 눈금 숫자 자리를 남기고 나머지를 날짜 수로 나눈다
-    const AX = 28, W = Math.max(160, Math.min(app.clientWidth, 480) - 28 - 32 - AX), col = W / r.n;
+    const FS = fontScale(), AX = Math.round(26 * FS), W = Math.max(160, Math.min(app.clientWidth, 480) - 28 - 32 - AX), col = W / r.n;
     const cx = (i) => col * (i + 0.5);
     const TOP = 8, BOT = 104, H = 124;
     const xLabels = days.map((_, i) => {
       const d = addDays(r.start, i), dt = parse(d);
       if (!isWeek && (dt.getDate() - 1) % 7 !== 0) return '';
-      return `<text x="${cx(i).toFixed(1)}" y="${H - 4}" text-anchor="middle" font-size="10" fill="${d === t ? '#fff' : '#8e8e93'}">${isWeek ? WD()[dt.getDay()] : dt.getDate()}</text>`;
+      return `<text x="${cx(i).toFixed(1)}" y="${H - 4}" text-anchor="middle" font-size="${(10 * FS).toFixed(1)}" fill="${d === t ? '#fff' : '#8e8e93'}">${isWeek ? WD()[dt.getDay()] : dt.getDate()}</text>`;
     }).join('');
     const grid = (ticks, y) => ticks.map(([v, label]) => `<line x1="0" x2="${W}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="#2c2c2e"/>
-      <text x="${W + 6}" y="${(y(v) + 3.5).toFixed(1)}" font-size="10" fill="#636366">${label}</text>`).join('');
+      <text x="${W + 6}" y="${(y(v) + 3.5).toFixed(1)}" font-size="${(10 * FS).toFixed(1)}" fill="#636366">${label}</text>`).join('');
     const plot = (inner) => `<div class="plot" data-n="${r.n}" data-w="${W}"><svg width="${W + AX}" height="${H}">${inner}${xLabels}</svg></div>`;
 
     // 카드 머리: 평소에는 평균, 날짜를 누르면 그날 값
@@ -497,6 +500,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
 
   function applyFont() {
     document.documentElement.style.setProperty('--font', (FONTS[db.settings.font] || FONTS.system)[1]);
+    document.documentElement.style.setProperty('--fs', fontScale());
   }
 
   // ---------- 기록 화면 ----------
@@ -655,6 +659,10 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
       <section class="card list">${Object.keys(FONTS).map((k) => pick('font', `data-font="${k}"`, (db.settings.font || 'system') === k,
         `${FONTS[k][0]}<small>${T('가나다 123')}</small>`, `font-family:${esc(FONTS[k][1])}`)).join('')}</section>
 
+      <div class="sec">${T('글씨 크기')}</div>
+      <section class="card list">${Object.keys(SIZES).map((k) => pick('size', `data-size="${k}"`, (db.settings.size || 'm') === k,
+        `<span style="font-size:${15 * SIZES[k][1]}px">${SIZES[k][0]}</span>`)).join('')}</section>
+
       <div class="sec">${T('백업')}</div>
       <section class="card list">
         <button class="li add" data-act="export">${T('백업 파일 내보내기')}</button>
@@ -732,6 +740,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
   const actions = {
     tab: (el) => { ui.tab = el.dataset.tab; window.scrollTo(0, 0); render(); },
     lang: (el) => { db.settings.lang = el.dataset.lang; if (save()) location.reload(); },
+    size: (el) => { db.settings.size = el.dataset.size; save(); applyFont(); render(); openSettings(); },
     font: (el) => { db.settings.font = el.dataset.font; save(); applyFont(); openSettings(); },
     mode: (el) => { trend.mode = el.dataset.mode; trend.pick = null; if (trend.anchor > today()) trend.anchor = today(); render(); },
     shift: (el) => { shiftTrend(Number(el.dataset.step)); render(); },
