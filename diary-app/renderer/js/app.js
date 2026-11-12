@@ -254,7 +254,8 @@
     const rw = iw * Math.cos(rad) + ih * Math.sin(rad), rh = iw * Math.sin(rad) + ih * Math.cos(rad);
     // 가로는 폭에 맞추고, 세로는 남는 높이만큼 최대 35%까지 길쭉하게 늘려서 왼쪽을 꽉 채움
     const fx = Math.min((bw * 1.04) / rw, bh / rh * 1.6);
-    const tall = document.body.classList.contains('skin-bubble') ? 1.55 : 1.3; // 스킨 대화 구도에선 달력을 더 길쭉하게 해서 말풍선 위 빈자리를 채움
+    const tall = 1.6; // 세로로 넉넉히 늘려 레퍼런스처럼 길쭉하게
+    void 0; // 스킨 대화 구도에선 달력을 더 길쭉하게 해서 말풍선 위 빈자리를 채움
     const fy = Math.min(bh / rh, fx * tall); // 세로로 너무 늘어나지 않게
     inner.style.transformOrigin = '50% 50%';
     const ty = (rh * fy - ih) / 2 + 2;

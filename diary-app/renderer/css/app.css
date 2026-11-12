@@ -1590,3 +1590,16 @@ body.layout-bigcal .nb-holes, body.layout-bigcal .nb-sheet-back::after, body.lay
 body.layout-bigcal .nb-holes { right: 26px !important; top: 14px !important; bottom: 18px !important; }
 body.layout-bigcal .nb-sheet-back::after { right: 10px; top: 26px; bottom: 26px; }
 body.layout-bigcal #right > #quests::before { right: 18px !important; top: 12px !important; bottom: 14px !important; }
+/* 내 말풍선은 대사 말풍선과 겹치지 않게 그림 아래로 띄움 */
+body.skin-bubble #assistant { --lift: calc(var(--ih) * .2 + 66px); }
+body.skin-bubble #chat-form { top: calc(var(--it) + var(--ih) * 1.02 + 10px); left: calc(var(--il) + var(--iw) * .3); }
+
+/* 달력 칸 사이를 띄움 → 숫자는 좁아지고 세로로 길어짐 (레퍼런스 비율) */
+body.layout-bigcal .bc-d, body.layout-bigcal #bc-grid .bc-h { padding-left: 13px !important; padding-right: 13px !important; }
+body.layout-bigcal .bc-d, body.layout-bigcal #bc-grid .bc-h { padding-left: 4px !important; padding-right: 4px !important; }
+/* 숫자 자체를 가로로 좁혀 세로로 길쭉한 레퍼런스 비율로 (칸 폭은 그대로라 숫자 사이가 벌어짐) */
+#bc-grid .bc-d .el-calNum { display: inline-block; scale: .76 1.08; transform-origin: 50% 100%; }
+body.layout-bigcal .bc-d, body.layout-bigcal #bc-grid .bc-h { padding-left: 0 !important; padding-right: 0 !important; }
+#bc-grid .bc-d .el-calNum { scale: .84 1.2; }
+body.layout-bigcal .bc-d, body.layout-bigcal #bc-grid .bc-h { padding-left: 2px !important; padding-right: 2px !important; }
+#bc-grid .bc-d .el-calNum { scale: .8 1; }
