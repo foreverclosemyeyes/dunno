@@ -228,7 +228,7 @@ ol.steps li { margin: 3px 0; }
 .calkey i.pdot { display: inline-block; vertical-align: 2px; }
 
 /* 아래 탭 */
-.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; justify-content: center; gap: 56px; background: var(--bar); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border-top: 0.5px solid var(--line); padding: 5px 0 calc(var(--safe-b) + 4px); }
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; justify-content: center; gap: 26px; background: var(--bar); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border-top: 0.5px solid var(--line); padding: 5px 0 calc(var(--safe-b) + 4px); }
 .tabbar button { width: 80px; min-height: 46px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--muted); font-size: calc(10.5px * var(--fs, 1.12)); font-weight: 500; }
 .tabbar button .ic { width: 24px; height: 24px; }
 .tabbar button[aria-pressed=true] { color: var(--ink); }
@@ -244,3 +244,14 @@ ol.steps li { margin: 3px 0; }
 .tile .nm { margin-top: 1px; font-size: calc(12.5px * var(--fs, 1.12)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .sw-dot { width: 14px; height: 14px; border-radius: 50%; flex: none; }
+
+/* 초기 신호 · 인사이트 */
+.signal { display: flex; align-items: flex-start; gap: 11px; font-size: calc(14.5px * var(--fs, 1.12)); line-height: 1.4; }
+.signal i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--ink); margin-top: .42em; }
+.li.say { display: block; padding: 13px 16px; line-height: 1.45; }
+.li.say.mut { color: var(--muted); }
+/* 약 고르기 */
+.sugs { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 6px; }
+.sugs:empty { display: none; }
+.sug { background: var(--card2); border-radius: 999px; padding: 7px 12px; font-size: calc(13px * var(--fs, 1.12)); font-weight: 500; }
+.sug small { color: var(--muted); margin-left: 5px; font-size: .85em; }

@@ -21,6 +21,34 @@
     '평소와 비슷': 'About your usual', '평소보다 {0} 김': '{0} more than usual', '평소보다 {0} 짧음': '{0} less than usual',
     '색': 'Colour', '흑백': 'Black & white', '초록': 'Green', '노랑': 'Yellow', '파랑': 'Blue', '보라': 'Purple', '분홍': 'Pink',
     '기분·에너지·자신감이 낮은 날은 회색, 높을수록 고른 색으로 물들어요.': 'Mood, energy and confidence stay grey on low days and shift toward your chosen colour as they rise.',
+    '약 저장': 'Save med', '먹는 약 등록하기': 'Add your medications', '잠드는 약 먹고 잠': 'Took something to sleep',
+    '에너지와 수면 패턴이 달라지고 있어요. 지켜볼 만해요.': 'Your energy and sleep pattern are shifting. Worth keeping an eye on.',
+    '들뜬 상태가 며칠째 이어지고 있어요. 진료 때 이야기해 보세요.': 'An elevated state has continued for several days. Consider mentioning it at your appointment.',
+    '우울한 날이 2주 가까이 이어지고 있어요. 진료 때 이야기해 보세요.': 'Low days have continued for nearly two weeks. Consider mentioning it at your appointment.',
+    '에너지가 높았던 날 전날 밤에는 다른 날보다 {0} 덜 잤어요.': 'On nights before high-energy days you slept {0} less than on other days.',
+    '에너지가 높았던 날 전날 밤에는 다른 날보다 {0} 더 잤어요.': 'On nights before high-energy days you slept {0} more than on other days.',
+    '기분이 가라앉은 날 전날 밤에는 다른 날보다 {0} 덜 잤어요.': 'On nights before low-mood days you slept {0} less than on other days.',
+    '기분이 가라앉은 날 전날 밤에는 다른 날보다 {0} 더 잤어요.': 'On nights before low-mood days you slept {0} more than on other days.',
+    '일어났을 때 피곤했던 날은 다른 날보다 {0} 덜 잤어요.': 'On days you woke up tired you had slept {0} less than on other days.',
+    '일어났을 때 피곤했던 날은 다른 날보다 {0} 더 잤어요.': 'On days you woke up tired you had slept {0} more than on other days.',
+    '카페인을 많이 마신 날 밤에는 다른 날보다 {0} 덜 잤어요.': 'On nights after high-caffeine days you slept {0} less than on other days.',
+    '카페인을 많이 마신 날 밤에는 다른 날보다 {0} 더 잤어요.': 'On nights after high-caffeine days you slept {0} more than on other days.',
+    '카페인을 많이 마신 날은 식욕이 낮은 편이에요.': 'Appetite tends to be lower on high-caffeine days.',
+    '카페인을 많이 마신 날은 식욕이 높은 편이에요.': 'Appetite tends to be higher on high-caffeine days.',
+    '생리 중인 날은 기분 평균이 다른 날보다 {0} 낮아요.': 'Average mood on period days is {0} lower than on other days.',
+    '생리 중인 날은 기분 평균이 다른 날보다 {0} 높아요.': 'Average mood on period days is {0} higher than on other days.',
+    '잠드는 약을 먹은 밤에는 평균 {0}, 안 먹은 밤에는 평균 {1} 잤어요.': 'You slept {0} on average on nights with a sleep aid and {1} without.',
+    '최근 7일 기분 평균이 그 전 7일보다 {0} 높아요.': 'Average mood over the last 7 days is {0} higher than the 7 days before.',
+    '최근 7일 기분 평균이 그 전 7일보다 {0} 낮아요.': 'Average mood over the last 7 days is {0} lower than the 7 days before.',
+    '최근 7일은 그 전 7일보다 하루 평균 {0} 덜 잤어요.': 'Over the last 7 days you slept {0} less per night than the 7 days before.',
+    '최근 7일은 그 전 7일보다 하루 평균 {0} 더 잤어요.': 'Over the last 7 days you slept {0} more per night than the 7 days before.',
+    '14일 중 {0}일': '{0} of 14 days', '인사이트': 'Insights', '기록에서 보이는 것': 'What your log shows',
+    '기록이 7일 이상 쌓이면 패턴을 찾아 보여 드려요. 지금은 {0}일이에요.': 'Patterns appear once you have 7 or more days logged. You have {0} so far.',
+    '아직 뚜렷한 패턴이 보이지 않아요. 기록이 더 쌓이면 다시 살펴볼게요.': 'No clear pattern yet. This will update as you log more.',
+    '약 체크 (최근 14일)': 'Meds checked (last 14 days)', 'AI에게 물어보기': 'Ask an AI', '최근 4주 기록을 글로 복사': 'Copy the last 4 weeks as text',
+    '복사한 글을 Claude나 ChatGPT 같은 AI 앱에 붙여 넣으면 기록 전체를 읽고 패턴을 정리해 줘요. 붙여 넣는 순간 그 기록은 해당 AI 서비스로 전송돼요.': 'Paste the copied text into an AI app such as Claude or ChatGPT and it can read the whole log and summarise patterns. Once pasted, that log is sent to that AI service.',
+    '위 문장들은 내 기록을 계산한 관찰이에요. 원인이나 진단을 뜻하지 않아요.': 'These sentences are observations calculated from your log. They do not indicate a cause or a diagnosis.',
+    '복사했어요. AI 앱에 붙여 넣으세요': 'Copied. Paste it into an AI app',
     '취소': 'Cancel', '완료': 'Done', '설정': 'Settings', '증상': 'Symptoms', '몸': 'Body',
     '수면 시간': 'Time asleep', '일어났을 때 피곤함': 'Tired on waking', '일어났을 때': 'On waking', '피곤': 'Tired',
     '높음': 'High',
@@ -168,6 +196,18 @@
     conf: ['완전 쭈그러듦', '많이 위축', '주눅 듦', '소심해짐', '살짝 자신 없음', '보통', '할 만함', '자신 있음', '자신만만', '뭐든 될 듯', '무적'],
   };
   const nameOf = (key, v) => (v == null || !NAMES[key] ? '' : NAMES[key][Math.round(v)] || '');
+  // 정신건강의학과에서 자주 쓰는 약 (상품명, 성분명). 약 추가할 때 고르는 목록일 뿐, 복용 안내가 아니다.
+  const CATALOG = [
+    ['알프람', '알프라졸람'], ['자낙스', '알프라졸람'], ['아티반', '로라제팜'], ['리보트릴', '클로나제팜'], ['바리움', '디아제팜'],
+    ['스틸녹스', '졸피뎀'], ['부스파', '부스피론'], ['인데놀', '프로프라놀롤'], ['서카딘', '멜라토닌'],
+    ['브린텔릭스', '보티옥세틴'], ['렉사프로', '에스시탈로프람'], ['졸로푸트', '설트랄린'], ['프로작', '플루옥세틴'], ['팍실', '파록세틴'],
+    ['이팩사', '벤라팍신'], ['프리스틱', '데스벤라팍신'], ['심발타', '둘록세틴'], ['웰부트린', '부프로피온'], ['레메론', '미르타자핀'],
+    ['트리티코', '트라조돈'], ['발독산', '아고멜라틴'],
+    ['콘서타', '메틸페니데이트'], ['메디키넷', '메틸페니데이트'], ['페니드', '메틸페니데이트'], ['스트라테라', '아토목세틴'],
+    ['리단', '리튬'], ['데파코트', '발프로산'], ['라믹탈', '라모트리진'], ['테그레톨', '카르바마제핀'],
+    ['아빌리파이', '아리피프라졸'], ['쎄로켈', '쿠에티아핀'], ['자이프렉사', '올란자핀'], ['리스페달', '리스페리돈'], ['인베가', '팔리페리돈'],
+    ['라투다', '루라시돈'], ['렉설티', '브렉스피프라졸'],
+  ];
   const SIGN_THRESHOLD = 7;
   const isHigh = (d) => d.mood >= SIGN_THRESHOLD || d.energy >= SIGN_THRESHOLD || (d.conf != null && d.conf >= SIGN_THRESHOLD);
   const FONTS = {
@@ -225,9 +265,12 @@ const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct
     const diff = (toMin(wake) - toMin(bed) + 1440) % 1440;
     return diff || null;
   }
-const durText = (min) => (min == null ? '–' : EN
-    ? `${Math.floor(min / 60)}h${min % 60 ? ` ${min % 60}m` : ''}`
-    : `${Math.floor(min / 60)}시간${min % 60 ? ` ${min % 60}분` : ''}`);
+const durText = (min) => {
+    if (min == null) return '–';
+    const h = Math.floor(min / 60), m = min % 60;
+    if (EN) return [h ? `${h}h` : '', m || !h ? `${m}m` : ''].filter(Boolean).join(' ');
+    return [h ? `${h}시간` : '', m || !h ? `${m}분` : ''].filter(Boolean).join(' ');
+  };
   const ampm = (t) => {
     if (!t) return '–';
     const [h, m] = t.split(':').map(Number);
@@ -279,6 +322,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
     wave: svg('<path d="M3 12c2-5 4-5 6 0s4 5 6 0 4-5 6 0"/>'),
     star: svg('<path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.8l-5.2 2.8 1-5.8-4.3-4.1 5.9-.8z"/>'),
     today: svg('<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M8.5 3v4M15.5 3v4"/>'),
+    spark: svg('<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/>'),
     chart: svg('<path d="M4 19h16M6 15l4-5 3.5 3L19 6"/>'),
     sliders: svg('<path d="M4 7h8M18 7h2M4 17h2M12 17h8"/><circle cx="15" cy="7" r="2.5"/><circle cx="9" cy="17" r="2.5"/>'),
   };
@@ -323,6 +367,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
         <button class="icon-btn" data-act="settings" aria-label="${T('설정과 백업')}">${IC.sliders}</button>
       </header>
       ${hint}
+      ${sel === t ? signals().map((m) => `<div class="card signal"><i></i><span>${m}</span></div>`).join('') : ''}
       <div class="weekbar">
         <button class="nav" data-act="week" data-step="-1" aria-label="${T('이전 주')}">‹</button>
         <div class="days">${days}</div>
@@ -360,7 +405,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
     save();
   }
   function medCard(date) {
-    if (!db.meds.length) return '';
+    if (!db.meds.length) return `<section class="card list"><button class="li add" data-act="medSetup">${IC.pill}&nbsp; ${T('먹는 약 등록하기')}</button></section>`;
     const taken = new Set(medsFor(date).map(medKey));
     return `<section class="card list">${db.meds.map((m) => `<button class="li med" data-act="takeMed" data-med="${esc(medKey(m))}" aria-pressed="${taken.has(medKey(m))}">
       <span class="lk">${IC.pill}${esc(m.name)}${m.dose ? `<small>${esc(m.dose)}</small>` : ''}</span><span class="chk">${taken.has(medKey(m)) ? T('먹었어요') : T('먹으면 누르기')}</span></button>`).join('')}</section>`;
@@ -392,6 +437,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
     const sym = (label, v) => (v ? li(label, `${LEVELS[v]}${bars(v)}`) : '');
     return `<section class="card list">
         ${sym(T('우울'), e.dep)}${sym(T('고조'), e.elev)}${sym(T('불안'), e.anx)}
+        ${e.aid ? li(`${IC.moon}${T('수면')}`, T('잠드는 약 먹고 잠')) : ''}
         ${e.tired ? li(`${IC.moon}${T('일어났을 때')}`, T('피곤')) : ''}
         ${e.period ? li(`${IC.drop}${T('생리')}`, T('생리 중')) : ''}
         ${e.appetite != null ? li(`${IC.fork}${T('식욕')}`, ten(e.appetite)) : ''}
@@ -564,11 +610,119 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
       <p class="foot">${T('그래프나 달력에서 날짜를 누르면 그날 값을 볼 수 있어요.')}<br>${DISCLAIMER}</p>`;
   }
 
+  // ---------- 초기 신호 · 인사이트 (전부 이 폰 안에서 계산) ----------
+  const avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
+  const sortedEntries = () => Object.keys(db.entries).sort().map((k) => db.entries[k]);
+
+  function signals() {
+    const out = [], t = today();
+    const run = [];   // 오늘(없으면 어제)부터 거꾸로, 하루도 안 빠지고 이어진 기록
+    for (let d = db.entries[t] ? t : addDays(t, -1); db.entries[d]; d = addDays(d, -1)) run.push(db.entries[d]);
+    const count = (test) => { let n = 0; while (n < run.length && test(run[n])) n++; return n; };
+    const sleeps = Object.values(db.entries).map((e) => e.sleepMin).filter((x) => x != null);
+    const hi = count((e) => e.energy >= 7 || e.elev >= 3);
+    if (hi >= 2 && sleeps.length >= 5) {
+      const recent = run.slice(0, hi).map((e) => e.sleepMin).filter((x) => x != null);
+      if (recent.length && avg(recent) < avg(sleeps) - 20) out.push(T('에너지와 수면 패턴이 달라지고 있어요. 지켜볼 만해요.'));
+    }
+    if (count((e) => e.elev >= 3) >= 4) out.push(T('들뜬 상태가 며칠째 이어지고 있어요. 진료 때 이야기해 보세요.'));
+    if (count((e) => e.dep >= 3) >= 12) out.push(T('우울한 날이 2주 가까이 이어지고 있어요. 진료 때 이야기해 보세요.'));
+    return out;
+  }
+
+  function insights() {
+    const all = sortedEntries(), out = [];
+    if (all.length < 7) return out;
+    const sl = all.filter((e) => e.sleepMin != null);
+    const sleepOf = (list) => avg(list.map((e) => e.sleepMin));
+    // 두 묶음의 수면 차이를 문장으로 (각 3일 이상, 20분 이상 차이 날 때만)
+    const sleepGap = (a, b, less, more) => {
+      if (a.length < 3 || b.length < 3) return;
+      const d = Math.round(sleepOf(a) - sleepOf(b));
+      if (Math.abs(d) >= 20) out.push(F(d < 0 ? less : more, durText(Math.abs(d))));
+    };
+    sleepGap(sl.filter((e) => e.energy >= 7), sl.filter((e) => e.energy < 7),
+      '에너지가 높았던 날 전날 밤에는 다른 날보다 {0} 덜 잤어요.', '에너지가 높았던 날 전날 밤에는 다른 날보다 {0} 더 잤어요.');
+    sleepGap(sl.filter((e) => e.mood <= 3), sl.filter((e) => e.mood > 3),
+      '기분이 가라앉은 날 전날 밤에는 다른 날보다 {0} 덜 잤어요.', '기분이 가라앉은 날 전날 밤에는 다른 날보다 {0} 더 잤어요.');
+    sleepGap(sl.filter((e) => e.tired), sl.filter((e) => !e.tired),
+      '일어났을 때 피곤했던 날은 다른 날보다 {0} 덜 잤어요.', '일어났을 때 피곤했던 날은 다른 날보다 {0} 더 잤어요.');
+    // 카페인 많이 마신 날 → 그날 밤 잠 (다음 날 기록의 수면)
+    const night = (e) => db.entries[addDays(e.date, 1)];
+    const caf = all.filter((e) => e.caffeine != null && night(e) && night(e).sleepMin != null);
+    sleepGap(caf.filter((e) => e.caffeine >= 7).map(night), caf.filter((e) => e.caffeine < 7).map(night),
+      '카페인을 많이 마신 날 밤에는 다른 날보다 {0} 덜 잤어요.', '카페인을 많이 마신 날 밤에는 다른 날보다 {0} 더 잤어요.');
+    const ap = all.filter((e) => e.caffeine != null && e.appetite != null), apHi = ap.filter((e) => e.caffeine >= 7), apLo = ap.filter((e) => e.caffeine < 7);
+    if (apHi.length >= 3 && apLo.length >= 3) {
+      const d = avg(apHi.map((e) => e.appetite)) - avg(apLo.map((e) => e.appetite));
+      if (Math.abs(d) >= 1) out.push(T(d < 0 ? '카페인을 많이 마신 날은 식욕이 낮은 편이에요.' : '카페인을 많이 마신 날은 식욕이 높은 편이에요.'));
+    }
+    const per = all.filter((e) => e.period), non = all.filter((e) => !e.period);
+    if (per.length >= 3 && non.length >= 3) {
+      const d = avg(per.map((e) => e.mood)) - avg(non.map((e) => e.mood));
+      if (Math.abs(d) >= 0.8) out.push(F(d < 0 ? '생리 중인 날은 기분 평균이 다른 날보다 {0} 낮아요.' : '생리 중인 날은 기분 평균이 다른 날보다 {0} 높아요.', Math.abs(d).toFixed(1)));
+    }
+    const aid = sl.filter((e) => e.aid), noAid = sl.filter((e) => !e.aid);
+    if (aid.length >= 2 && noAid.length >= 2) out.push(F('잠드는 약을 먹은 밤에는 평균 {0}, 안 먹은 밤에는 평균 {1} 잤어요.', durText(Math.round(sleepOf(aid))), durText(Math.round(sleepOf(noAid)))));
+    // 최근 7일과 그 전 7일
+    const t = today(), span = (from, to) => all.filter((e) => e.date > addDays(t, -from) && e.date <= addDays(t, -to));
+    const now = span(7, 0), was = span(14, 7);
+    if (now.length >= 3 && was.length >= 3) {
+      const d = avg(now.map((e) => e.mood)) - avg(was.map((e) => e.mood));
+      if (Math.abs(d) >= 1) out.push(F(d > 0 ? '최근 7일 기분 평균이 그 전 7일보다 {0} 높아요.' : '최근 7일 기분 평균이 그 전 7일보다 {0} 낮아요.', Math.abs(d).toFixed(1)));
+      const a = now.filter((e) => e.sleepMin != null), b = was.filter((e) => e.sleepMin != null);
+      if (a.length >= 3 && b.length >= 3) {
+        const ds2 = Math.round(sleepOf(a) - sleepOf(b));
+        if (Math.abs(ds2) >= 30) out.push(F(ds2 < 0 ? '최근 7일은 그 전 7일보다 하루 평균 {0} 덜 잤어요.' : '최근 7일은 그 전 7일보다 하루 평균 {0} 더 잤어요.', durText(Math.abs(ds2))));
+      }
+    }
+    return out;
+  }
+
+  // AI 앱에 붙여 넣을 수 있는 최근 4주 요약 글
+  function aiSummary() {
+    const t = today(), lines = [];
+    for (let i = 27; i >= 0; i--) {
+      const d = addDays(t, -i), e = db.entries[d], meds = medsFor(d).map((m) => `${m.name}${m.dose ? ` ${m.dose}` : ''}`).join(', ');
+      if (!e) { if (meds) lines.push(`${d} | (기록 없음) | 약: ${meds}`); continue; }
+      const signs = SIGNS.filter(([k]) => e.signs && e.signs[k]).map(([, l]) => l).join(', ');
+      lines.push([d, `기분 ${e.mood}`, `에너지 ${e.energy}`, e.conf != null ? `자신감 ${e.conf}` : '', `우울 ${e.dep}/4`, `고조 ${e.elev}/4`, `불안 ${e.anx}/4`,
+        e.sleepMin != null ? `수면 ${Math.floor(e.sleepMin / 60)}시간 ${e.sleepMin % 60}분${e.aid ? '(잠드는 약 복용)' : ''}` : '', e.tired ? '기상 시 피곤' : '', e.period ? '생리 중' : '',
+        e.appetite != null ? `식욕 ${e.appetite}` : '', e.caffeine != null ? `카페인 ${e.caffeine}` : '', `약: ${meds || '없음'}`, signs ? `체크: ${signs}` : '', e.note ? `메모: ${e.note}` : '']
+        .filter(Boolean).join(' | '));
+    }
+    return `아래는 내가 직접 적은 최근 4주 기분·수면·복약 기록이야 (기분·에너지·자신감·식욕·카페인은 0~10, 우울·고조·불안은 0~4).
+진단은 하지 말고, 눈에 띄는 패턴과 진료 때 의사에게 이야기하거나 물어볼 만한 점을 쉬운 말로 정리해 줘.
+
+${lines.join('\n') || '(기록 없음)'}`;
+  }
+
+  function viewInsight() {
+    const n = Object.keys(db.entries).length, list = insights(), sig = signals(), t = today();
+    const adher = db.meds.map((m) => {
+      let c = 0;
+      for (let i = 0; i < 14; i++) if (medsFor(addDays(t, -i)).some((x) => medKey(x) === medKey(m))) c++;
+      return li(`${IC.pill}${esc(m.name)}${m.dose ? `<small>${esc(m.dose)}</small>` : ''}`, F('14일 중 {0}일', c));
+    }).join('');
+    app.innerHTML = `
+      <header class="top"><div><div class="over">${F('기록 {0}일', n)}</div><h1>${T('인사이트')}</h1></div></header>
+      ${sig.map((m) => `<div class="card signal"><i></i><span>${m}</span></div>`).join('')}
+      <div class="sec">${T('기록에서 보이는 것')}</div>
+      <section class="card list">${list.length ? list.map((x) => `<div class="li say">${x}</div>`).join('')
+        : `<div class="li say mut">${n < 7 ? F('기록이 7일 이상 쌓이면 패턴을 찾아 보여 드려요. 지금은 {0}일이에요.', n) : T('아직 뚜렷한 패턴이 보이지 않아요. 기록이 더 쌓이면 다시 살펴볼게요.')}</div>`}</section>
+      ${adher ? `<div class="sec">${T('약 체크 (최근 14일)')}</div><section class="card list">${adher}</section>` : ''}
+      <div class="sec">${T('AI에게 물어보기')}</div>
+      <section class="card list"><button class="li add" data-act="copyAi">${IC.spark}&nbsp; ${T('최근 4주 기록을 글로 복사')}</button></section>
+      <p class="secnote">${T('복사한 글을 Claude나 ChatGPT 같은 AI 앱에 붙여 넣으면 기록 전체를 읽고 패턴을 정리해 줘요. 붙여 넣는 순간 그 기록은 해당 AI 서비스로 전송돼요.')}</p>
+      <p class="foot">${T('위 문장들은 내 기록을 계산한 관찰이에요. 원인이나 진단을 뜻하지 않아요.')}</p>`;
+  }
+
   function render() {
-    (ui.tab === 'trend' ? viewTrend : viewToday)();
+    ({ trend: viewTrend, insight: viewInsight }[ui.tab] || viewToday)();
     app.insertAdjacentHTML('beforeend', `<nav class="tabbar">
       <button data-act="tab" data-tab="today" aria-pressed="${ui.tab === 'today'}">${IC.today}<span>${T('오늘')}</span></button>
-      <button data-act="tab" data-tab="trend" aria-pressed="${ui.tab === 'trend'}">${IC.chart}<span>${T('흐름')}</span></button></nav>`);
+      <button data-act="tab" data-tab="trend" aria-pressed="${ui.tab === 'trend'}">${IC.chart}<span>${T('흐름')}</span></button>
+      <button data-act="tab" data-tab="insight" aria-pressed="${ui.tab === 'insight'}">${IC.spark}<span>${T('인사이트')}</span></button></nav>`);
   }
 
   const themeQuery = matchMedia('(prefers-color-scheme: light)');
@@ -609,20 +763,29 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
     <div class="ends"><span>${lo}</span><span>${hi}</span></div></div>`;
   const sw = (attr, on, label, icon) => `<button type="button" class="li sw" ${attr} aria-pressed="${!!on}"><span class="lk">${icon || ''}${label}</span><i></i></button>`;
 
+  // 약 추가: 이름을 치면 목록에서 골라 넣을 수 있다
+  function sugHtml(q) {
+    const have = new Set(db.meds.map((m) => m.name));
+    const hit = CATALOG.filter(([b, g]) => !have.has(b) && (!q || b.includes(q) || g.includes(q))).slice(0, q ? 12 : 10);
+    return hit.map(([b, g]) => `<button type="button" class="sug" data-act="pickSug" data-name="${esc(b)}">${esc(b)}<small>${esc(g)}</small></button>`).join('');
+  }
+  function medAddHtml() {
+    return ui.addingMed
+      ? `<div class="li med-new">
+           <input type="text" id="med-name" placeholder="${T('약 이름')}" autocomplete="off" maxlength="30">
+           <input type="text" id="med-dose" placeholder="${T('용량 (예: 300mg)')}" autocomplete="off" maxlength="20">
+           <div class="sugs" id="med-sug">${sugHtml('')}</div>
+           <button type="button" class="btn gray" data-act="saveMed">${T('약 저장')}</button>
+         </div>`
+      : `<button type="button" class="li add" data-act="addMed">${T('+ 약 추가')}</button>`;
+  }
   function medsHtml() {
     const d = ui.draft;
     const taken = new Set(d.meds.map(medKey));
     const all = db.meds.concat(d.meds.filter((m) => !db.meds.some((x) => medKey(x) === medKey(m))));
     const rows = all.map((m) => `<button type="button" class="li med" data-med="${esc(medKey(m))}" aria-pressed="${taken.has(medKey(m))}">
       <span class="lk">${esc(m.name)}${m.dose ? `<small>${esc(m.dose)}</small>` : ''}</span><span class="chk">✓</span></button>`).join('');
-    const add = ui.addingMed
-      ? `<div class="li med-new">
-           <input type="text" id="med-name" placeholder="${T('약 이름')}" autocomplete="off" maxlength="30">
-           <input type="text" id="med-dose" placeholder="${T('용량 (예: 300mg)')}" autocomplete="off" maxlength="20">
-           <button type="button" class="btn gray" data-act="saveMed">${T('이 약 저장하고 선택')}</button>
-         </div>`
-      : `<button type="button" class="li add" data-act="addMed">${T('+ 약 추가')}</button>`;
-    return rows + add;
+    return rows + medAddHtml();
   }
 
   function signsHtml() {
@@ -662,6 +825,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
         <label class="li"><span class="lk">${T('잠든 시각')}</span><input type="time" id="f-bed" value="${esc(d.bed || '')}"></label>
         <label class="li"><span class="lk">${T('깬 시각')}</span><input type="time" id="f-wake" value="${esc(d.wake || '')}"></label>
         <div class="li"><span class="lk">${T('수면 시간')}</span><span class="lv" id="v-sleep"></span></div>
+        ${sw('data-flag="aid"', d.aid, T('잠드는 약 먹고 잠'))}
         ${sw('data-flag="tired"', d.tired, T('일어났을 때 피곤함'))}
       </section>
 
@@ -712,7 +876,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
     db.entries[d.date] = {
       date: d.date, mood: d.mood, energy: d.energy, conf: d.conf, dep: d.dep, elev: d.elev, anx: d.anx,
       bed: d.bed || null, wake: d.wake || null, sleepMin: sleepMinutes(d.bed, d.wake),
-      tired: !!d.tired, period: !!d.period, appetite: d.appetite, caffeine: d.caffeine,
+      tired: !!d.tired, aid: !!d.aid, period: !!d.period, appetite: d.appetite, caffeine: d.caffeine,
       meds: d.meds, note: (d.note || '').trim(), signs, updatedAt: new Date().toISOString(),
     };
     delete db.taken[d.date];
@@ -730,7 +894,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
     const meds = db.meds.length
       ? db.meds.map((m) => `<div class="li"><span class="lk">${esc(m.name)}<small>${esc(m.dose || '')}</small></span>
           <button class="txt dim" data-act="delMed" data-med="${esc(medKey(m))}">${T('삭제')}</button></div>`).join('')
-      : `<div class="li"><span class="lv">${T('저장된 약이 없어요. 기록 화면에서 “+ 약 추가”로 넣을 수 있어요.')}</span></div>`;
+      : '';
     sheet.innerHTML = `<div class="sheet-in" style="padding-bottom:calc(var(--safe-b) + 30px)">
       <div class="sheet-top">
         <span class="txt"></span>
@@ -774,8 +938,8 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
       </section>
       <p class="secnote">${T('기록은 이 아이폰 안에만 저장돼요. 폰을 바꾸거나 앱을 지우면 사라지니, 가끔 백업 파일을 만들어 “파일” 앱이나 iCloud에 넣어 두세요.')}</p>
 
-      <div class="sec">${T('자주 먹는 약')}</div>
-      <section class="card list">${meds}</section>
+      <div class="sec" id="sec-meds">${T('자주 먹는 약')}</div>
+      <section class="card list">${meds}${medAddHtml()}</section>
 
       <div class="sec">${T('홈 화면에 추가하는 방법')}</div>
       <section class="card"><ol class="steps">
@@ -853,7 +1017,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
 
   // ---------- 시트 열고 닫기 ----------
   function showSheet() { sheet.hidden = false; sheet.scrollTop = 0; document.body.classList.add('locked'); }
-  function closeSheet() { sheet.hidden = true; sheet.innerHTML = ''; ui.draft = null; document.body.classList.remove('locked'); }
+  function closeSheet() { ui.addingMed = false; sheet.hidden = true; sheet.innerHTML = ''; ui.draft = null; document.body.classList.remove('locked'); }
 
   // ---------- 이벤트 ----------
   const actions = {
@@ -865,6 +1029,17 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
       const r = remind();
       if (!r.log && !r.med1 && !r.med2) { toast(T('알림 시간을 먼저 정해 주세요')); return; }
       await giveFile('tide-reminders.ics', makeIcs(), 'text/calendar');
+    },
+    copyAi: async () => {
+      const text = aiSummary();
+      try { await navigator.clipboard.writeText(text); }
+      catch (e) {
+        const ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); } catch (err) { /* 복사 불가 */ }
+        ta.remove();
+      }
+      toast(T('복사했어요. AI 앱에 붙여 넣으세요'));
     },
     lang: (el) => { db.settings.lang = el.dataset.lang; if (save()) location.reload(); },
     size: (el) => { db.settings.size = el.dataset.size; save(); applyFont(); render(); openSettings(); },
@@ -890,15 +1065,23 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
       delete db.entries[ui.draft.date];
       save(); closeSheet(); render(); toast(T('삭제했어요'));
     },
-    addMed: () => { ui.addingMed = !ui.addingMed; $('#meds').innerHTML = medsHtml(); if (ui.addingMed) $('#med-name').focus(); },
+    addMed: () => {
+      ui.addingMed = !ui.addingMed;
+      if (ui.draft) $('#meds').innerHTML = medsHtml(); else { const y = sheet.scrollTop; openSettings(); sheet.scrollTop = y; }
+      if (ui.addingMed) $('#med-name').focus();
+    },
+    pickSug: (el) => { $('#med-name').value = el.dataset.name; $('#med-sug').innerHTML = ''; $('#med-dose').focus(); },
+    medSetup: () => { ui.addingMed = true; openSettings(); $('#sec-meds').scrollIntoView(); },
     saveMed: () => {
       const name = $('#med-name').value.trim(), dose = $('#med-dose').value.trim();
       if (!name) { toast(T('약 이름을 적어 주세요')); return; }
       const m = { name, dose };
-      if (!db.meds.some((s) => medKey(s) === medKey(m))) { db.meds.push(m); save(); }
-      if (!ui.draft.meds.some((s) => medKey(s) === medKey(m))) ui.draft.meds.push(m);
+      if (!db.meds.some((x) => medKey(x) === medKey(m))) { db.meds.push(m); save(); }
       ui.addingMed = false;
-      $('#meds').innerHTML = medsHtml();
+      if (ui.draft) {
+        if (!ui.draft.meds.some((x) => medKey(x) === medKey(m))) ui.draft.meds.push(m);
+        $('#meds').innerHTML = medsHtml();
+      } else { const y = sheet.scrollTop; render(); openSettings(); sheet.scrollTop = y; }
     },
     delMed: (el) => {
       db.meds = db.meds.filter((m) => medKey(m) !== el.dataset.med);
@@ -938,6 +1121,7 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
 
   sheet.addEventListener('input', (ev) => {
     const d = ui.draft, el = ev.target;
+    if (el.id === 'med-name') { $('#med-sug').innerHTML = sugHtml(el.value.trim()); return; }
     if (el.id.startsWith('r-')) { remind()[el.id.slice(2)] = el.value; save(); return; }
     if (!d) return;
     const k = el.id.slice(2);
