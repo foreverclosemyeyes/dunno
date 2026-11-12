@@ -18,7 +18,7 @@
     '라이트': 'Light', '다크': 'Dark', '알림': 'Reminders', '기록 알림': 'Log reminder', '약 알림 1': 'Med reminder 1', '약 알림 2': 'Med reminder 2',
     '캘린더에 알림 추가': 'Add reminders to Calendar', 'Tide 기록하기': 'Tide: log today', '약 먹을 시간': 'Time to take your meds', '알림 시간을 먼저 정해 주세요': 'Set a reminder time first',
     '아이폰 웹앱은 정해진 시간에 스스로 알림을 보낼 수 없어요. 대신 매일 반복되는 캘린더 알림 파일을 만들어 드려요. 시간을 정하고 버튼을 누른 뒤 “캘린더에 추가”를 고르세요. 안 쓰는 알림은 시간을 비워 두면 돼요.': 'An iPhone web app cannot send scheduled notifications on its own. Instead this makes a calendar file with daily repeating alerts. Set the times, tap the button, then choose “Add to Calendar”. Leave a time empty to skip that reminder.',
-    '8시간 기준': 'of 8 hours',
+    '평소와 비슷': 'About your usual', '평소보다 {0} 김': '{0} more than usual', '평소보다 {0} 짧음': '{0} less than usual',
     '취소': 'Cancel', '완료': 'Done', '설정': 'Settings', '증상': 'Symptoms', '몸': 'Body',
     '수면 시간': 'Time asleep', '일어났을 때 피곤함': 'Tired on waking', '일어났을 때': 'On waking', '피곤': 'Tired',
     '높음': 'High',
@@ -317,12 +317,13 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
       <button class="btn" data-act="record">${T('기록하기')}</button></section>`;
   }
 
-  const ring = (frac) => {
-    const c = 2 * Math.PI * 17, f = Math.max(0, Math.min(1, frac || 0));
-    return `<svg class="ring" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" fill="none" stroke-width="3.5" style="stroke:var(--fill)"/>${
-      f > 0 ? `<circle cx="20" cy="20" r="17" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="${(c * f).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 20 20)" style="stroke:var(--ink)"/>` : ''}</svg>`;
+  // 가운데(보통)에서 얼마나 위·아래인지 보여 주는 막대. pos는 0~1, 0.5가 가운데
+  const level = (pos) => {
+    const p = Math.max(0, Math.min(1, pos)) * 100, lo = Math.min(50, p), w = Math.abs(p - 50);
+    return `<div class="lvl" aria-hidden="true"><i style="left:${lo.toFixed(1)}%;width:${w.toFixed(1)}%"></i><b style="left:${p.toFixed(1)}%"></b></div>`;
   };
-  const tile = (frac, n, label, name, cls) => `<div class="tile"><div class="tb"><div class="tl">${label}</div><div class="n ${cls || ''}">${n}</div>${name ? `<div class="nm">${name}</div>` : ''}</div>${ring(frac)}</div>`;
+  const tile = (label, word, num, pos, sub) => `<div class="tile"><div class="tl"><span>${label}</span><span>${num == null ? '' : num}</span></div>
+    <div class="word">${word}</div>${pos == null ? '' : level(pos)}${sub ? `<div class="ts">${sub}</div>` : ''}</div>`;
   const bars = (v) => `<span class="bars">${[1, 2, 3, 4].map((i) => `<i class="${i <= v ? 'on' : ''}"></i>`).join('')}</span>`;
 
   // 그날 먹은 약: 기록이 있으면 기록 안에, 아직 없으면 따로 적어 둔다
@@ -344,11 +345,19 @@ return EN ? `${h % 12 || 12}:${pad(m)} ${h < 12 ? 'AM' : 'PM'}` : `${h < 12 ? '�
   function tilesHtml(e) {
     const sleepBig = e.sleepMin == null ? '–'
       : `${Math.floor(e.sleepMin / 60)}<small>${T('시간')}</small>${e.sleepMin % 60 ? ` ${e.sleepMin % 60}<small>${T('분')}</small>` : ''}`;
+    // 수면은 내 평균과 비교 (기록이 3일 이상 쌓였을 때)
+    const sleeps = Object.values(db.entries).map((x) => x.sleepMin).filter((x) => x != null);
+    let pos = null, sub = '';
+    if (e.sleepMin != null && sleeps.length >= 3) {
+      const avg = sleeps.reduce((a, b) => a + b, 0) / sleeps.length, diff = Math.round(e.sleepMin - avg);
+      pos = 0.5 + diff / 360;   // 막대 끝에서 끝이 ±3시간
+      sub = Math.abs(diff) < 10 ? T('평소와 비슷') : F(diff > 0 ? '평소보다 {0} 김' : '평소보다 {0} 짧음', durText(Math.abs(diff)));
+    }
     return `<div class="tiles">
-        ${tile(e.mood / 10, e.mood, T('기분'), nameOf('mood', e.mood))}
-        ${tile(e.energy / 10, e.energy, T('에너지'), nameOf('energy', e.energy))}
-        ${tile((e.conf || 0) / 10, e.conf == null ? '–' : e.conf, T('자신감'), nameOf('conf', e.conf))}
-        ${tile((e.sleepMin || 0) / 480, sleepBig, T('수면'), e.sleepMin == null ? '' : T('8시간 기준'), 'sm')}
+        ${tile(T('기분'), nameOf('mood', e.mood), e.mood, e.mood / 10)}
+        ${tile(T('에너지'), nameOf('energy', e.energy), e.energy, e.energy / 10)}
+        ${e.conf == null ? tile(T('자신감'), '–') : tile(T('자신감'), nameOf('conf', e.conf), e.conf, e.conf / 10)}
+        ${tile(T('수면'), sleepBig, null, pos, sub)}
       </div>`;
   }
 

@@ -174,13 +174,15 @@ input[type=text] { width: 100%; min-height: 30px; padding: 0; }
 
 /* 오늘 요약 */
 .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
-.tile { border-radius: var(--radius); padding: 14px 14px 13px 16px; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.tb { min-width: 0; }
-.tile .tl { color: var(--muted); font-size: calc(13px * var(--fs, 1.12)); font-weight: 600; }
-.tile .n { font-family: var(--round); font-size: calc(30px * min(var(--fs, 1.12), 1.2)); font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; margin-top: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.tile .n.sm { font-size: calc(21px * min(var(--fs, 1.12), 1.2)); line-height: 1.72; }
-.tile .n small { font-size: .62em; font-weight: 600; color: var(--muted); margin-left: 1px; }
-.ring { width: 42px; height: 42px; flex: none; }
+.tile { border-radius: var(--radius); padding: 14px 16px 15px; min-width: 0; }
+.tile .tl { display: flex; justify-content: space-between; color: var(--muted); font-size: calc(13px * var(--fs, 1.12)); font-weight: 500; font-variant-numeric: tabular-nums; }
+.tile .word { font-size: calc(21px * min(var(--fs, 1.12), 1.25)); font-weight: 700; letter-spacing: -0.03em; line-height: 1.25; margin: 5px 0 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile .word small { font-size: .68em; font-weight: 600; color: var(--muted); margin-left: 1px; }
+.tile .ts { color: var(--muted); font-size: calc(11.5px * var(--fs, 1.12)); margin-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lvl { position: relative; height: 4px; border-radius: 999px; background: var(--fill); margin: 0 4px; }
+.lvl::before { content: ""; position: absolute; left: 50%; top: -3px; width: 1.5px; height: 10px; margin-left: -0.75px; border-radius: 1px; background: var(--faint); }
+.lvl i { position: absolute; top: 0; height: 4px; border-radius: 999px; background: var(--ink); }
+.lvl b { position: absolute; top: -3px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: var(--ink); }
 .empty { text-align: center; color: var(--muted); padding: 26px 16px 16px; font-size: calc(14px * var(--fs, 1.12)); }
 .empty .e1 { font-size: calc(17px * var(--fs, 1.12)); font-weight: 600; color: var(--text); margin-bottom: 3px; }
 .empty .btn { margin-top: 18px; }
@@ -235,5 +237,7 @@ ol.steps li { margin: 3px 0; }
 
 /* 숫자에 붙는 이름 */
 .slv { display: flex; align-items: baseline; gap: 9px; }
+.slv .nm { color: var(--text); font-weight: 600; font-size: calc(15px * var(--fs, 1.12)); }
+.slv b { color: var(--muted); font-size: calc(15px * var(--fs, 1.12)) !important; font-weight: 500 !important; min-width: 1.3em; text-align: right; }
 .nm { color: var(--muted); font-size: calc(13px * var(--fs, 1.12)); }
 .tile .nm { margin-top: 1px; font-size: calc(12.5px * var(--fs, 1.12)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
