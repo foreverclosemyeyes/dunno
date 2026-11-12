@@ -1571,3 +1571,15 @@ body.skin-bubble #assistant { z-index: 1; }
 /* 비서 칸은 말풍선 높이만 차지 → 달력이 그 위까지 길어져 빈자리가 줄어듦 */
 body.skin-bubble #assistant { --it: 14px; height: calc(14px + var(--ih) * .82); z-index: 3; }
 body.skin-bubble #asst-figure { pointer-events: none; }
+/* 사람과 말풍선을 조금 위로: 초상화를 키우고 말풍선을 올린 뒤, 답하는 칸·버튼은 말풍선 아래 한 줄로 */
+body.skin-bubble #assistant { --fig: min(58vh, 36vw); --lift: 58px; height: calc(14px + var(--ih) * .82 + var(--lift)); }
+body.skin-bubble #asst-controls { left: calc(var(--il) + var(--iw) * .16); top: calc(var(--it) + var(--ih) * .82 + 12px);
+  flex-direction: row !important; align-items: center; gap: 8px; }
+body.skin-bubble #asst-controls .asst-actions { order: 1; flex-wrap: nowrap; }
+body.skin-bubble #chat-form { order: 2; width: 220px; }
+/* 내 말풍선(답하는 칸)은 크게 해서 말풍선 아래에, 버튼 세 개는 이름표 오른쪽(말풍선 위)에 */
+body.skin-bubble #asst-controls { position: static; display: contents; }
+body.skin-bubble #chat-form { position: absolute !important; z-index: 4; left: calc(var(--il) + var(--iw) * .2); top: calc(var(--it) + var(--ih) * .82 + 8px);
+  width: min(320px, calc(var(--iw) * .56)) !important; min-height: 48px !important; padding: 6px 54px 6px 22px !important; margin: 0 !important; }
+body.skin-bubble #chat-input { font-size: 15px !important; }
+body.skin-bubble #asst-controls .asst-actions { position: absolute; z-index: 4; left: calc(var(--il) + var(--iw) * .46); top: calc(var(--it) + var(--ih) * .36 - 34px); margin: 0; flex-wrap: nowrap; gap: 6px; }
