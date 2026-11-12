@@ -128,6 +128,25 @@ function seed() {
   await page.click('.cal .cday:not([disabled])');
   check('날짜를 누르면 그날 표시', await page.isVisible('.pickbar'));
 
+  // 5-1. 옆으로 밀어서 날짜 넘기기
+  const swipe = (dx) => page.evaluate((d) => {
+    const el = document.querySelector('#app'), mk = (x) => new Touch({ identifier: 1, target: el, clientX: x, clientY: 300 });
+    el.dispatchEvent(new TouchEvent('touchstart', { touches: [mk(200)], changedTouches: [mk(200)], bubbles: true }));
+    el.dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: [mk(200 + d)], bubbles: true }));
+  }, dx);
+  const monthBefore = await text('.pnav span');
+  await swipe(120);
+  check('흐름: 오른쪽으로 밀면 이전 달', (await text('.pnav span')) !== monthBefore);
+  await swipe(-120); await swipe(-120);
+  check('흐름: 미래로는 안 넘어감', (await text('.pnav span')) === monthBefore);
+  await page.click('[data-tab=today]');
+  await swipe(120);
+  check('오늘: 오른쪽으로 밀면 어제', (await text('h1')) !== '오늘');
+  await swipe(-120); await swipe(-120);
+  check('오늘: 왼쪽으로 밀면 다시 오늘, 미래로는 안 감', (await text('h1')) === '오늘');
+  await swipe(30);
+  check('조금만 밀면 안 넘어감', (await text('h1')) === '오늘');
+
   // 6. 설정: 언어 · 화면 모드 · 색 · 글씨 크기
   await page.click('[data-tab=today]');
   await page.click('[data-act=settings]'); await page.click('[data-lang=en]'); await page.waitForLoadState('load'); await page.waitForSelector('h1');

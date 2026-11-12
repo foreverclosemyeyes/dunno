@@ -6,12 +6,13 @@ import { exportData, giveFile, importData, makeIcs, remind } from './files.js';
 import { T } from './i18n.js';
 import { addDose, medKey, medsFor, normDose, setMeds, sugHtml } from './meds.js';
 import { render } from './render.js';
+import { onSwipe } from './swipe.js';
 import { trend, ui } from './state.js';
 import { db, save } from './store.js';
 import { applyFont, applyTheme, themeQuery } from './theme.js';
 import { SLIDERS, cafHead, medsHtml, openRecord, saveEntry, syncForm } from './views/record.js';
 import { openSettings } from './views/settings.js';
-import { shiftTrend, trendRange } from './views/trend.js';
+import { shiftAnchor, shiftTrend, trendRange } from './views/trend.js';
 
 themeQuery.addEventListener('change', () => { applyTheme(); if (!sheetOpen()) render(); });
 
@@ -144,6 +145,20 @@ sheet.addEventListener('input', (ev) => {
   else if (el.id === 'f-note') d.note = el.value;
   else return;
   syncForm();
+});
+
+// 옆으로 밀면 날짜가 넘어간다: 오늘 탭은 하루씩, 흐름 탭은 한 주(한 달)씩. 미래로는 못 간다.
+onSwipe(app, (step) => {
+  if (ui.tab === 'today') {
+    const next = addDays(ui.selected, step);
+    if (next > today()) return;
+    ui.selected = next;
+  } else if (ui.tab === 'trend') {
+    if (trendRange(shiftAnchor(trend.anchor, step)).start > today()) return;
+    shiftTrend(step);
+  } else return;
+  render();
+  enterApp(step > 0 ? 'next' : 'prev');
 });
 
 // 흐름 그래프에서 날짜 칸을 누르면 그날 값을 보여 준다
