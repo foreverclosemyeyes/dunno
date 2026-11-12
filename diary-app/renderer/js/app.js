@@ -262,6 +262,7 @@
     inner.style.transform = `translate(${(bw - iw) / 2}px, ${ty}px) scale(${(fx * 0.99).toFixed(4)}, ${(fy * 0.99).toFixed(4)}) rotate(${t}deg)`;
   }
   window.addEventListener('resize', () => fitBigCal());
+  D.fitBigCal = fitBigCal;
 
   // ---------- 오른쪽 ----------
   // '→' 를 누르면 뜨는 작은 메뉴: 내일 / 다음 주 월요일 / 날짜 고르기

@@ -1778,3 +1778,8 @@ body.layout-bigcal #assistant { margin-bottom: clamp(20px, 5vh, 56px); }
 /* 모드 그림(세로로 긴 컷): 조금 작게, 말풍선 쪽으로 붙이고 바닥에 맞춤 → 머리가 달력을 덜 가림 */
 #asst-figure img.look { width: auto !important; height: 88% !important; max-width: none !important; object-fit: contain; margin: 0 4% 0 auto !important; align-self: flex-end; }
 #asst-figure img.look { margin: 0 27% 0 auto !important; }
+
+/* POINT UP 원본 글자 그림: 별 안에 들어오는 크기로, 검은 그림자는 살짝만 */
+.pu .pu-title.img { width: min(62vh, 46vw) !important; transform: rotate(-5deg) scale(1.5) !important; }
+.pu.t2 .pu-title.img { transform: rotate(-5deg) scale(1) !important; }
+.pu .pu-title.img .pup-bg { inset: -6% -4% -8% -4%; transform: translate(4px, 5px); }

@@ -39,7 +39,8 @@
     if (!img) return;
     const u = urlOf(key);
     if (u && img.getAttribute('src') !== u) img.setAttribute('src', u);
-    const l = lookFor(key); img.classList.toggle('look', !!(l && l.url)); // 모드 그림은 세로로 길어서 따로 배치
+    const l = lookFor(key); const isLook = !!(l && l.url);
+    if (img.classList.contains('look') !== isLook) { img.classList.toggle('look', isLook); requestAnimationFrame(() => D.fitBigCal && D.fitBigCal()); } // 모드 그림은 세로로 길어서 따로 배치 → 달력 높이도 다시 맞춤
   }
 
   function mount() {
@@ -50,6 +51,7 @@
     if (!img || !fig.contains(img)) {
       fig.innerHTML = '';
       img = document.createElement('img');
+      img.addEventListener('load', () => D.fitBigCal && D.fitBigCal());
       img.alt = D.state.theme.assistant.name;
       img.draggable = false;
       fig.append(img);
