@@ -506,8 +506,8 @@ function createWindow(show) {
   const settings = store.get('settings', {});
   win = new BrowserWindow({
     ...bounds,
-    minWidth: 900,
-    minHeight: 640,
+    minWidth: 760,
+    minHeight: 480,
     show: false,
     title: '업무다이어리',
     backgroundColor: '#121212',
@@ -524,6 +524,8 @@ function createWindow(show) {
   win.once('ready-to-show', () => { if (show) win.show(); });
   const saveBounds = () => { if (!win.isMinimized() && !win.isMaximized()) store.set('bounds', win.getBounds()); };
   win.on('resize', saveBounds);
+  win.on('resize', fitZoom);
+  win.webContents.on('did-finish-load', fitZoom);
   win.on('move', saveBounds);
   win.on('close', (e) => {
     if (!quitting) {
@@ -570,6 +572,16 @@ function createTray() {
   tray.refreshMenu = () => tray.setContextMenu(menu());
 }
 
+// 작은 창: 큰 창(1360x820 기준) 화면을 그대로 축소해서 보여 줌 → 캐릭터·말풍선·달력·노트가 같은 비율로 같이 작아짐
+const ZOOM_BASE = { w: 1360, h: 820 };
+function fitZoom() {
+  if (!win || win.isDestroyed()) return;
+  const [w, h] = win.getContentSize();
+  const on = store.get('settings', {}).autoZoom !== false;
+  const f = on ? Math.max(0.5, Math.min(1, w / ZOOM_BASE.w, h / ZOOM_BASE.h)) : 1;
+  if (Math.abs(win.webContents.getZoomFactor() - f) > 0.004) win.webContents.setZoomFactor(f);
+}
+
 function setSettings(partial) {
   const s = { ...store.get('settings', {}), ...partial };
   store.set('settings', s);
@@ -577,6 +589,7 @@ function setSettings(partial) {
   if ('alwaysOnTop' in partial && win) win.setAlwaysOnTop(!!partial.alwaysOnTop);
   if ('eventMode' in partial) sync(true);
   if ('bossKey' in partial) applyBossKey(partial.bossKey);
+  if ('autoZoom' in partial) fitZoom();
   if (tray && tray.refreshMenu) tray.refreshMenu();
   push('settings', s);
   return s;

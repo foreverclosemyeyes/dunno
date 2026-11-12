@@ -215,7 +215,7 @@
     const g = C.section('일반', true);
     const sw = (key, label, desc) => {
       const r = h('div', 'ctl');
-      const l = h('label', 'switch'); const cb = h('input'); cb.type = 'checkbox'; cb.checked = key === 'autoStats' ? state.settings[key] !== false : !!state.settings[key];
+      const l = h('label', 'switch'); const cb = h('input'); cb.type = 'checkbox'; cb.checked = (key === 'autoStats' || key === 'autoZoom') ? state.settings[key] !== false : !!state.settings[key];
       cb.onchange = async () => { state.settings = await window.diary.setSettings({ [key]: cb.checked }); };
       l.append(cb, h('span'));
       const lab = h('label', 'ctl-label', label);
@@ -227,6 +227,7 @@
       sw('autoLaunch', '컴퓨터 켜면 자동 실행', '로그인할 때 트레이에 조용히 켜져요'),
       sw('hourly', '매시간 체크 (평일 9~19시 정시)'),
       sw('alwaysOnTop', '항상 다른 창 위에 띄우기'),
+      sw('autoZoom', '창을 줄이면 화면 전체를 같이 줄이기', '큰 창 화면 그대로 캐릭터·말풍선·달력이 같은 비율로 작아져요'),
       sw('autoStats', '인간 파라미터 자동으로 올리기', '체크리스트를 완료하면 일의 성격을 보고 파라미터 +1'),
     );
     g.body.append(h('div', 'row-inline'));
