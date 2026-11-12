@@ -253,11 +253,9 @@ ol.steps li { margin: 3px 0; }
 .sug small { color: var(--muted); margin-left: 5px; font-size: .85em; }
 
 /* 카페인 음료 개수 */
-.steps { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+.steps { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 4px; }
 .step { display: flex; align-items: center; background: var(--card2); border-radius: 12px; padding: 4px 4px 4px 12px; }
 .step span { flex: 1; font-size: calc(14px * var(--fs, 1.12)); }
 .step button { width: 36px; height: 36px; border-radius: 9px; font-size: 20px; text-align: center; color: var(--text); }
 .step button:active { background: var(--fill); }
 .step b { min-width: 20px; text-align: center; font-variant-numeric: tabular-nums; font-size: calc(15px * var(--fs, 1.12)); }
-.step span { line-height: 1.15; }
-.step span small { display: block; color: var(--muted); font-size: .76em; }
