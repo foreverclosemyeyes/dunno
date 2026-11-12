@@ -259,3 +259,4 @@ ol.steps li { margin: 3px 0; }
 .step button { width: 36px; height: 36px; border-radius: 9px; font-size: 20px; text-align: center; color: var(--text); }
 .step button:active { background: var(--fill); }
 .step b { min-width: 20px; text-align: center; font-variant-numeric: tabular-nums; font-size: calc(15px * var(--fs, 1.12)); }
+.step span small { color: var(--muted); font-size: .8em; margin-left: 4px; }

@@ -49,7 +49,7 @@
     '복사한 글을 Claude나 ChatGPT 같은 AI 앱에 붙여 넣으면 기록 전체를 읽고 패턴을 정리해 줘요. 붙여 넣는 순간 그 기록은 해당 AI 서비스로 전송돼요.': 'Paste the copied text into an AI app such as Claude or ChatGPT and it can read the whole log and summarise patterns. Once pasted, that log is sent to that AI service.',
     '위 문장들은 내 기록을 계산한 관찰이에요. 원인이나 진단을 뜻하지 않아요.': 'These sentences are observations calculated from your log. They do not indicate a cause or a diagnosis.',
     '복사했어요. AI 앱에 붙여 넣으세요': 'Copied. Paste it into an AI app',
-    '몬스터': 'Monster', '커피': 'Coffee', '차': 'Tea', '콜라': 'Cola', '약 {0}mg': '~{0} mg',
+    '몬스터': 'Monster', '커피': 'Coffee', '차': 'Tea', '콜라': 'Cola', '캔': 'can', '잔': 'cup', '티백': 'bag', '약 {0}mg': '~{0} mg',
     '취소': 'Cancel', '완료': 'Done', '설정': 'Settings', '증상': 'Symptoms', '몸': 'Body',
     '수면 시간': 'Time asleep', '일어났을 때 피곤함': 'Tired on waking', '일어났을 때': 'On waking', '피곤': 'Tired',
     '높음': 'High',
@@ -216,7 +216,8 @@
   // 잠에 영향을 주는 약 (안정제·수면제). 전날 이 약을 체크했으면 그날 밤 잠은 '약 먹고 잔 밤'으로 본다.
   const SEDATIVES = ['알프람', '자낙스', '아티반', '리보트릴', '바리움', '스틸녹스', '서카딘'];
   // 카페인은 마신 것을 개수로 적는다. mg는 대략적인 값 (제품·크기에 따라 다름).
-  const DRINKS = [['monster', T('몬스터'), 100], ['coffee', T('커피'), 150], ['tea', T('차'), 40], ['cola', T('콜라'), 35]];
+  // 차는 물 양이 아니라 티백(찻잎) 개수로 센다. 카페인은 우린 찻잎 양에서 나온다.
+  const DRINKS = [['monster', T('몬스터'), 100, T('캔')], ['coffee', T('커피'), 150, T('잔')], ['tea', T('차'), 40, T('티백')], ['cola', T('콜라'), 35, T('캔')]];
   const cafMg = (dr) => DRINKS.reduce((sum, [k, , mg]) => sum + ((dr && dr[k]) || 0) * mg, 0);
   const cafScore = (dr) => Math.min(10, Math.round(cafMg(dr) / 40));   // 400mg 이상이면 10
   const drinkText = (dr) => DRINKS.filter(([k]) => dr && dr[k]).map(([k, name]) => `${name} ${dr[k]}`).join(' · ');
@@ -772,7 +773,7 @@ ${lines.join('\n') || '(기록 없음)'}`;
   const SLIDERS = ['mood', 'energy', 'conf', 'appetite'];
   const cafHead = (dr) => (cafMg(dr) ? `${nameOf('caffeine', cafScore(dr))} · ${F('약 {0}mg', cafMg(dr))}` : nameOf('caffeine', 0));
   const drinksHtml = (d) => `<div class="li col"><div class="slh"><span class="lk">${IC.coffee}${T('카페인')}</span><span class="nm" id="v-caf">${cafHead(d.drinks)}</span></div>
-    <div class="steps">${DRINKS.map(([k, name]) => `<div class="step"><span>${name}</span>
+    <div class="steps">${DRINKS.map(([k, name, , unit]) => `<div class="step"><span>${name}<small>${unit}</small></span>
       <button type="button" data-drink="${k}" data-d="-1" aria-label="${name} −">−</button><b id="c-${k}">${d.drinks[k] || 0}</b>
       <button type="button" data-drink="${k}" data-d="1" aria-label="${name} +">+</button></div>`).join('')}</div></div>`;
   const slider = (id, icon, label, v, lo, hi) => `<div class="li sl">
