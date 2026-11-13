@@ -141,14 +141,14 @@ function figures(s, width, SH) {
   const r = Math.max(2, Math.min(col / 2 - 1.5, 4.2));
   const marksRow = (has, cross) => {
     s.dates.forEach((d, i) => {
-      const x = cx(i), my = y + 14;
+      const x = cx(i), my = y + 21;
       if (has(d, s.days[i])) out += `<circle cx="${x.toFixed(1)}" cy="${my}" r="${r.toFixed(1)}" fill="none" stroke-width="1.2" style="stroke:var(--ink)"/>`;
       else if (cross) {
         const k = r * 0.75;
         out += `<path d="M${(x - k).toFixed(1)},${(my - k).toFixed(1)}L${(x + k).toFixed(1)},${(my + k).toFixed(1)}M${(x + k).toFixed(1)},${(my - k).toFixed(1)}L${(x - k).toFixed(1)},${(my + k).toFixed(1)}" fill="none" stroke-width="1" stroke-linecap="round" style="stroke:var(--faint)"/>`;
       }
     });
-    y += 44;
+    y += 50;
   };
   const meds = itemOn('meds') ? s.meds : [], period = itemOn('period') && s.period.length > 0;
   meds.forEach(([m, count]) => {
@@ -160,8 +160,8 @@ function figures(s, width, SH) {
     marksRow((d, e) => e && e.period, false);
   }
   if (!out) return { chart, sleep, rows: '' };
-  dateLabels(y - 10);
-  return { chart, sleep, rows: take('sum-rows', y - 4) };
+  dateLabels(y - 5);
+  return { chart, sleep, rows: take('sum-rows', y + 1) };
 }
 
 // 요약에 들어갈 줄들: [이름, 내용]. 화면과 복사용 글이 같은 줄을 쓴다.
