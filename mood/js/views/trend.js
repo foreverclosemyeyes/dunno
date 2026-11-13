@@ -26,15 +26,25 @@ export const mean = (list, key) => {
 export const rangeEntries = (r) => Array.from({ length: r.n }, (_, i) => db.entries[addDays(r.start, i)] || null);
 
 // 점들을 부드러운 곡선으로 잇는다
-export function smoothPath(pts, yMin, yMax) {
+// 꼭대기·바닥·평평한 구간에서는 기울기를 0으로 두어서(단조 3차 곡선), 선이 값 밖으로 튀지 않고
+// 바닥에 닿을 때도 뾰족하게 꺾이지 않고 둥글게 내려앉는다.
+export function smoothPath(pts) {
   if (!pts.length) return '';
+  const n = pts.length, slope = [], tan = [];
+  for (let i = 0; i < n - 1; i++) slope.push((pts[i + 1][1] - pts[i][1]) / (pts[i + 1][0] - pts[i][0]));
+  for (let i = 0; i < n; i++) {
+    const a = slope[i - 1], b = slope[i];
+    if (a == null || b == null) tan.push(0);
+    else if (a * b <= 0) tan.push(0);
+    else {
+      const h0 = pts[i][0] - pts[i - 1][0], h1 = pts[i + 1][0] - pts[i][0];
+      tan.push(3 * (h0 + h1) / ((2 * h1 + h0) / a + (h1 + 2 * h0) / b));
+    }
+  }
   let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
-  const clamp = (y) => Math.max(yMin, Math.min(yMax, y));
-  for (let i = 0; i < pts.length - 1; i++) {
-    const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
-    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, clamp(p1[1] + (p2[1] - p0[1]) / 6)];
-    const c2 = [p2[0] - (p3[0] - p1[0]) / 6, clamp(p2[1] - (p3[1] - p1[1]) / 6)];
-    d += `C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  for (let i = 0; i < n - 1; i++) {
+    const p1 = pts[i], p2 = pts[i + 1], h = (p2[0] - p1[0]) / 3;
+    d += `C${(p1[0] + h).toFixed(1)},${(p1[1] + tan[i] * h).toFixed(1)} ${(p2[0] - h).toFixed(1)},${(p2[1] - tan[i + 1] * h).toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
   }
   return d;
 }
@@ -95,7 +105,7 @@ export function viewTrend() {
     let out = `<defs><linearGradient id="g-${key}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${ink}" stop-opacity=".26"/><stop offset="1" stop-color="${ink}" stop-opacity="0"/></linearGradient></defs>`;
     out += grid(ticks, y);
     if (pts.length > 1) {
-      const d = smoothPath(pts, TOP, BOT);
+      const d = smoothPath(pts);
       out += `<path d="${d}L${pts[pts.length - 1][0].toFixed(1)},${BOT}L${pts[0][0].toFixed(1)},${BOT}Z" fill="url(#g-${key})"/>
         <path d="${d}" fill="none" stroke="${ink}" stroke-width="${isWeek ? 2.5 : 2}" stroke-linecap="round" stroke-linejoin="round"/>`;
     }
