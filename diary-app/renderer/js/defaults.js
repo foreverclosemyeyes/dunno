@@ -82,7 +82,6 @@
       cutOn: true, // 하루 시작 컷
       fxOn: true, // 연출 효과
       soft: true, // 화면 전체를 아주 살짝 흐리게
-      noonCut: '13:30', // 점심 뒤에 컷을 한 번 더 보여 줄 시각 (비우면 안 함)
       cutImage: null, // 하루 시작 컷 배경으로 쓸 내 그림 { url, name }
       skin: {}, // 내 스킨 그림 (이 컴퓨터에만 저장): { 'cut-city': url, 'wd-0': url, pointup: url, … }
       dialog: 'angular', // angular = 각진 대화창, flat = 네모 칸

@@ -29,7 +29,6 @@ if (!out) { console.error('쓰는 법: node test/look/snap.js <결과.json>'); p
     let la = D.state.lastAssistant, ch = D.state.chat; window.__allow = false;
     Object.defineProperty(D.state, 'lastAssistant', { get: () => la, set: (v) => { if (window.__allow) la = v; }, configurable: true });
     Object.defineProperty(D.state, 'chat', { get: () => ch, set: (v) => { if (window.__allow) ch = v; }, configurable: true });
-    D.state.theme.layout.noonCut = ''; // 점심 컷이 검사 중에 끼어들지 않게
     window.__set = (k, v) => { window.__allow = true; D.state[k] = v; window.__allow = false; };
     window.__say = (text, mood) => { window.__set('lastAssistant', { text, mood, at: old }); D.renderAll(); D.bubble.update(); };
     D.state.stats = { [D.state.today]: { 지식: 140, 배짱: 30, 손재주: 70, 친절: 5, 매력: 260 } }; D.state.settings.statsStart = '2000-01-01';

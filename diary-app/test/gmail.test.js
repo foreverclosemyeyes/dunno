@@ -12,7 +12,8 @@ assert.ok(r.deny.includes('mcp__claude_ai_Gmail__trash_thread'));
 // 이상한 서버 이름이 들어와도 실행 옵션이 깨지지 않게 기본값으로
 assert.ok(gmail.rules('x --dangerously-skip-permissions').allow[0].startsWith('mcp__claude_ai_Gmail__'));
 const args = gmail.cliArgs();
-assert.deepStrictEqual(args.slice(0, 3), ['--permission-mode', 'dontAsk', '--allowedTools']);
+assert.deepStrictEqual(args.slice(0, 5), ['--tools', 'ToolSearch', 'WaitForMcpServers', '--permission-mode', 'dontAsk']);
+assert.ok(!args.includes(''), '기본 도구를 전부 끄면 커넥터 도구를 못 찾아옴');
 assert.ok(!args.includes('bypassPermissions'));
 // API 키가 잡혀 있으면 커넥터를 못 쓰므로 지워서 넘김
 assert.deepStrictEqual(gmail.childEnv({ ANTHROPIC_API_KEY: 'k', PATH: '/bin' }), { PATH: '/bin' });
@@ -28,7 +29,7 @@ assert.strictEqual(s.ok, true); assert.ok(s.message.includes('주간 회의 안�
 
 // 커넥터가 아예 안 보임
 s = S([init(), res({ result: 'GMAIL_UNAVAILABLE' })]);
-assert.strictEqual(s.ok, false); assert.strictEqual(s.reason, 'missing');
+assert.strictEqual(s.ok, false); assert.strictEqual(s.reason, 'missing'); assert.ok(s.detail.includes('커넥터: 없음'));
 
 // API 키로 로그인돼 있어서 커넥터를 못 불러옴
 s = S([init({ apiKeySource: 'ANTHROPIC_API_KEY' }), res({ result: 'GMAIL_UNAVAILABLE' })]);

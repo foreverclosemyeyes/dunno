@@ -168,22 +168,5 @@
     return play();
   }
 
-  // 점심 뒤(기본 13:30)에 하루 한 번 더: 그 시각이 지난 뒤 창이 보이는 순간 재생
-  function maybeNoon() {
-    const st = D.state; if (!st || !st.theme) return;
-    const L = st.theme.layout; if (L.cutOn === false) return;
-    const m = String(L.noonCut || '').match(/^(\d{1,2}):(\d{2})$/); if (!m) return;
-    const now = new Date(), at = new Date(now); at.setHours(+m[1], +m[2], 0, 0);
-    const today = iso(now);
-    if (now < at || (st.settings || {}).lastNoonCut === today) return;
-    if (now - at > 6 * 3600 * 1000) return; // 한참 지나서 켰으면 건너뜀
-    if (document.visibilityState !== 'visible' || playing) return;
-    st.settings.lastNoonCut = today;
-    window.diary.setSettings({ lastNoonCut: today });
-    play({ force: true });
-  }
-  setInterval(maybeNoon, 20000);
-  document.addEventListener('visibilitychange', () => setTimeout(maybeNoon, 800));
-
-  D.cutscene = { play, maybePlay, maybeNoon };
+  D.cutscene = { play, maybePlay };
 })();

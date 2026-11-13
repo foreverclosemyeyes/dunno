@@ -200,16 +200,18 @@
     gmSw.append(gmCb, h('span'));
     gmRow.append(h('label', 'ctl-label', 'Gmail 사용'), gmSw, h('span'));
     const gmTest = h('div', 'test-result');
+    const gmDetail = h('div', 'test-detail'); // 안 될 때: Claude Code 가 실제로 본 커넥터 목록 (원인 찾기용)
     const gmBtns = h('div', 'row-inline');
     gmBtns.append(
       btn('Gmail 연결 확인', '', async (ev) => {
         ev.target.disabled = true; gmTest.className = 'test-result'; gmTest.textContent = '확인 중… (최근 메일 한 통을 읽어 봐요. 1분쯤 걸릴 수 있어요)';
         const r = await window.diary.checkGmail();
         ev.target.disabled = false; gmTest.textContent = r.message; gmTest.className = 'test-result ' + (r.ok ? 'ok' : 'err');
+        gmDetail.textContent = r.ok ? '' : (r.detail || '');
       }),
       linkBtn('claude.ai 커넥터 설정 ↗', 'https://claude.ai/customize/connectors'),
     );
-    gm.body.append(gmRow, gmBtns, gmTest, note('켜 두면 비서에게 <b>"○○에게 온 메일 찾아 줘"</b>, <b>"답장 초안 써 줘"</b>처럼 말할 수 있어요. 비서는 메일을 <b>읽고 임시보관함에 초안만</b> 넣어요. <b>보내기·지우기는 못 하게 막아 뒀고</b>, 보내는 건 Gmail에서 직접 하세요. claude.ai 에 Gmail 커넥터가 연결돼 있고, 이 맥의 Claude Code가 같은 계정으로 로그인돼 있어야 해요.'));
+    gm.body.append(gmRow, gmBtns, gmTest, gmDetail, note('켜 두면 비서에게 <b>"○○에게 온 메일 찾아 줘"</b>, <b>"답장 초안 써 줘"</b>처럼 말할 수 있어요. 비서는 메일을 <b>읽고 임시보관함에 초안만</b> 넣어요. <b>보내기·지우기는 못 하게 막아 뒀고</b>, 보내는 건 Gmail에서 직접 하세요. claude.ai 에 Gmail 커넥터가 연결돼 있고, 이 맥의 Claude Code가 같은 계정으로 로그인돼 있어야 해요.'));
 
     const up = C.section('업데이트', true);
     const u = state.update || {};
@@ -296,7 +298,6 @@
         C.text(ctx, 'layout.stampText', '다 끝냈을 때 도장 글씨'),
         C.toggle(ctx, 'layout.cutOn', '하루 시작 컷 (날짜 바뀐 뒤 처음 켤 때)'),
         C.toggle(ctx, 'layout.fxOn', '화려한 연출 (등장·넘김·체크 효과)'),
-        C.text(ctx, 'layout.noonCut', '점심 뒤 컷 시각 (예: 13:30, 비우면 안 함)'),
         C.toggle(ctx, 'layout.soft', '화면 전체 아주 살짝 흐리게'),
       );
       // 스킨 그림 묶음: 파일 이름으로 자리를 찾음 (cut-city, cloud-1~3, wd-0~6, pointup, pointup-bg, rankup, rankup-bg, bubble, reply)

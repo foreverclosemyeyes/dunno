@@ -153,8 +153,8 @@ function askViaCli(persona, ctx, history, userText, opts = {}) {
     const cwd = pathx.join(osx.tmpdir(), 'work-diary-assistant');
     try { fsx.mkdirSync(cwd, { recursive: true }); } catch { /* 이미 있음 */ }
     const g = opts.gmail;
-    const args = ['-p', prompt, '--system-prompt', systemPrompt(persona, ctx) + (g ? '\n' + gmail.PROMPT : ''), '--tools', '', '--output-format', 'json',
-      '--model', chatModel(persona).cli, '--no-session-persistence', ...(g ? gmail.cliArgs(g.server) : ['--strict-mcp-config'])];
+    const args = ['-p', prompt, '--system-prompt', systemPrompt(persona, ctx) + (g ? '\n' + gmail.PROMPT : ''), '--output-format', 'json',
+      '--model', chatModel(persona).cli, '--no-session-persistence', ...(g ? gmail.cliArgs(g.server) : ['--tools', '', '--strict-mcp-config'])];
     const env = cliEnv(bin);
     execFile(bin, args, { cwd, timeout: g ? 300_000 : 180_000, maxBuffer: 4 * 1024 * 1024, env: g ? gmail.childEnv(env) : env }, (err, out, errOut) => {
       let j = null;

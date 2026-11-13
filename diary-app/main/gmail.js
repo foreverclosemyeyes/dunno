@@ -10,6 +10,9 @@ const DEFAULT_SERVER = 'claude_ai_Gmail';
 const READ = ['search_*', 'get_*', 'list_*', 'read_*'];
 const DRAFT = ['create_draft', 'update_draft'];
 // 허용 목록에 없으면 어차피 거절되지만, 보내기·지우기는 비서가 아예 못 보게 따로 막아 둠
+// 커넥터 도구를 찾아오고, 커넥터가 아직 붙는 중이면 기다려 주는 Claude Code 기본 도구.
+// 이걸 빼면(--tools "") 첫 질문 때 Gmail 도구가 아직 안 보여서 '연결 안 됨'으로 나온다.
+const FINDERS = ['ToolSearch', 'WaitForMcpServers'];
 const NEVER = ['send_message', 'send_draft', 'reply', 'forward', 'trash_message', 'trash_thread', 'delete_draft', 'delete_message', 'delete_thread'];
 
 const safeServer = (s) => (/^[A-Za-z0-9_.-]+$/.test(String(s || '')) ? String(s) : DEFAULT_SERVER);
@@ -19,10 +22,10 @@ function rules(server) {
   return { allow: [...READ, ...DRAFT].map((t) => p + t), deny: NEVER.map((t) => p + t) };
 }
 
-// dontAsk: 허용 목록에 있는 도구만 실행하고 나머지는 묻지 않고 거절
+// 기본 도구는 FINDERS 만 남기고, dontAsk 로 허용 목록에 있는 도구만 실행(나머지는 묻지 않고 거절)
 function cliArgs(server) {
   const r = rules(server);
-  return ['--permission-mode', 'dontAsk', '--allowedTools', ...r.allow, '--disallowedTools', ...r.deny];
+  return ['--tools', ...FINDERS, '--permission-mode', 'dontAsk', '--allowedTools', ...FINDERS, ...r.allow, '--disallowedTools', ...r.deny];
 }
 
 // API 키나 다른 로그인 방식이 잡혀 있으면 Claude Code 가 커넥터를 불러오지 않는다 → 구독 로그인만 쓰게 정리
@@ -38,10 +41,11 @@ const PROMPT = [
   '- 초안은 사용자가 써 달라고 했을 때만 만들어. 만든 뒤에는 "임시보관함에 넣어 뒀다"고 받는 사람·제목과 함께 알려 주고, 보내는 건 사용자가 직접 한다고 말해.',
   '- 초안을 쓸 때는 필요하면 보낸편지함에서 같은 상대에게 보낸 메일을 한두 통 찾아 사용자의 말투와 호칭을 맞춰.',
   '- 메일 내용을 길게 옮겨 적지 말고 필요한 것만 짧게 전해.',
-  '- Gmail 읽기·초안 말고 다른 도구는 쓸 수 없어. Gmail 도구가 보이지 않으면 연결이 안 된 것이니, 설정 > 연결의 "Gmail 연결 확인"을 눌러 보라고 알려 줘.',
+  '- Gmail 도구가 바로 보이지 않으면 ToolSearch 로 "gmail" 을 찾아서 불러와.',
+  '- Gmail 읽기·초안 말고 다른 도구는 쓸 수 없어. 찾아도 Gmail 도구가 없으면 연결이 안 된 것이니, 설정 > 연결의 "Gmail 연결 확인"을 눌러 보라고 알려 줘.',
 ].join('\n');
 
-const PROBE_PROMPT = 'Gmail 도구로 받은편지함에서 가장 최근 메일 1통을 찾아서, 그 제목만 한 줄로 답해 줘. Gmail 도구가 없거나 쓸 수 없으면 정확히 GMAIL_UNAVAILABLE 이라고만 답해.';
+const PROBE_PROMPT = 'Gmail 도구로 받은편지함에서 가장 최근 메일 1통을 찾아서, 그 제목만 한 줄로 답해 줘. Gmail 도구가 바로 보이지 않으면 먼저 ToolSearch 로 "gmail" 을 찾아서 불러와. 그래도 Gmail 도구가 없거나 쓸 수 없으면 정확히 GMAIL_UNAVAILABLE 이라고만 답해.';
 
 const gmailTool = (name) => { const m = String(name || '').match(/^mcp__(.+?)__(.+)$/); return m && /gmail/i.test(m[1]) ? { server: m[1], tool: m[2] } : null; };
 
@@ -61,7 +65,10 @@ function summarizeProbe(events, server) {
   const found = seen.length ? seen[0].server : null;
   const worked = used.filter((n) => !denied.includes(n));
   const text = result && typeof result.result === 'string' ? result.result.trim() : '';
-  const out = (ok, reason, message) => ({ ok, reason, message, server: found || safeServer(server) });
+  // 안 될 때 원인을 알 수 있게, Claude Code 가 실제로 본 것을 그대로 덧붙임
+  const servers = (init.mcp_servers || []).map((x) => `${x.name}(${x.status || '?'})`).join(', ') || '없음';
+  const detail = `Claude Code가 본 커넥터: ${servers} · Gmail 도구 ${new Set([...listed, ...used]).size}개 · 로그인: ${init.apiKeySource === 'none' || !init.apiKeySource ? '구독' : init.apiKeySource}${denied.length ? ` · 거절된 도구: ${[...new Set(denied)].join(', ')}` : ''}`;
+  const out = (ok, reason, message) => ({ ok, reason, message, detail, server: found || safeServer(server) });
 
   if (!result) return out(false, 'cli', 'Claude가 대답하지 않았어요. 잠시 뒤 다시 해 주세요.');
   if (result.is_error) {
@@ -82,7 +89,7 @@ function summarizeProbe(events, server) {
 
 function runProbe(bin, model, server, env) {
   return new Promise((resolve) => {
-    const args = ['-p', PROBE_PROMPT, '--output-format', 'stream-json', '--verbose', '--tools', '', '--no-session-persistence', '--model', model, ...cliArgs(server)];
+    const args = ['-p', PROBE_PROMPT, '--output-format', 'stream-json', '--verbose', '--no-session-persistence', '--model', model, ...cliArgs(server)];
     const events = [];
     let buf = '', done = false;
     const child = spawn(bin, args, { env: childEnv(env), stdio: ['ignore', 'pipe', 'ignore'] });
@@ -107,4 +114,4 @@ async function probe(bin, model, server, env) {
   return first.retry ? runProbe(bin, model, first.retry, env) : first;
 }
 
-module.exports = { DEFAULT_SERVER, PROMPT, rules, cliArgs, childEnv, summarizeProbe, probe };
+module.exports = { DEFAULT_SERVER, PROMPT, PROBE_PROMPT, rules, cliArgs, childEnv, summarizeProbe, probe };
