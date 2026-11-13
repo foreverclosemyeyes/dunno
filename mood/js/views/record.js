@@ -22,7 +22,7 @@ export function newDraft(date) {
   // 잠든·깬 시각은 가장 최근 기록을 기본값으로 보여 준다 (대부분 비슷하니까 덜 만져도 되게). 수면을 적겠다고 해야 저장된다.
   const last = Object.keys(db.entries).sort().reverse().map((k) => db.entries[k]).find((x) => x.bed && x.wake);
   const blank = {
-    date, mood: null, energy: null, conf: null, appetite: null, dep: null, elev: null, anx: null,
+    date, mood: null, energy: null, conf: null, appetite: null, dep: null, elev: null, anx: null, si: null,
     sleepSet: false, bed: last ? last.bed : '23:30', wake: last ? last.wake : '07:00', tired: false,
     period: false, drinks: {}, meds: (db.taken[date] || []).slice(), note: '', signs: {},
   };
@@ -162,7 +162,7 @@ export function saveEntry() {
   // 수면을 안 적었으면 빈 값. 다만 시각 없이 수면 시간만 있던 예전 기록은 그대로 둔다.
   const keepOldSleep = !d.sleepSet && !!prev && !prev.bed && prev.sleepMin != null;
   db.entries[d.date] = {
-    date: d.date, mood: d.mood, energy: d.energy, conf: d.conf, dep: d.dep, elev: d.elev, anx: d.anx,
+    date: d.date, mood: d.mood, energy: d.energy, conf: d.conf, dep: d.dep, elev: d.elev, anx: d.anx, si: d.si,
     bed: d.sleepSet ? d.bed || null : null, wake: d.sleepSet ? d.wake || null : null,
     sleepMin: d.sleepSet ? sleepMinutes(d.bed, d.wake) : keepOldSleep ? prev.sleepMin : null,
     tired: d.sleepSet && !!d.tired, period: !!d.period, appetite: d.appetite,

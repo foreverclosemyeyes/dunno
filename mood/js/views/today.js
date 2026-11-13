@@ -1,6 +1,6 @@
 // 오늘 화면
 import { signals } from '../analysis.js';
-import { DISCLAIMER, LEVELS, SIGNS, cafMg, drinkText, nameOf } from '../constants.js';
+import { DISCLAIMER, HELPLINE, LEVELS, SIGNS, SI_CARE_FROM, cafMg, drinkText, nameOf } from '../constants.js';
 import { WD, addDays, durText, longDate, parse, today, weekStart } from '../dates.js';
 import { app, esc } from '../dom.js';
 import { F, T } from '../i18n.js';
@@ -36,6 +36,8 @@ export function viewToday() {
       <button class="icon-btn" data-act="settings" aria-label="${T('설정과 백업')}">${IC.sliders}</button>
     </header>
     ${hint}
+    ${sel === t && e && e.si >= SI_CARE_FROM ? `<div class="card signal"><i></i><span>${F('죽고 싶은 생각이 강한 날이에요. 혼자 버티지 않아도 돼요. {0}에 전화하거나 다니는 병원에 연락해 보세요.',
+    `<a href="tel:${HELPLINE}">${T('109 (자살예방상담전화, 24시간)')}</a>`)}</span></div>` : ''}
     ${sel === t ? signals().map((m) => `<div class="card signal"><i></i><span>${m}</span></div>`).join('') : ''}
     <div class="weekbar">
       <button class="nav" data-act="week" data-step="-1" aria-label="${T('이전 주')}">‹</button>
@@ -92,7 +94,7 @@ export function detailHtml(e) {
   const sym = (label, v) => (v ? li(label, `${LEVELS[v]}${bars(v)}`, 'symptoms') : '');
   // 줄을 누르면 그 항목만 고치는 화면이 열린다
   const rows = [
-    sym(T('우울'), e.dep), sym(T('고조'), e.elev), sym(T('불안'), e.anx),
+    sym(T('우울'), e.dep), sym(T('고조'), e.elev), sym(T('불안'), e.anx), sym(T('죽고 싶은 생각'), e.si),
     e.tired ? li(`${IC.moon}${T('일어났을 때')}`, T('피곤'), 'sleep') : '',
     e.period ? li(`${IC.drop}${T('생리')}`, T('생리 중'), 'body') : '',
     e.appetite != null ? li(`${IC.fork}${T('식욕')}`, ten('appetite', e.appetite), 'body') : '',

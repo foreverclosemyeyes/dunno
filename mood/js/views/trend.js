@@ -177,7 +177,7 @@ export function viewTrend() {
     ${isWeek ? '' : calendar()}
     ${scoreCard('mood', IC.face(5), T('기분'))}${scoreCard('energy', IC.battery(6), T('에너지'))}${scoreCard('conf', IC.star, T('자신감'))}
     ${sleepCard()}
-    ${symCard('dep', T('우울'))}${symCard('elev', T('고조'))}${symCard('anx', T('불안'))}
+    ${symCard('dep', T('우울'))}${symCard('elev', T('고조'))}${symCard('anx', T('불안'))}${symCard('si', T('죽고 싶은 생각'))}
     ${marks}
     <p class="foot">${T('그래프나 달력에서 날짜를 누르면 그날 값을 볼 수 있어요.')}<br>${DISCLAIMER}</p>`;
 }

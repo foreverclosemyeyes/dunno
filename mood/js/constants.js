@@ -2,7 +2,11 @@
 import { EN, T } from './i18n.js';
 
 export const LEVELS = [T('없음'), T('약간'), T('보통'), T('높음'), T('매우 높음')];
-export const SYMPTOMS = [['dep', T('우울')], ['elev', T('고조 (들뜸)')], ['anx', T('불안')]];
+// si(죽고 싶은 생각)는 진료 때 꼭 필요한 정보라 다른 증상과 같은 5단계로 적는다. 문구는 담담하게, 판단 없이.
+export const SYMPTOMS = [['dep', T('우울')], ['elev', T('고조 (들뜸)')], ['anx', T('불안')], ['si', T('죽고 싶은 생각')]];
+// 죽고 싶은 생각이 이 단계(높음) 이상이면 오늘 화면에 상담전화를 조용히 보여 준다
+export const SI_CARE_FROM = 3;
+export const HELPLINE = '109';   // 자살예방상담전화 (한국, 24시간)
 export const SIGNS = [
   ['lessSleep', T('적게 자도 안 피곤함')],
   ['talkative', T('말이 많아짐')],

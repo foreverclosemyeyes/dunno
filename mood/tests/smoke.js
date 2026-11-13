@@ -130,6 +130,9 @@ function seed() {
   await page.click('.savebar [data-act=save]');
   e = (await store()).entries[today];
   check('한 항목만 고쳐도 나머지는 그대로', e.anx === 2 && e.elev === 3 && e.mood === 3 && e.energy === 6, JSON.stringify(e));
+  check('죽고 싶은 생각을 안 적었으면 상담전화는 안 보임', (await page.$$('#app a[href="tel:109"]')).length === 0);
+  await page.click('#app button.li[data-focus=symptoms]'); await page.click('[data-field=si] [data-v="3"]'); await page.click('.savebar [data-act=save]');
+  check('죽고 싶은 생각이 높으면 오늘 화면에 상담전화가 보임', (await store()).entries[today].si === 3 && (await page.$$('#app a[href="tel:109"]')).length === 1);
 
   // 4-1-2. 약마다 알람 시각을 정하면 캘린더 알림 파일에 들어간다
   await page.click('[data-act=settings]');
