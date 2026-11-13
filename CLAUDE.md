@@ -11,6 +11,8 @@
 사용자가 "코드 안 꼬이게 전문 개발자처럼 관리하면서 작업"하라고 요청했다 (2026-11-12, 계속 적용).
 
 - 빌드 도구 없음. `mood/` 안의 정적 파일이 그대로 배포된다 (GitHub Pages).
+  주소는 https://foreverclosemyeyes.github.io/tidemark/mood/ (저장소 이름을 dunno에서 tidemark로 바꿨다, 2026-11-13. Cloudflare로 옮기려다 사용자가 GitHub에 남기로 했다).
+  주소가 바뀌면 쓰던 사람의 홈 화면 앱이 안 열리고 기록을 꺼낼 수 없게 되니, 주소를 바꾸는 일은 백업을 먼저 받게 한 뒤에만 한다.
 - 자바스크립트는 `mood/js/`의 ES 모듈. 한 파일은 한 가지 역할만 한다. 기능을 더할 때 기존 파일에 덧붙이기 전에 어느 모듈의 일인지 먼저 정한다.
   - `config` 열쇠 이름 · `i18n` 언어 · `constants` 고정 값 · `store` 저장 · `dates` 날짜 · `theme` 색·글씨 · `icons` · `dom` · `state` 화면 상태
   - `meds` 약 · `analysis` 신호·인사이트·진료용 요약 계산 · `sample` 인사이트 미리 보기용 예시 기록 · `files` 백업·캘린더 파일 · `render` 탭 그리기 · `swipe` 옆으로 밀기 · `lock` 잠금 화면

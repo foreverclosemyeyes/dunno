@@ -5,6 +5,8 @@
 
 아이폰 사파리로 열어 "홈 화면에 추가"해서 씁니다.
 
+주소: https://foreverclosemyeyes.github.io/tidemark/mood/
+
 ## 구조
 
 ```
