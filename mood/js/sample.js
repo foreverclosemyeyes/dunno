@@ -1,0 +1,20 @@
+// 예시 기록: 인사이트를 미리 구경할 때만 쓴다. 저장하지 않고, 내 기록과 섞이지 않는다.
+import { addDays, today } from './dates.js';
+
+// 오늘까지 4주치. 일부러 눈에 보이는 패턴을 넣었다:
+// 가라앉은 3주 뒤에 들뜬 6일, 술 마신 다음 날은 기분이 낮고, 카페인이 많은 날 밤은 덜 자고, 운동한 날 밤은 더 잔다.
+export function sampleEntries() {
+  const t = today(), out = {};
+  for (let i = 27; i >= 0; i--) {
+    const date = addDays(t, -i), high = i < 6;
+    const drankYesterday = (i + 1) % 6 === 0 && i + 1 >= 6, cafYesterday = (i + 1) % 5 === 2, movedYesterday = (i + 1) % 4 === 1;
+    const period = i >= 16 && i <= 20, caf = i % 5 === 2;
+    const sleepMin = high ? 290 : 440 - (cafYesterday ? 70 : 0) + (movedYesterday ? 40 : 0);
+    out[date] = {
+      date, mood: high ? 8 : 5 - (drankYesterday ? 2 : 0) - (period ? 1 : 0), energy: high ? 9 : 4 + (i % 2), conf: high ? 8 : 5,
+      sleepMin, tired: !high && sleepMin < 400, period, caffeine: caf ? 8 : 3, appetite: caf ? 3 : 6,
+      tags: i % 6 === 0 && !high ? { alcohol: true } : i % 4 === 1 ? { exercise: true } : undefined,
+    };
+  }
+  return out;
+}

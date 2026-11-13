@@ -13,7 +13,7 @@
 - 빌드 도구 없음. `mood/` 안의 정적 파일이 그대로 배포된다 (GitHub Pages).
 - 자바스크립트는 `mood/js/`의 ES 모듈. 한 파일은 한 가지 역할만 한다. 기능을 더할 때 기존 파일에 덧붙이기 전에 어느 모듈의 일인지 먼저 정한다.
   - `config` 열쇠 이름 · `i18n` 언어 · `constants` 고정 값 · `store` 저장 · `dates` 날짜 · `theme` 색·글씨 · `icons` · `dom` · `state` 화면 상태
-  - `meds` 약 · `analysis` 신호·인사이트·진료용 요약 계산 · `files` 백업·캘린더 파일 · `render` 탭 그리기 · `swipe` 옆으로 밀기 · `lock` 잠금 화면
+  - `meds` 약 · `analysis` 신호·인사이트·진료용 요약 계산 · `sample` 인사이트 미리 보기용 예시 기록 · `files` 백업·캘린더 파일 · `render` 탭 그리기 · `swipe` 옆으로 밀기 · `lock` 잠금 화면
   - `views/` 화면별 HTML (today, trend, insight, clinic, record, settings, notes) · `main` 누르기·입력 처리와 시작
 - 모듈 맨 위(최상위)에서는 다른 모듈의 값을 "계산"에 쓰지 않는다 (서로 import하는 모듈이 있어 순서 문제가 난다). 함수 안에서 쓴다. 예외는 `i18n`, `config`, `constants`, `dates`처럼 아래층 모듈.
 - 화면 글자는 한국어 문장을 그대로 `T('…')` / `F('… {0}', 값)`으로 감싼다. 새 문장을 넣으면 `i18n.js`의 표에 영어를 같이 넣고, 안 쓰게 된 문장은 표에서 지운다.

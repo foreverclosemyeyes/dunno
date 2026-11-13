@@ -46,6 +46,7 @@ const actions = {
     if (!hasAlarms()) { toast(T('알림 시간을 먼저 정해 주세요')); return; }
     await giveFile('tide-reminders.ics', makeIcs(), 'text/calendar');
   },
+  insightDemo: () => { ui.insightDemo = !ui.insightDemo; render(); },
   // 설정: 기록 항목 켜고 끄기 (꺼진 항목의 열쇠를 settings.off에 모아 둔다)
   item: (el) => {
     const k = el.dataset.k, off = db.settings.off || [];

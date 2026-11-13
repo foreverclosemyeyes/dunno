@@ -169,6 +169,13 @@ function seed() {
   check('또 누르면 시각이 다시 들어감', /^\d\d:\d\d$/.test((await store()).taken[today][0].at));
 
   // 5. 쌓인 기록: 신호 · 인사이트 · 흐름
+  await page.click('[data-tab=insight]');
+  const mineBefore = JSON.stringify((await store()).entries);
+  await page.click('[data-act=insightDemo]');
+  check('기록이 적을 때 예시로 인사이트를 미리 봄 (내 기록은 그대로)', (await page.$$('.li.cmp')).length >= 3 && (await text('#app')).includes('예시 기록') && JSON.stringify((await store()).entries) === mineBefore);
+  await page.click('[data-act=insightDemo]');
+  check('예시를 닫으면 원래 안내로 돌아옴', (await page.$$('.li.cmp')).length === 0);
+  await page.click('[data-tab=today]');
   await put(seed());
   check('오늘 화면에 초기 신호 배너', (await page.$$('.signal')).length >= 1);
   await page.click('[data-tab=insight]');

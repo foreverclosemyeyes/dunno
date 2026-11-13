@@ -2,7 +2,8 @@
 import { today } from './dates.js';
 
 // ---------- 화면 상태 ----------
-export const ui = { tab: 'today', selected: today(), draft: null, addingMed: false };
+// insightDemo: 인사이트 화면에서 예시 기록을 보고 있는지
+export const ui = { tab: 'today', selected: today(), draft: null, addingMed: false, insightDemo: false };
 export const standalone = () => window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
 
 // ---------- 흐름 화면 (주 / 월) ----------
