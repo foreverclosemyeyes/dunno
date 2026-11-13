@@ -13,7 +13,7 @@ import { db, save } from './store.js';
 import { applyFont, applyTheme, themeQuery } from './theme.js';
 import { clinicData, clinicWeeks, openLog, summaryText } from './views/clinic.js';
 import { notesListHtml, openNotes } from './views/notes.js';
-import { SLIDERS, cafHead, medsHtml, openRecord, saveEntry, sleepHtml, syncForm } from './views/record.js';
+import { SLIDERS, cafHead, fxHtml, medsHtml, openRecord, saveEntry, sleepHtml, syncForm } from './views/record.js';
 import { openSettings } from './views/settings.js';
 import { shiftAnchor, shiftTrend, trendRange } from './views/trend.js';
 
@@ -45,6 +45,21 @@ const actions = {
   ics: async () => {
     if (!hasAlarms()) { toast(T('알림 시간을 먼저 정해 주세요')); return; }
     await giveFile('tide-reminders.ics', makeIcs(), 'text/calendar');
+  },
+  // 기록 화면의 부작용 칸: 스위치로 펼치고 접기(접으면 고른 것도 비운다), 목록에 없는 것 직접 더하기
+  fxToggle: () => {
+    const d = ui.draft;
+    d.fxOpen = !d.fxOpen;
+    if (!d.fxOpen) d.fx = {};
+    $('#fx').innerHTML = fxHtml();
+  },
+  fxAdd: () => {
+    const name = $('#fx-new').value.trim();
+    if (!name) return;
+    const mine = db.settings.fxCustom || (db.settings.fxCustom = []);
+    if (!mine.includes(name)) { mine.push(name); save(); }
+    ui.draft.fx[`c:${name}`] = true;
+    $('#fx').innerHTML = fxHtml();
   },
   insightDemo: () => { ui.insightDemo = !ui.insightDemo; render(); },
   // 설정: 기록 항목 켜고 끄기 (꺼진 항목의 열쇠를 settings.off에 모아 둔다)
@@ -279,3 +294,8 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     document.addEventListener('visibilitychange', () => { if (!document.hidden) reg.update().catch(() => {}); });
   }).catch(() => {});
 }
+
+// 부작용을 직접 적는 칸에서 엔터를 누르면 바로 더한다
+sheet.addEventListener('keydown', (ev) => {
+  if (ev.target.id === 'fx-new' && ev.key === 'Enter' && !ev.isComposing) { ev.preventDefault(); actions.fxAdd(); }
+});

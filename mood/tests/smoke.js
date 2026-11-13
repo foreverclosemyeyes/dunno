@@ -244,10 +244,12 @@ function seed() {
   await page.click('[data-act=clinicWeeks][data-w=since]');
   check('"진료 후"는 지난 진료일이 들어가는 주 단위 (9일 전 → 2주)', (await text('#summary')).includes('/ 14일') && (await store()).clinic.log[0].kind === 'visit');
   await page.click('[data-tab=today]'); await page.click('.btn[data-act=record]');
-  await page.click('[data-fx=sleepy]'); await page.click('[data-tag=alcohol]');
+  await page.click('[data-act=fxToggle]'); await page.click('[data-fx=sleepy]');
+  await page.fill('#fx-new', '발진'); await page.press('#fx-new', 'Enter');
+  await page.click('[data-tag=alcohol]');
   await page.click('.savebar [data-act=save]');
   e = (await store()).entries[today];
-  check('부작용과 술·운동이 저장되고 오늘 화면에 보임', e.fx.sleepy === true && e.tags.alcohol === true && !e.tags.exercise && (await text('#app')).includes('졸림'));
+  check('부작용과 술·운동이 저장되고 오늘 화면에 보임', e.fx.sleepy === true && e.fx['c:발진'] === true && (await store()).settings.fxCustom[0] === '발진' && e.tags.alcohol === true && !e.tags.exercise && (await text('#app')).includes('졸림 · 발진'));
   await page.click('[data-tab=clinic]');
   check('진료 화면에 부작용과 술이 네모 줄로 나옴', (await text('#summary')).includes('부작용') && (await page.$$eval('.sum-rows', (x) => x.map((el) => el.textContent).join(' '))).includes('술'));
 
@@ -284,7 +286,7 @@ function seed() {
   await page.click('[data-tab=today]');
   await page.click('[data-act=settings]'); await page.click('[data-lang=en]'); await page.waitForLoadState('load'); await page.waitForSelector('h1');
   check('영어로 전환', (await text('h1')) === 'Today');
-  const left = (await page.evaluate(() => document.querySelector('#app').innerText)).split('\n').filter((s) => HANGUL.test(s) &&!s.includes('브린텔릭스'));
+  const left = (await page.evaluate(() => document.querySelector('#app').innerText)).split('\n').filter((s) => HANGUL.test(s) && !s.includes('브린텔릭스') && !s.includes('발진'));   // 사용자가 적은 약 이름·부작용은 한글 그대로
   check('영어 화면에 한글이 남지 않음', left.length === 0, left.join(' | '));
   await page.click('[data-act=settings]'); await page.click('[data-lang=ko]'); await page.waitForLoadState('load'); await page.waitForSelector('h1');
   await page.click('[data-act=settings]'); await page.click('[data-theme-pick=light]');

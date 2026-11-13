@@ -1,6 +1,6 @@
 // 오늘 화면
 import { signals } from '../analysis.js';
-import { DISCLAIMER, HELPLINE, LEVELS, SIDE_EFFECTS, SIGNS, SI_CARE_FROM, SYMPTOMS, TAGS, cafMg, drinkText, nameOf } from '../constants.js';
+import { DISCLAIMER, HELPLINE, LEVELS, SIGNS, SI_CARE_FROM, SYMPTOMS, TAGS, cafMg, drinkText, fxNames, nameOf } from '../constants.js';
 import { WD, addDays, durText, longDate, parse, today, weekStart } from '../dates.js';
 import { app, esc } from '../dom.js';
 import { backupDue, daysSinceBackup } from '../files.js';
@@ -73,7 +73,11 @@ export const bars = (v) => `<span class="bars">${[1, 2, 3, 4].map((i) => `<i cla
 
 export function medCard(date) {
   if (!db.meds.length) return `<section class="card list"><button class="li add" data-act="medSetup">${IC.pill}&nbsp; ${T('먹는 약 등록하기')}</button></section>`;
-  return `<section class="card list">${doseRowsHtml(medsFor(date))}</section>`;
+  // 부작용은 약에 딸린 줄: 적은 것이 있으면 이름이 보이고, 없으면 흐린 "부작용 적기" 한 줄만 있다
+  const fx = fxNames((db.entries[date] || {}).fx);
+  const fxRow = !itemOn('fx') ? '' : fx.length ? li(T('부작용'), esc(fx.join(' · ')), 'fx')
+    : `<button class="li add dim" data-act="record" data-focus="fx">${T('+ 부작용 적기')}</button>`;
+  return `<section class="card list">${doseRowsHtml(medsFor(date))}${fxRow}</section>`;
 }
 
 export function tilesHtml(e) {
@@ -114,7 +118,6 @@ export function detailHtml(e) {
     row('appetite', `${IC.fork}${T('식욕')}`, e.appetite == null ? none : ten('appetite', e.appetite)),
     row('caffeine', `${IC.coffee}${T('카페인')}`, caffeine),
     extra && itemOn('meds') ? li(`${IC.pill}${T('약')}`, extra) : '',
-    row('fx', T('부작용'), named(SIDE_EFFECTS, e.fx) || none),
     row('tags', T('오늘 한 것'), named(TAGS, e.tags) || none),
     signs.length ? li(T('체크'), signs.map(esc).join('<br>')) : '',
     !itemOn('note') ? '' : e.note ? `<button class="li say note" data-act="record" data-focus="note">${esc(e.note)}</button>` : li(T('메모'), none, 'note'),

@@ -15,9 +15,15 @@ export const ITEMS = [
   ['fx', T('부작용')], ['tags', T('술 · 운동')], ['note', T('메모')],
 ];
 // 부작용: 그날 겪은 것을 눌러서 적는다 (entry.fx = { 열쇠: true })
+// 목록에 없는 것은 직접 적어 넣을 수 있다: 열쇠가 'c:이름'이고, 적어 넣은 이름들은 settings.fxCustom에 남아 다음에도 딱지로 뜬다.
 export const SIDE_EFFECTS = [
   ['sleepy', T('졸림')], ['nausea', T('메스꺼움')], ['dizzy', T('어지러움')], ['tremor', T('손 떨림')], ['drymouth', T('입 마름')], ['headache', T('두통')],
+  ['rash', T('발진')], ['insomnia', T('잠이 안 옴')], ['restless', T('안절부절')], ['palpitation', T('두근거림')], ['constipation', T('변비')],
+  ['appetiteUp', T('식욕 늘어남')], ['appetiteDown', T('식욕 줄어듦')],
 ];
+// 부작용 열쇠의 이름, 그리고 그날 적은 부작용 이름들
+export const fxName = (key) => (key.startsWith('c:') ? key.slice(2) : (SIDE_EFFECTS.find(([k]) => k === key) || [key, key])[1]);
+export const fxNames = (fx) => Object.keys(fx || {}).filter((k) => fx[k]).map(fxName);
 // 생활: 그날 있었던 것 (entry.tags = { 열쇠: true }). 인사이트에서 그런 날과 다른 날을 견준다.
 export const TAGS = [['alcohol', T('술')], ['exercise', T('운동')]];
 // 켜진 열쇠만 남긴다. 하나도 없으면 undefined (저장할 때 빈 칸을 남기지 않으려고)

@@ -33,6 +33,7 @@ export function newDraft(date) {
   d.drinks = d.drinks || {};
   d.signs = d.signs || {};
   d.fx = d.fx || {};
+  d.fxOpen = !!onlyOn(d.fx);
   d.tags = d.tags || {};
   d.meds = d.meds || [];
   return d;
@@ -55,7 +56,17 @@ export const slider = (id, icon, label, v, lo, hi) => `<div class="li sl" id="ro
 export const sw = (attr, on, label, icon) => `<button type="button" class="li sw" ${attr} aria-pressed="${!!on}"><span class="lk">${icon || ''}${label}</span><i></i></button>`;
 
 // 여러 개를 누를 수 있는 딱지들 (부작용, 술·운동). attr는 data-fx / data-tag
-const chips = (attr, list, on) => `<div class="li chips">${list.map(([k, label]) => `<button type="button" class="chip" data-${attr}="${k}" aria-pressed="${!!on[k]}">${label}</button>`).join('')}</div>`;
+const chips = (attr, list, on) => `<div class="li chips">${list.map(([k, label]) => `<button type="button" class="chip" data-${attr}="${esc(k)}" aria-pressed="${!!on[k]}">${esc(label)}</button>`).join('')}</div>`;
+
+// 부작용: 약 기록에 딸린 칸. 평소에는 "부작용이 있었어요" 스위치 한 줄만 있고, 켜면 딱지들과 직접 적는 칸이 펼쳐진다.
+// (오늘 화면에서 부작용 줄을 눌러 들어온 경우에는 처음부터 펼쳐져 있다: draft.fxAlways)
+export function fxHtml() {
+  const d = ui.draft, open = d.fxAlways || d.fxOpen;
+  const custom = [...new Set([...(db.settings.fxCustom || []), ...Object.keys(d.fx).filter((k) => k.startsWith('c:')).map((k) => k.slice(2))])];
+  return `${d.fxAlways ? '' : sw('data-act="fxToggle"', open, T('부작용이 있었어요'))}${open ? `${chips('fx', [...SIDE_EFFECTS, ...custom.map((name) => [`c:${name}`, name])], d.fx)}
+    <div class="li"><input type="text" id="fx-new" maxlength="20" placeholder="${T('목록에 없으면 직접 적기 (예: 발진)')}" autocomplete="off">
+      <button type="button" class="mini" data-act="fxAdd">${T('추가')}</button></div>` : ''}`;
+}
 
 export const medsHtml =() => doseRowsHtml(ui.draft.meds) + medAddHtml();
 export const signsHtml = () => SIGNS.map(([k, label]) => sw(`data-sign="${k}"`, ui.draft.signs[k], label)).join('');
@@ -98,6 +109,7 @@ export function openRecord(date, focus) {
   const d = ui.draft, isEdit = !!db.entries[date];
   const [title, show] = FOCUS[focus] ? FOCUS[focus]() : [isEdit ? T('기록 수정') : T('기록하기'), ALL];
   const only = !!FOCUS[focus];
+  d.fxAlways = focus === 'fx';
   if (focus === 'sleep') d.sleepSet = true;
 
   const sliders = {
@@ -125,7 +137,7 @@ export function openRecord(date, focus) {
     ...Object.fromEntries(SYMPTOMS.map((s) => [s[0], one(symRow(s))])),
     ...Object.fromEntries(Object.keys(bodyRow).map((k) => [k, one(bodyRow[k]())])),
     meds: group(T('오늘 먹은 약'), itemOn('meds') ? medsHtml() : '', 'meds'),
-    fx: group(T('부작용'), itemOn('fx') ? chips('fx', SIDE_EFFECTS, d.fx) : ''),
+    fx: itemOn('fx') ? `<section class="card list" id="fx">${fxHtml()}</section>` : '',
     tags: group(T('오늘 한 것'), itemOn('tags') ? chips('tag', TAGS, d.tags) : ''),
     note: group(T('메모'), itemOn('note') ? `<div class="li"><textarea id="f-note" rows="4" maxlength="1000" placeholder="${T('오늘 있었던 일이나 느낀 점')}">${esc(d.note || '')}</textarea></div>` : ''),
   };
