@@ -151,30 +151,29 @@ export function viewTrend() {
       <div class="mnote calkey"><span>${T('가라앉음')} ${scale} ${T('들뜸')}</span><span><i class="pdot"></i> ${T('생리')}</span></div></section>`;
   };
 
-  // 증상(우울·불안·죽고 싶은 생각)은 기분과 같은 선 그래프로, 0(없음)~4(매우 높음)
+  // 증상(우울·불안)은 기분과 같은 선 그래프로, 0(없음)~4(매우 높음)
   // 평소에는 이름만 보이고, 날짜를 누르면 그날 단계가 나온다
   const symCard = (key, name) => lineCard(key, name, 4, [[0, ''], [2, ''], [4, '']],
     `<div class="mt">${name}</div>${pickDate ? `<div class="mv"><b>${pickE && pickE[key] != null ? LEVELS[pickE[key]] : '–'}</b><span>${pickLabel}</span></div>` : '<div class="mv"></div>'}`);
 
-  // 생리: 이어진 날들을 하나의 띠로
+  // 죽고 싶은 생각 · 정신병적 증상 · 생리: 선 그래프나 띠 대신 날마다 네모 한 칸. 있던 날만 칠하고, 단계가 높을수록 진하다.
+  // 주 보기에서는 네모 안에 요일(영어 한 글자)을 적고, 월 보기에서는 칸이 좁아서 글자를 뺀다. 위 그래프와 날짜 자리가 같다.
   const guide = (h) => (pick == null ? '' : `<line x1="${cx(pick).toFixed(1)}" x2="${cx(pick).toFixed(1)}" y1="0" y2="${h}" stroke="${C.muted}"/>`);
-  const srow = (name, right, h, inner) => `<div class="srow"><div class="sh"><span>${name}</span><span>${right}</span></div><svg width="${W}" height="${h}">${inner}${guide(h)}</svg></div>`;
-  const periodRow = () => {
-    let out = '', n = 0;
-    for (let i = 0; i < r.n; i++) {
-      if (!(days[i] && days[i].period)) continue;
-      let j = i;
-      while (j + 1 < r.n && days[j + 1] && days[j + 1].period) j++;
-      out += `<rect x="${(col * i + 2).toFixed(1)}" y="4" width="${(col * (j - i + 1) - 4).toFixed(1)}" height="8" rx="4" fill="${C.ink}"/>`;
-      n += j - i + 1;
-      i = j;
-    }
-    return srow(T('생리'), pickDate ? (pickE && pickE.period ? T('생리 중') : '–') : n ? F('{0}일', n) : T('없음'), 16, out);
+  const sq = Math.max(4, Math.min(col - 3, 30));
+  const squaresRow = (name, levelOf, textOf) => {
+    const vals = days.map((e) => (e ? levelOf(e) : 0)), count = vals.filter(Boolean).length;
+    const cells = vals.map((v, i) => `<rect x="${(cx(i) - sq / 2).toFixed(1)}" y="2" width="${sq.toFixed(1)}" height="${sq.toFixed(1)}" rx="${(sq * 0.28).toFixed(1)}" ${v ? `style="fill:var(--ink)" fill-opacity="${[0, 0.3, 0.5, 0.75, 1][v]}"` : 'class="c0"'}/>${
+      sq >= 14 ? `<text x="${cx(i).toFixed(1)}" y="${(sq / 2 + 6.6).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="600" style="fill:${v >= 3 ? 'var(--ink-inv)' : v ? 'var(--text)' : 'var(--faint)'}">${'SMTWTFS'[parse(addDays(r.start, i)).getDay()]}</text>` : ''}`).join('');
+    return `<div class="srow"><div class="sh"><span>${name}</span><span>${pickDate ? (pickE ? textOf(pickE) : '–') : count ? F('{0}일', count) : T('없음')}</span></div><svg width="${W}" height="${(sq + 4).toFixed(1)}">${cells}${guide(sq + 4)}</svg></div>`;
   };
-  const marks = () => `<section class="card mcard"><div class="plot strips" data-n="${r.n}" data-w="${W}">
-      ${periodRow()}
-      <svg width="${W}" height="18">${xLabelsAt(13)}</svg>
-    </div></section>`;
+  const marks = () => {
+    const rows = [
+      itemOn('si') ? squaresRow(T('죽고 싶은 생각'), (e) => e.si || 0, (e) => (e.si != null ? LEVELS[e.si] : '–')) : '',
+      itemOn('psy') ? squaresRow(T('정신병적 증상'), (e) => e.psy || 0, (e) => (e.psy ? F('{0}가지', e.psy) : '–')) : '',
+      itemOn('period') ? squaresRow(T('생리'), (e) => (e.period ? 3 : 0), (e) => (e.period ? T('생리 중') : '–')) : '',
+    ].join('');
+    return rows ? `<section class="card mcard"><div class="plot strips" data-n="${r.n}" data-w="${W}">${rows}${sq >= 14 ? '' : `<svg width="${W}" height="18">${xLabelsAt(13)}</svg>`}</div></section>` : '';
+  };
 
   app.innerHTML = `
     <header class="top"><div><div class="over">${F('기록 {0}일 / {1}일', got.length, r.n)}</div><h1>${T('흐름')}</h1></div>
@@ -187,7 +186,7 @@ export function viewTrend() {
     ${isWeek ? '' : calendar()}
     ${[['mood', IC.face(5), T('기분')], ['energy', IC.battery(6), T('에너지')], ['conf', IC.star, T('자신감')]].filter(([k]) => itemOn(k)).map(([k, icon, name]) => scoreCard(k, icon, name)).join('')}
     ${itemOn('sleep') ? sleepCard() : ''}
-    ${SYMPTOMS.filter(([k]) => itemOn(k)).map(([k, name]) => symCard(k, name)).join('')}
-    ${itemOn('period') ? marks() : ''}
+    ${SYMPTOMS.filter(([k]) => k !== 'si' && itemOn(k)).map(([k, name]) => symCard(k, name)).join('')}
+    ${marks()}
     <p class="foot">${T('그래프나 달력에서 날짜를 누르면 그날 값을 볼 수 있어요.')}<br>${DISCLAIMER}</p>`;
 }

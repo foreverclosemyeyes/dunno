@@ -399,9 +399,7 @@ input[type=date] { border: 0; outline: none; background: var(--card2); color: va
 .state .flow { margin-top: 8px; color: var(--muted); font-size: calc(14px * var(--fs, 1.12)); line-height: 1.45; }
 .state .beyond + .beyond { margin-top: 8px; }
 .state .beyond { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: var(--card2); font-size: calc(13.5px * var(--fs, 1.12)); line-height: 1.45; }
-.state h3 { margin: 14px 0 0; color: var(--muted); font-size: calc(12px * var(--fs, 1.12)); font-weight: 600; }
-.state h3 + ul { margin-top: 4px; }
-.state ul:first-child { margin-top: 0; }
+.state ul + .flow { margin-top: 10px; }
 .state ul { margin: 10px 0 0; padding-left: 18px; color: var(--text); font-size: calc(14px * var(--fs, 1.12)); line-height: 1.6; }
 .state p { margin: 10px 0 0; color: var(--faint); font-size: calc(11.5px * var(--fs, 1.12)); line-height: 1.45; }
 
@@ -416,8 +414,6 @@ input[type=date] { border: 0; outline: none; background: var(--card2); color: va
 .tr small { display: block; color: var(--faint); font-weight: 400; }
 
 /* 인사이트: 결론 한 줄과 그 근거인 두 평균 */
-.li.cmp { display: block; padding: 13px 16px 14px; }
+.li.cmp { display: block; padding: 12px 16px; }
 .cmp-t { font-size: calc(15px * var(--fs, 1.12)); font-weight: 500; line-height: 1.4; }
-.cmp-v { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 9px; }
-.cmp-v b { display: block; font-family: var(--round); font-size: calc(14.5px * var(--fs, 1.12)); font-weight: 600; color: var(--muted); }
-.cmp-v span { display: block; color: var(--faint); font-size: calc(11.5px * var(--fs, 1.12)); margin-top: 1px; }
+.cmp-s { color: var(--muted); font-size: calc(12px * var(--fs, 1.12)); margin-top: 4px; }
