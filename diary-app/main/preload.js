@@ -24,6 +24,8 @@ contextBridge.exposeInMainWorld('diary', {
   clearChat: () => ipcRenderer.invoke('chat:clear'),
   checkGmail: () => ipcRenderer.invoke('gmail:check'),
   copyText: (text) => ipcRenderer.invoke('clipboard:write', text),
+  pickDocs: () => ipcRenderer.invoke('docs:pick'),
+  removeDoc: (id) => ipcRenderer.invoke('docs:remove', id),
   toggleTodo: (id, checked) => ipcRenderer.invoke('todo:toggle', id, checked),
   addTodo: (date, text) => ipcRenderer.invoke('todo:add', date, text),
   deleteTodo: (id) => ipcRenderer.invoke('todo:delete', id),

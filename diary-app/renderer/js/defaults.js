@@ -213,9 +213,10 @@
 - 해당 내용이 없는 항목은 소제목째 빼.
 
 마지막에 지침과 따로, 네가 쓰면서 확신이 없었던 부분을 3개 이내로 알려 줘.`;
-  // 비서마다 따로 저장하는 값. instructions·claudeUrl·model 은 비서별 '업무 지침 · 연결된 Claude 채팅 · 쓰는 모델'
-  const CAST_KEYS = ['name', 'tone', 'image', 'faces', 'size', 'x', 'y', 'flip', 'looks', 'look', 'instructions', 'claudeUrl', 'model'];
+  // 비서마다 따로 저장하는 값. instructions·claudeUrl·model·docs 는 비서별 '업무 지침 · 연결된 Claude 채팅 · 쓰는 모델 · 참고 문서'
+  const CAST_KEYS = ['name', 'tone', 'image', 'faces', 'size', 'x', 'y', 'flip', 'looks', 'look', 'instructions', 'claudeUrl', 'model', 'docs'];
   // 지금 비서의 지침·채팅 주소·모델. 그 비서에 따로 정한 게 없으면 예전에 한 번 정해 둔 공통 값을 씀
+  D.DOCS_MAX = 50000; // 한 비서가 한 번에 읽는 참고 문서 글자 수 (main/docs.js 의 MAX_TOTAL 과 같게)
   D.asstWork = (t, settings = {}) => {
     const a = (t && t.assistant) || {};
     return {

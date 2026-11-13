@@ -83,6 +83,7 @@ function systemPrompt(persona, ctx) {
     `당신은 사용자의 업무 비서 "${persona.name || '업무비서'}"입니다.`,
     `말투: ${persona.tone || '차분하고 간결한 존댓말'}. 과장된 칭찬, 감탄사, 이모지, 억지 응원은 쓰지 않는다. 사람 비서처럼 자연스럽게.`,
     persona.instructions ? `\n[사용자가 정해 둔 업무비서 지침]\n${persona.instructions}\n` : '',
+    persona.docs ? `\n[참고 문서] 사용자가 너에게 맡긴 인수인계·업무 자료야. 업무 질문에는 이 내용을 근거로 답하고, 문서에 없는 내용은 지어내지 말고 문서에 없다고 말해.\n${persona.docs}\n` : '',
     '사용자는 데스크탑 업무 다이어리 앱 안에서 너와 이야기해. 아래는 노션에서 방금 읽어 온 오늘 업무 상황이야. 업무 질문에는 이걸 근거로 답해.',
     `[오늘 업무 상황]\n${contextText(ctx)}`,
     '대화할 때는 짧고 자연스럽게, 보통 2~5문장으로 답해. 표나 긴 목록은 꼭 필요할 때만.',
@@ -142,6 +143,11 @@ function findClaudeCli() {
   });
 }
 function resetCli() { cliPath = undefined; }
+function writeSystemFile(dir, text) {
+  const file = pathx.join(dir, 'system-prompt.txt');
+  fsx.writeFileSync(file, text);
+  return file;
+}
 const cliEnv = (bin) => ({ ...process.env, PATH: `${pathx.dirname(bin)}:${process.env.PATH || ''}` });
 
 // opts.gmail = { server } 이면 Gmail 커넥터의 읽기·초안 도구만 허용해서 부름 (그 외에는 도구 없이)
@@ -153,7 +159,10 @@ function askViaCli(persona, ctx, history, userText, opts = {}) {
     const cwd = pathx.join(osx.tmpdir(), 'work-diary-assistant');
     try { fsx.mkdirSync(cwd, { recursive: true }); } catch { /* 이미 있음 */ }
     const g = opts.gmail;
-    const args = ['-p', prompt, '--system-prompt', systemPrompt(persona, ctx) + (g ? '\n' + gmail.PROMPT : ''), '--output-format', 'json',
+    const sys = systemPrompt(persona, ctx) + (g ? '\n' + gmail.PROMPT : '');
+    // 참고 문서가 붙어 길어지면 명령줄 길이 제한에 걸릴 수 있어서 파일로 넘김
+    const sysArgs = sys.length > 20_000 ? ['--system-prompt-file', writeSystemFile(cwd, sys)] : ['--system-prompt', sys];
+    const args = ['-p', prompt, ...sysArgs, '--output-format', 'json',
       '--model', chatModel(persona).cli, '--no-session-persistence', ...(g ? gmail.cliArgs(g.server) : ['--tools', '', '--strict-mcp-config'])];
     const env = cliEnv(bin);
     execFile(bin, args, { cwd, timeout: g ? 300_000 : 180_000, maxBuffer: 4 * 1024 * 1024, env: g ? gmail.childEnv(env) : env }, (err, out, errOut) => {
@@ -220,4 +229,4 @@ async function checkGmail(persona, server) {
   return gmail.probe(bin, chatModel(persona).cli, server, cliEnv(bin));
 }
 
-module.exports = { checkGmail, findClaudeCli, resetCli, splitMood, generate, chat, buildContext, fallbackMessage, friendlyError, toMessages, CHECK_PROMPT, MODEL };
+module.exports = { systemPrompt, checkGmail, findClaudeCli, resetCli, splitMood, generate, chat, buildContext, fallbackMessage, friendlyError, toMessages, CHECK_PROMPT, MODEL };

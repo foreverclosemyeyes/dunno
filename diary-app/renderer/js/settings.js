@@ -476,7 +476,30 @@
     const how = h('div', 'row-inline');
     how.append(btn('지침 뽑는 프롬프트 복사', '', async () => { await window.diary.copyText(D.INSTRUCTION_PROMPT); D.toast('복사했어요. 그 채팅방에 붙여 넣고, 나온 답을 아래 칸에 넣으세요.', 5000); }));
     cl.body.append(note('<b>쓰던 Claude 채팅에서 지침 뽑아 오기</b>: 아래 버튼으로 프롬프트를 복사해서 그 채팅방(GMEP, 유연근무 등)에 붙여 넣으면, 그 채팅 내용으로 지침을 정리해 줘요. 나온 답을 <b>업무비서 지침</b> 칸에 붙여 넣고 저장하세요. 맨 끝의 "확신 없었던 부분"은 읽어 보고 틀린 데만 고치고, 칸에는 넣지 마세요.'), how);
-    cl.body.append(r1, r2, h('div', 'row-inline'));
+    // 참고 문서: 분량이 큰 인수인계 파일은 지침 칸 대신 파일로 넣음
+    const docs = state.theme.assistant.docs || [];
+    const total = docs.reduce((n, d) => n + (d.chars || 0), 0);
+    const dl = h('div', 'doc-list');
+    for (const d of docs) {
+      const row = h('div', 'row-inline');
+      row.append(h('span', 'file-name', `${d.name} · ${(d.chars || 0).toLocaleString()}자`), btn('빼기', 'sm', async () => {
+        await window.diary.removeDoc(d.id);
+        setWork({ docs: docs.filter((x) => x.id !== d.id) }); render();
+      }));
+      dl.append(row);
+    }
+    const addDoc = btn('참고 문서 넣기 (.md / .txt)', '', async () => {
+      const picked = await window.diary.pickDocs();
+      const bad = picked.filter((x) => x.error), ok = picked.filter((x) => !x.error);
+      if (ok.length) setWork({ docs: [...docs, ...ok] });
+      if (bad.length) D.toast(bad[0].error, 7000); else if (ok.length) D.toast(`${asstName}에게 문서 ${ok.length}개를 맡겼어요.`);
+      render();
+    });
+    const r3 = h('div', 'ctl'); r3.append(h('label', 'ctl-label', '참고 문서'), dl, h('span'));
+    const docNote = note(`<b>인수인계 파일처럼 분량이 큰 자료</b>는 여기에 파일로 넣으세요. ${asstName}가 답할 때마다 이 문서를 같이 읽어요. 글만 있는 파일(<b>.md, .txt</b>)이 돼요. 노션 페이지는 "내보내기 → Markdown"으로 받으면 되고, PDF·워드·한글 파일은 내용을 복사해 .txt 로 저장해 넣으세요.${total > D.DOCS_MAX ? `<br><b style="color:#ff6b57">지금 ${total.toLocaleString()}자예요. 앞에서부터 ${D.DOCS_MAX.toLocaleString()}자까지만 읽어요.</b>` : docs.length ? `<br>지금 ${total.toLocaleString()}자 / 한 번에 ${D.DOCS_MAX.toLocaleString()}자까지 읽어요. 문서가 길수록 대답이 조금 느려지고 사용량이 늘어요.` : ''}`);
+    cl.body.append(r1, r3, h('div', 'row-inline'));
+    cl.body.lastChild.append(addDoc);
+    cl.body.append(docNote, r2, h('div', 'row-inline'));
     cl.body.lastChild.append(
       btn('저장', 'primary', async () => {
         const u = url.value.trim();

@@ -16,6 +16,7 @@ const notion = require('./notion');
 const assistant = require('./assistant');
 const statsAuto = require('./stats');
 const weekly = require('./weekly');
+const docsLib = require('./docs');
 const updater = require('./updater');
 const { NotionMcp, parseMarkdown, cleanText } = require('./notionMcp');
 
@@ -281,8 +282,10 @@ function persona() {
     instructions: a.instructions != null ? a.instructions : st.assistantInstructions || '',
     claudeUrl: a.claudeUrl != null ? a.claudeUrl : st.claudeUrl || '',
     model: a.model || st.aiModel || 'opus',
+    docs: docsLib.text(docsDir(), a.docs), // 이 비서에게 맡긴 참고 문서(인수인계 파일 등)의 내용
   };
 }
+function docsDir() { return path.join(app.getPath('userData'), 'docs'); }
 
 function currentContext() {
   const snap = snapshot();
@@ -826,6 +829,13 @@ function registerIpc() {
     if (r.ok) setSettings({ gmailServer: r.server });
     return r;
   });
+  // 비서 참고 문서: 글 파일을 골라 앱 안에 복사 / 빼기
+  ipcMain.handle('docs:pick', async () => {
+    const r = await dialog.showOpenDialog(win, { properties: ['openFile', 'multiSelections'], filters: [{ name: '글 파일', extensions: docsLib.EXTENSIONS }] });
+    if (r.canceled) return [];
+    return r.filePaths.map((f) => { try { return docsLib.save(docsDir(), f); } catch (e) { return { error: String(e.message || e) }; } });
+  });
+  ipcMain.handle('docs:remove', (_e, id) => { docsLib.remove(docsDir(), String(id)); return true; });
   ipcMain.handle('clipboard:write', (_e, text) => { clipboard.writeText(String(text || '')); return true; });
   ipcMain.handle('chat:clear', () => { store.set('chat', []); push('chat', []); return []; });
   ipcMain.handle('todo:delete', (_e, id) => deleteTodo(String(id)));
