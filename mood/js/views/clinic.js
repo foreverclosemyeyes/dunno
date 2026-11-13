@@ -147,14 +147,14 @@ function figures(s, width, SH, show) {
   const sleep = take('sum-sleep', y);
 
   // 3. 증상: 날마다 요일(영어 한 글자, 사용자가 고름)이 적힌 네모 한 칸, 그런 날은 색칠 (단계가 높을수록 진하게). 위 그래프와 같은 날짜 자리에 놓인다.
-  const sq = Math.max(4, Math.min(col - 2, 19));
+  const sq = Math.max(4, Math.min(col - 7, 30));   // 옆 칸과 살짝만 떨어지게
   const squares = (name, levelOf) => {
     const vals = s.days.map((e) => (e ? levelOf(e) : 0)), count = vals.filter(Boolean).length;
     head(name, count ? F('{0}일', count) : T('없음'));
     s.dates.forEach((d, i) => {
       const v = vals[i], x = cx(i) - sq / 2, top = y + 13;
       out += `<rect x="${x.toFixed(1)}" y="${top}" width="${sq.toFixed(1)}" height="${sq.toFixed(1)}" rx="${(sq * 0.28).toFixed(1)}" ${v ? `style="fill:var(--ink)" fill-opacity="${[0, 0.3, 0.5, 0.75, 1][v]}"` : 'class="c0"'}/>`;
-      out += `<text x="${cx(i).toFixed(1)}" y="${(top + sq / 2 + 3.2).toFixed(1)}" text-anchor="middle" font-size="9" style="fill:${v >= 3 ? 'var(--ink-inv)' : v ? 'var(--text)' : 'var(--faint)'}">${'SMTWTFS'[parse(d).getDay()]}</text>`;
+      out += `<text x="${cx(i).toFixed(1)}" y="${(top + sq / 2 + 3.7).toFixed(1)}" text-anchor="middle" font-size="10.5" style="fill:${v >= 3 ? 'var(--ink-inv)' : v ? 'var(--text)' : 'var(--faint)'}">${'SMTWTFS'[parse(d).getDay()]}</text>`;
     });
     y += 13 + sq + 22;
   };
