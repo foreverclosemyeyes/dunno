@@ -1,7 +1,7 @@
 // 기록 화면
 // 한 번에 다 적지 않아도 된다: 만진 항목만 저장되고, 안 만진 항목은 빈 값(null)으로 남는다.
 // 아침에 수면만 적고 밤에 기분을 적는 식으로 같은 날을 여러 번 열어 이어 적을 수 있다.
-import { DRINKS, LEVELS, SIDE_EFFECTS, SIGNS, SYMPTOMS, TAGS, cafMg, cafScore, isHigh, nameOf, onlyOn } from '../constants.js';
+import { DRINKS, LEVELS, SIDE_EFFECTS, SIGNS, SYMPTOMS, SYMPTOM_HINT, TAGS, cafMg, cafScore, isHigh, nameOf, onlyOn } from '../constants.js';
 import { durText, longDate, sleepMinutes } from '../dates.js';
 import { $, closeSheet, esc, sheet, showSheet, toast } from '../dom.js';
 import { F, T } from '../i18n.js';
@@ -22,7 +22,7 @@ export function newDraft(date) {
   // 잠든·깬 시각은 가장 최근 기록을 기본값으로 보여 준다 (대부분 비슷하니까 덜 만져도 되게). 수면을 적겠다고 해야 저장된다.
   const last = Object.keys(db.entries).sort().reverse().map((k) => db.entries[k]).find((x) => x.bed && x.wake);
   const blank = {
-    date, mood: null, energy: null, conf: null, appetite: null, dep: null, anx: null, si: null,
+    date, mood: null, energy: null, conf: null, appetite: null, dep: null, anx: null, psy: null, si: null,
     sleepSet: false, bed: last ? last.bed : '23:30', wake: last ? last.wake : '07:00', tired: false,
     period: false, drinks: {}, meds: (db.taken[date] || []).slice(), note: '', signs: {}, fx: {}, tags: {},
   };
@@ -80,6 +80,7 @@ const FOCUS = {
   sleep: () => [T('지난밤 수면'), ['sleep']],
   dep: () => [T('우울'), ['dep']],
   anx: () => [T('불안'), ['anx']],
+  psy: () => [T('정신병적 증상'), ['psy']],
   si: () => [T('죽고 싶은 생각'), ['si']],
   period: () => [T('생리'), ['period']],
   appetite: () => [T('식욕'), ['appetite']],
@@ -109,7 +110,7 @@ export function openRecord(date, focus) {
   const sec = (name) => (only ? '' : `<div class="sec">${name}</div>`);   // 한 항목만 뜰 때는 화면 제목이 이름을 대신한다
   const group = (name, rows, id) => (rows ? `${sec(name)}<section class="card list"${id ? ` id="${id}"` : ''}>${rows}</section>` : '');
   // 증상과 몸 항목은 전체 화면에서는 묶음으로, 오늘 화면에서 한 줄을 눌렀을 때는 그 한 줄만 뜬다
-  const symRow = ([k, label]) => `<div class="li col"><span class="lk">${label}</span>${seg(k, LEVELS, d[k])}</div>`;
+  const symRow = ([k, label]) => `<div class="li col"><span class="lk">${label}${SYMPTOM_HINT[k] ? `<small>${SYMPTOM_HINT[k]}</small>` : ''}</span>${seg(k, LEVELS, d[k])}</div>`;
   const bodyRow = {
     period: () => sw('data-flag="period"', d.period, T('생리 중'), IC.drop),
     appetite: () => slider('appetite', IC.fork, T('식욕'), d.appetite, T('없음'), T('많음')),
@@ -182,7 +183,7 @@ export function saveEntry() {
   // 수면을 안 적었으면 빈 값. 다만 시각 없이 수면 시간만 있던 예전 기록은 그대로 둔다.
   const keepOldSleep = !d.sleepSet && !!prev && !prev.bed && prev.sleepMin != null;
   db.entries[d.date] = {
-    date: d.date, mood: d.mood, energy: d.energy, conf: d.conf, dep: d.dep, anx: d.anx, si: d.si,
+    date: d.date, mood: d.mood, energy: d.energy, conf: d.conf, dep: d.dep, anx: d.anx, psy: d.psy, si: d.si,
     bed: d.sleepSet ? d.bed || null : null, wake: d.sleepSet ? d.wake || null : null,
     sleepMin: d.sleepSet ? sleepMinutes(d.bed, d.wake) : keepOldSleep ? prev.sleepMin : null,
     tired: d.sleepSet && !!d.tired, period: !!d.period, appetite: d.appetite,

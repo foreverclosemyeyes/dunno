@@ -27,6 +27,43 @@ export function signals() {
   return out;
 }
 
+// 최근 7일이 어느 쪽으로 기울어 보이는지 읽는다 (사용자가 요청: "경조증 같은 게 보인다" 같은 인사이트).
+// 진단이 아니라, 그런 때 흔히 보이는 모습과 기록이 겹치는 점을 세어서 보여 주는 것이다. 문장도 "겹친다"까지만 말한다.
+//   { kind: 'high'(들뜬 쪽) | 'low'(가라앉은 쪽) | 'mixed'(둘 다) | 'even'(뚜렷하지 않음), title, points: [근거 문장, …] }
+// 최근 7일 중 4일 이상 적었을 때만 나온다 (모자라면 null). 수면은 그 전 4주의 내 평균과 견준다.
+export function recentState(entries = db.entries) {
+  const t = today();
+  const span = (from, to) => Object.keys(entries).filter((k) => k > addDays(t, -from) && k <= addDays(t, -to)).map((k) => entries[k]);
+  const now = span(7, 0), before = span(35, 7);
+  if (now.length < 4) return null;
+  const vals = (list, key) => list.map((e) => e[key]).filter((x) => x != null);
+  // 평균이 아니라 "그런 날이 며칠이었는지"로 센다 (7일 중 4~5일만 들떠도 평균은 묻히기 때문에). 4일 이상이면 근거로 넣는다.
+  const daysWith = (test) => now.filter(test).length, sleep = avg(vals(now, 'sleepMin'));
+  const moodUp = daysWith((e) => e.mood >= 7), energyUp = daysWith((e) => e.energy >= 7), confUp = daysWith((e) => e.conf >= 8);
+  const moodDown = daysWith((e) => e.mood != null && e.mood <= 3), energyDown = daysWith((e) => e.energy != null && e.energy <= 3);
+  const base = vals(before, 'sleepMin'), sleepDiff = sleep != null && base.length >= 3 ? Math.round(sleep - avg(base)) : null;
+  const high = [], low = [];
+  if (moodUp >= 4) high.push(F('기분이 7 이상인 날 {0}일', moodUp));
+  if (energyUp >= 4) high.push(F('에너지가 7 이상인 날 {0}일', energyUp));
+  if (sleepDiff != null && sleepDiff <= -60 && energyUp >= 3) high.push(F('잠이 평소보다 {0} 줄었는데 에너지는 높음', durText(-sleepDiff)));
+  if (confUp >= 4) high.push(F('자신감이 8 이상인 날 {0}일', confUp));
+  const signDays = daysWith((e) => !!e.signs && Object.keys(e.signs).some((k) => e.signs[k]));
+  if (signDays >= 2) high.push(F('말·생각이 빨라지거나 일을 벌인 날 {0}일', signDays));
+  if (moodDown >= 4) low.push(F('기분이 3 이하인 날 {0}일', moodDown));
+  if (energyDown >= 4) low.push(F('에너지가 3 이하인 날 {0}일', energyDown));
+  const depDays = daysWith((e) => e.dep >= 2);
+  if (depDays >= 4) low.push(F('우울이 보통 이상인 날 {0}일', depDays));
+  if (sleepDiff != null && Math.abs(sleepDiff) >= 60 && high.length < 3) low.push(F(sleepDiff > 0 ? '잠이 평소보다 {0} 늘어남' : '잠이 평소보다 {0} 줄어듦', durText(Math.abs(sleepDiff))));
+  const siDays = daysWith((e) => e.si >= 1), psyDays = daysWith((e) => e.psy >= 1);
+  if (siDays) low.push(F('죽고 싶은 생각이 있던 날 {0}일', siDays));
+  const extra = psyDays ? [F('정신병적 증상이 있던 날 {0}일', psyDays)] : [];
+  const isHigh = high.length >= 3, isLow = low.length >= 3;
+  if (isHigh && isLow) return { kind: 'mixed', title: T('최근 7일은 들뜬 모습과 가라앉은 모습이 함께 보여요.'), points: [...high, ...low, ...extra] };
+  if (isHigh) return { kind: 'high', title: T('최근 7일은 경조증 때 흔히 보이는 모습과 겹치는 점이 많아요.'), points: [...high, ...extra] };
+  if (isLow) return { kind: 'low', title: T('최근 7일은 우울 삽화 때 흔히 보이는 모습과 겹치는 점이 많아요.'), points: [...low, ...extra] };
+  return { kind: 'even', title: T('최근 7일은 한쪽으로 뚜렷하게 기운 모습이 보이지 않아요.'), points: extra };
+}
+
 // 인사이트: 두 묶음의 평균을 견준 관찰들. 차이가 큰 것부터 나온다.
 //   { text: 한 줄 결론, a: [이름, 값, 날 수], b: [이름, 값, 날 수] }
 // 차이가 뚜렷할 때만 넣는다. entries를 주면 그 기록으로 계산한다 (예시 기록 미리 보기).
@@ -108,7 +145,7 @@ export function aiSummary() {
     const signs = SIGNS.filter(([k]) => e.signs && e.signs[k]).map(([, l]) => l).join(', ');
     const val = (label, v, unit) => (v == null ? '' : `${label} ${v}${unit || ''}`);   // 안 적은 항목은 줄에서 뺀다
     const named = (label, list, on) => { const got = list.filter(([k]) => on && on[k]).map(([, l]) => l).join(', '); return got ? `${label}: ${got}` : ''; };
-    lines.push([d, val('기분', e.mood), val('에너지', e.energy), val('자신감', e.conf), val('우울', e.dep, '/4'), val('불안', e.anx, '/4'), val('죽고 싶은 생각', e.si, '/4'),
+    lines.push([d, val('기분', e.mood), val('에너지', e.energy), val('자신감', e.conf), val('우울', e.dep, '/4'), val('불안', e.anx, '/4'), val('정신병적 증상', e.psy, '/4'), val('죽고 싶은 생각', e.si, '/4'),
       e.sleepMin != null ? `수면 ${Math.floor(e.sleepMin / 60)}시간 ${e.sleepMin % 60}분${aided(e) ? '(전날 안정제·수면제 복용)' : ''}` : '', e.tired ? '기상 시 피곤' : '', e.period ? '생리 중' : '',
       e.appetite != null ? `식욕 ${e.appetite}` : '', e.drinks ? `카페인 약 ${cafMg(e.drinks)}mg(${drinkText(e.drinks) || '없음'})` : e.caffeine != null ? `카페인 ${e.caffeine}/10` : '', `약: ${meds || '없음'}`, named('부작용', SIDE_EFFECTS, e.fx), named('한 것', TAGS, e.tags), signs ? `체크: ${signs}` : '', e.note ? `메모: ${e.note}` : '']
       .filter(Boolean).join(' | '));
@@ -135,7 +172,7 @@ export function summary(weeks, back = 0) {
   return {
     weeks, dates, days, got,
     mood: stat('mood'), energy: stat('energy'), conf: stat('conf'), sleep: stat('sleepMin'),
-    high: { dep: when('dep', 3), anx: when('anx', 3), si: when('si', 1) },
+    high: { dep: when('dep', 3), anx: when('anx', 3), psy: when('psy', 1), si: when('si', 1) },
     shortSleep: got.filter((e) => e.sleepMin != null && e.sleepMin < SHORT_SLEEP).map((e) => e.date),
     signs: SIGNS.map(([k, label]) => [label, got.filter((e) => e.signs && e.signs[k]).length]).filter(([, c]) => c),
     fx: SIDE_EFFECTS.map(([k, label]) => [label, got.filter((e) => e.fx && e.fx[k]).length]).filter(([, c]) => c),

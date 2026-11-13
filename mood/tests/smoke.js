@@ -180,6 +180,7 @@ function seed() {
   check('오늘 화면에 초기 신호 배너', (await page.$$('.signal')).length >= 1);
   await page.click('[data-tab=insight]');
   const says = await page.$$eval('.li.cmp', (x) => x.map((el) => el.textContent));
+  check('최근 7일 읽기: 들뜬 날이 이어지면 겹치는 점을 근거와 함께 보여 줌', (await text('.state')).includes('경조증 때 흔히 보이는 모습') && (await text('.state')).includes('에너지가 7 이상인 날') && (await text('.state')).includes('진단이 아니에요'));
   check('인사이트: 두 숫자 비교', says.some((s) => s.includes('에너지가 높았던 날') && s.includes('그런 날') && s.includes('다른 날')), says.join(' / '));
   await page.click('[data-tab=trend]');
   check('주 그래프', (await page.$$('.plot svg')).length >= 4);

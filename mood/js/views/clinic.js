@@ -44,13 +44,13 @@ function nextText() {
 // 설정에서 꺼 둔 항목은 뺀다.
 const lineDefs = () => [
   ['mood', T('기분'), 10], ['energy', T('에너지'), 10], ['conf', T('자신감'), 10],
-  ['dep', T('우울'), 4], ['anx', T('불안'), 4], ['si', T('죽고 싶은 생각'), 4],
+  ['dep', T('우울'), 4], ['anx', T('불안'), 4], ['psy', T('정신병적 증상'), 4], ['si', T('죽고 싶은 생각'), 4],
 ].filter(([key]) => itemOn(key));
 
 // 선은 색이 아니라 모양으로 구분한다: [굵기, 끊김 무늬]. 기분만 설정에서 고른 색의 굵은 실선이고, 나머지는 같은 색(--ink)이다.
 const LINE_STYLE = {
   mood: [3, ''], energy: [1.6, ''], conf: [1.8, '7 5'],
-  dep: [2.4, '0.1 5.5'], anx: [1.8, '10 4 1.5 4'], si: [1.8, '3 4'],
+  dep: [2.4, '0.1 5.5'], anx: [1.8, '10 4 1.5 4'], psy: [1.8, '14 5'], si: [1.8, '3 4'],
 };
 const lineColor = (key) => (key === 'mood' ? tone('mood', 10) || 'var(--ink)' : 'var(--ink)');
 const lineAttrs = (key) => `fill="none" stroke-linejoin="round" stroke-linecap="round" style="stroke:${lineColor(key)}" stroke-width="${LINE_STYLE[key][0]}"${LINE_STYLE[key][1] ? ` stroke-dasharray="${LINE_STYLE[key][1]}"` : ''}`;
@@ -73,7 +73,7 @@ function dateRanges(list) {
 // show: 기간 전체에서 한 번이라도 있었던 것만 줄을 만든다 { fx: 부작용이 있었는지, tags: [있었던 생활 열쇠] }
 function figures(s, width, SH, show) {
   // 오른쪽에는 선 끝 이름이 들어갈 자리를 둔다 (이름이 긴 "죽고 싶은 생각"을 켰을 때만 넓게)
-  const n = s.dates.length, L = 18, R = clinicView.lines.includes('si') ? 80 : 44, pw = width - L - R, col = pw / n;
+  const n = s.dates.length, L = 18, R = clinicView.lines.some((k) => k === 'si' || k === 'psy') ? 80 : 44, pw = width - L - R, col = pw / n;
   const cx = (i) => L + col * (i + 0.5);
   const ink = 'style="fill:var(--ink)"', mutedText = 'style="fill:var(--muted)"';
   const marks = s.dates.map((d, i) => (i === 0 || parse(d).getDay() === 1 ? i : -1)).filter((i) => i >= 0);
@@ -164,17 +164,17 @@ function figures(s, width, SH, show) {
   if (itemOn('tags')) TAGS.filter(([k]) => show.tags.includes(k)).forEach(([k, name]) => squares(name, (e) => (e.tags && e.tags[k] ? 3 : 0)));
 
   // 4. 약 · 생리: 얇은 선으로 먹은 날 ○, 안 먹은 날 ×
-  const r = Math.max(2, Math.min(col / 2 - 1.5, 4.2));
+  const r = Math.max(2, Math.min(col / 2 - 1.5, 5.5));
   const marksRow = (has, cross) => {
     s.dates.forEach((d, i) => {
-      const x = cx(i), my = y + 21;
+      const x = cx(i), my = y + 13 + sq / 2;
       if (has(d, s.days[i])) out += `<circle cx="${x.toFixed(1)}" cy="${my}" r="${r.toFixed(1)}" fill="none" stroke-width="1.2" style="stroke:var(--ink)"/>`;
       else if (cross) {
         const k = r * 0.75;
         out += `<path d="M${(x - k).toFixed(1)},${(my - k).toFixed(1)}L${(x + k).toFixed(1)},${(my + k).toFixed(1)}M${(x + k).toFixed(1)},${(my - k).toFixed(1)}L${(x - k).toFixed(1)},${(my + k).toFixed(1)}" fill="none" stroke-width="1" stroke-linecap="round" style="stroke:var(--faint)"/>`;
       }
     });
-    y += 50;
+    y += 13 + sq + 22;   // 증상 네모 줄과 같은 높이
   };
   const meds = itemOn('meds') ? s.meds : [], period = itemOn('period') && s.period.length > 0;
   meds.forEach(([m, count]) => {
@@ -197,7 +197,7 @@ function summaryRows(s) {
   const dur = (m) => durText(Math.round(m));
   const flags = [
     [T('우울 높음 이상'), s.high.dep], [T('불안 높음 이상'), s.high.anx],
-    [T('죽고 싶은 생각'), s.high.si], [T('5시간 미만 수면'), s.shortSleep], [T('생리'), s.period],
+    [T('정신병적 증상'), s.high.psy], [T('죽고 싶은 생각'), s.high.si], [T('5시간 미만 수면'), s.shortSleep], [T('생리'), s.period],
   ].filter(([, list]) => list.length).map(([name, list]) => [name, `${F('{0}일', list.length)} · ${dateList(list)}`]);
   return {
     averages: [[T('기분'), range(s.mood, num)], [T('에너지'), range(s.energy, num)], [T('자신감'), range(s.conf, num)], [T('수면'), range(s.sleep, dur)]],
