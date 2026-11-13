@@ -36,9 +36,14 @@ export function toneRgb(key, v) {
 export const tone = (key, v) => { const c = toneRgb(key, v); return c ? `rgb(${c})` : ''; };
 
 // 날짜 동그라미 칠하기. 색을 끄면 흑백(낮을수록 어둡게).
+// 숫자 색은 바꾸지 않는다 (칠이 밝으면 검은 글씨, 어두우면 흰 글씨로 뒤집었더니 날마다 숫자 색이 달라 보여서 뺐다, 2026-11-13).
+// 대신 칠의 밝기를 글씨가 읽히는 범위 안에 묶는다: 다크에서는 너무 밝지 않게, 라이트에서는 너무 어둡지 않게.
 export function moodFill(v) {
-  const c = toneRgb('mood', v) ||Array(3).fill(Math.round(isLight() ? 135 + v * 10 : 55 + v * 20));
-  return `background:rgb(${c});color:${(c[0] * 299 + c[1] * 587 + c[2] * 114) / 1000 > 140 ? (isLight() ? '#1d1d1f' : '#000') : '#fff'}`;
+  const light = isLight(), c = toneRgb('mood', v) || Array(3).fill(Math.round(light ? 170 + v * 8 : 45 + v * 8));
+  const lum = (c[0] * 299 + c[1] * 587 + c[2] * 114) / 1000, MAX_DARK = 120, MIN_LIGHT = 175;
+  const fit = !light && lum > MAX_DARK ? c.map((x) => Math.round(x * MAX_DARK / lum))
+    : light && lum < MIN_LIGHT ? c.map((x) => Math.round(x + (255 - x) * (MIN_LIGHT - lum) / (255 - lum))) : c;
+  return `background:rgb(${fit})`;
 }
 
 // ---------- 화면 모드 · 글씨 ----------

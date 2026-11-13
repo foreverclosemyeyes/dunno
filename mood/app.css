@@ -189,6 +189,7 @@ textarea { display: block; font: inherit; font-size: calc(16px * var(--fs, 1.12)
 .cal { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 6px; margin-top: 10px; text-align: center; }
 .cal .cday { gap: 2px; height: 44px; }
 .cal .cdot { width: 34px; height: 34px; font-size: calc(14px * var(--fs, 1.12)); color: var(--muted); }
+.cal .cdot[style] { color: var(--text); }
 :root[data-theme=light] .cdot[style] { box-shadow: 0 0 0 0.5px rgba(0,0,0,.12); }
 .cal .cday i, .calkey i.pdot { display: block; width: 4px; height: 4px; border-radius: 50%; background: var(--ink); }
 
