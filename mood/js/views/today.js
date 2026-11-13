@@ -1,5 +1,5 @@
 // 오늘 화면
-import { DISCLAIMER, HELPLINE, LEVELS, SIGNS, SI_CARE_FROM, SYMPTOMS, TAGS, cafMg, drinkText, fxNames, nameOf } from '../constants.js';
+import { DISCLAIMER, HELPLINE, LEVELS, SIGNS, SI_CARE_FROM, SYMPTOMS, TAGS, cafMg, drinkText, fxNames, nameOf, psyNames } from '../constants.js';
 import { WD, addDays, durText, longDate, parse, today, weekStart } from '../dates.js';
 import { app, esc } from '../dom.js';
 import { backupDue, daysSinceBackup } from '../files.js';
@@ -111,6 +111,7 @@ export function detailHtml(e) {
   const row = (key, left, right) => (itemOn(key) ? li(left, right, key) : '');
   const rows = [
     ...SYMPTOMS.map(([k, label]) => row(k, label, e[k] == null ? none : `${LEVELS[e[k]]}${bars(e[k])}`)),
+    row('psy', T('정신병적 증상'), esc(psyNames(e.psych).join(' · ')) || (e.psy ? LEVELS[e.psy] : none)),
     e.tired && itemOn('sleep') ? li(`${IC.moon}${T('일어났을 때')}`, T('피곤'), 'sleep') : '',
     row('period', `${IC.drop}${T('생리')}`, e.period ? T('생리 중') : none),
     row('appetite', `${IC.fork}${T('식욕')}`, e.appetite == null ? none : ten('appetite', e.appetite)),

@@ -247,10 +247,10 @@ function seed() {
   await page.click('[data-tab=today]'); await page.click('.btn[data-act=record]');
   await page.click('[data-act=fxToggle]'); await page.click('[data-fx=sleepy]');
   await page.fill('#fx-new', '발진'); await page.press('#fx-new', 'Enter');
-  await page.click('[data-tag=alcohol]');
+  await page.click('[data-tag=alcohol]'); await page.click('[data-psych=voices]'); await page.click('[data-psych=unreal]');
   await page.click('.savebar [data-act=save]');
   e = (await store()).entries[today];
-  check('부작용과 술·운동이 저장되고 오늘 화면에 보임', e.fx.sleepy === true && e.fx['c:발진'] === true && (await store()).settings.fxCustom[0] === '발진' && e.tags.alcohol === true && !e.tags.exercise && (await text('#app')).includes('졸림 · 발진'));
+  check('부작용과 술·운동이 저장되고 오늘 화면에 보임', e.psych.voices === true && e.psy === 2 && (await text('#app')).includes('환청 · 현실 같지 않음') && e.fx.sleepy === true && e.fx['c:발진'] === true && (await store()).settings.fxCustom[0] === '발진' && e.tags.alcohol === true && !e.tags.exercise && (await text('#app')).includes('졸림 · 발진'));
   await page.click('[data-tab=clinic]');
   check('진료 화면에 부작용과 술이 네모 줄로 나옴', (await text('#summary')).includes('부작용') && (await page.$$eval('.sum-rows', (x) => x.map((el) => el.textContent).join(' '))).includes('술'));
 

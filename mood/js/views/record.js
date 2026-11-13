@@ -1,7 +1,7 @@
 // 기록 화면
 // 한 번에 다 적지 않아도 된다: 만진 항목만 저장되고, 안 만진 항목은 빈 값(null)으로 남는다.
 // 아침에 수면만 적고 밤에 기분을 적는 식으로 같은 날을 여러 번 열어 이어 적을 수 있다.
-import { DRINKS, LEVELS, SIDE_EFFECTS, SIGNS, SYMPTOMS, SYMPTOM_HINT, TAGS, cafMg, cafScore, isHigh, nameOf, onlyOn } from '../constants.js';
+import { DRINKS, LEVELS, PSYCH, SIDE_EFFECTS, SIGNS, SYMPTOMS, TAGS, cafMg, cafScore, isHigh, nameOf, onlyOn } from '../constants.js';
 import { durText, longDate, sleepMinutes } from '../dates.js';
 import { $, closeSheet, esc, sheet, showSheet, toast } from '../dom.js';
 import { F, T } from '../i18n.js';
@@ -22,9 +22,9 @@ export function newDraft(date) {
   // 잠든·깬 시각은 가장 최근 기록을 기본값으로 보여 준다 (대부분 비슷하니까 덜 만져도 되게). 수면을 적겠다고 해야 저장된다.
   const last = Object.keys(db.entries).sort().reverse().map((k) => db.entries[k]).find((x) => x.bed && x.wake);
   const blank = {
-    date, mood: null, energy: null, conf: null, appetite: null, dep: null, anx: null, psy: null, si: null,
+    date, mood: null, energy: null, conf: null, appetite: null, dep: null, anx: null, si: null,
     sleepSet: false, bed: last ? last.bed : '23:30', wake: last ? last.wake : '07:00', tired: false,
-    period: false, drinks: {}, meds: (db.taken[date] || []).slice(), note: '', signs: {}, fx: {}, tags: {},
+    period: false, drinks: {}, meds: (db.taken[date] || []).slice(), note: '', signs: {}, fx: {}, psych: {}, tags: {},
   };
   if (!old) return blank;
   const d = Object.assign(blank, JSON.parse(JSON.stringify(old)));
@@ -33,6 +33,7 @@ export function newDraft(date) {
   d.drinks = d.drinks || {};
   d.signs = d.signs || {};
   d.fx = d.fx || {};
+  d.psych = d.psych || {};
   d.fxOpen = !!onlyOn(d.fx);
   d.tags = d.tags || {};
   d.meds = d.meds || [];
@@ -57,6 +58,15 @@ export const sw = (attr, on, label, icon) => `<button type="button" class="li sw
 
 // 여러 개를 누를 수 있는 딱지들 (부작용, 술·운동). attr는 data-fx / data-tag
 const chips = (attr, list, on) => `<div class="li chips">${list.map(([k, label]) => `<button type="button" class="chip" data-${attr}="${esc(k)}" aria-pressed="${!!on[k]}">${esc(label)}</button>`).join('')}</div>`;
+
+// 정신병적 증상: 그날 있었던 것을 누르는 딱지들과, 목록에 없는 것을 직접 적는 칸
+export function psychHtml() {
+  const d = ui.draft;
+  const custom = [...new Set([...(db.settings.psyCustom || []), ...Object.keys(d.psych).filter((k) => k.startsWith('c:')).map((k) => k.slice(2))])];
+  return `${chips('psych', [...PSYCH, ...custom.map((name) => [`c:${name}`, name])], d.psych)}
+    <div class="li"><input type="text" id="psy-new" maxlength="20" placeholder="${T('목록에 없으면 직접 적기')}" autocomplete="off">
+      <button type="button" class="mini" data-act="psyAdd">${T('추가')}</button></div>`;
+}
 
 // 부작용: 약 기록에 딸린 칸. 평소에는 "부작용이 있었어요" 스위치 한 줄만 있고, 켜면 딱지들과 직접 적는 칸이 펼쳐진다.
 // (오늘 화면에서 부작용 줄을 눌러 들어온 경우에는 처음부터 펼쳐져 있다: draft.fxAlways)
@@ -100,7 +110,7 @@ const FOCUS = {
   tags: () => [T('오늘 한 것'), ['tags']],
   note: () => [T('메모'), ['note']],
 };
-const ALL = ['mood', 'energy', 'conf', 'signs', 'symptoms', 'sleep', 'body', 'meds', 'fx', 'tags', 'note'];
+const ALL = ['mood', 'energy', 'conf', 'signs', 'symptoms', 'psy', 'sleep', 'body', 'meds', 'fx', 'tags', 'note'];
 
 // focus가 있으면 그 항목만 뜨고(다른 값은 그대로 보존), 없으면 전체가 뜬다.
 export function openRecord(date, focus) {
@@ -122,7 +132,7 @@ export function openRecord(date, focus) {
   const sec = (name) => (only ? '' : `<div class="sec">${name}</div>`);   // 한 항목만 뜰 때는 화면 제목이 이름을 대신한다
   const group = (name, rows, id) => (rows ? `${sec(name)}<section class="card list"${id ? ` id="${id}"` : ''}>${rows}</section>` : '');
   // 증상과 몸 항목은 전체 화면에서는 묶음으로, 오늘 화면에서 한 줄을 눌렀을 때는 그 한 줄만 뜬다
-  const symRow = ([k, label]) => `<div class="li col"><span class="lk">${label}${SYMPTOM_HINT[k] ? `<small>${SYMPTOM_HINT[k]}</small>` : ''}</span>${seg(k, LEVELS, d[k])}</div>`;
+  const symRow = ([k, label]) => `<div class="li col"><span class="lk">${label}</span>${seg(k, LEVELS, d[k])}</div>`;
   const bodyRow = {
     period: () => sw('data-flag="period"', d.period, T('생리 중'), IC.drop),
     appetite: () => slider('appetite', IC.fork, T('식욕'), d.appetite, T('없음'), T('많음')),
@@ -136,6 +146,7 @@ export function openRecord(date, focus) {
     body: group(T('몸'), Object.keys(bodyRow).filter(itemOn).map((k) => bodyRow[k]()).join('')),
     ...Object.fromEntries(SYMPTOMS.map((s) => [s[0], one(symRow(s))])),
     ...Object.fromEntries(Object.keys(bodyRow).map((k) => [k, one(bodyRow[k]())])),
+    psy: group(T('정신병적 증상'), itemOn('psy') ? psychHtml() : '', 'psych'),
     meds: group(T('오늘 먹은 약'), itemOn('meds') ? medsHtml() : '', 'meds'),
     fx: itemOn('fx') ? `<section class="card list" id="fx">${fxHtml()}</section>` : '',
     tags: group(T('오늘 한 것'), itemOn('tags') ? chips('tag', TAGS, d.tags) : ''),
@@ -182,7 +193,7 @@ export function syncForm() {
 
 // 적은 것이 하나라도 있는지
 const hasContent = (d) => SLIDERS.some((k) => d[k] != null) || SYMPTOMS.some(([k]) => d[k] != null) || d.sleepSet || d.period
-  || cafMg(d.drinks) > 0 || d.meds.length > 0 || !!onlyOn(d.fx) || !!onlyOn(d.tags) || !!(d.note || '').trim();
+  || cafMg(d.drinks) > 0 || d.meds.length > 0 || !!onlyOn(d.fx) || !!onlyOn(d.psych) || !!onlyOn(d.tags) || !!(d.note || '').trim();
 
 export function saveEntry() {
   const d = ui.draft, prev = db.entries[d.date];
@@ -195,7 +206,8 @@ export function saveEntry() {
   // 수면을 안 적었으면 빈 값. 다만 시각 없이 수면 시간만 있던 예전 기록은 그대로 둔다.
   const keepOldSleep = !d.sleepSet && !!prev && !prev.bed && prev.sleepMin != null;
   db.entries[d.date] = {
-    date: d.date, mood: d.mood, energy: d.energy, conf: d.conf, dep: d.dep, anx: d.anx, psy: d.psy, si: d.si,
+    date: d.date, mood: d.mood, energy: d.energy, conf: d.conf, dep: d.dep, anx: d.anx, si: d.si,
+    psych: onlyOn(d.psych), psy: onlyOn(d.psych) ? Math.min(4, Object.keys(onlyOn(d.psych)).length) : null,
     bed: d.sleepSet ? d.bed || null : null, wake: d.sleepSet ? d.wake || null : null,
     sleepMin: d.sleepSet ? sleepMinutes(d.bed, d.wake) : keepOldSleep ? prev.sleepMin : null,
     tired: d.sleepSet && !!d.tired, period: !!d.period, appetite: d.appetite,

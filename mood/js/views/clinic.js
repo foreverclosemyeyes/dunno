@@ -44,13 +44,13 @@ function nextText() {
 // 설정에서 꺼 둔 항목은 뺀다.
 const lineDefs = () => [
   ['mood', T('기분'), 10], ['energy', T('에너지'), 10], ['conf', T('자신감'), 10],
-  ['dep', T('우울'), 4], ['anx', T('불안'), 4], ['psy', T('정신병적 증상'), 4], ['si', T('죽고 싶은 생각'), 4],
+  ['dep', T('우울'), 4], ['anx', T('불안'), 4], ['si', T('죽고 싶은 생각'), 4],
 ].filter(([key]) => itemOn(key));
 
 // 선은 색이 아니라 모양으로 구분한다: [굵기, 끊김 무늬]. 기분만 설정에서 고른 색의 굵은 실선이고, 나머지는 같은 색(--ink)이다.
 const LINE_STYLE = {
   mood: [3, ''], energy: [1.6, ''], conf: [1.8, '7 5'],
-  dep: [2.4, '0.1 5.5'], anx: [1.8, '10 4 1.5 4'], psy: [1.8, '14 5'], si: [1.8, '3 4'],
+  dep: [2.4, '0.1 5.5'], anx: [1.8, '10 4 1.5 4'], si: [1.8, '3 4'],
 };
 const lineColor = (key) => (key === 'mood' ? tone('mood', 10) || 'var(--ink)' : 'var(--ink)');
 const lineAttrs = (key) => `fill="none" stroke-linejoin="round" stroke-linecap="round" style="stroke:${lineColor(key)}" stroke-width="${LINE_STYLE[key][0]}"${LINE_STYLE[key][1] ? ` stroke-dasharray="${LINE_STYLE[key][1]}"` : ''}`;
@@ -73,7 +73,7 @@ function dateRanges(list) {
 // show: 기간 전체에서 한 번이라도 있었던 것만 줄을 만든다 { fx: 부작용이 있었는지, tags: [있었던 생활 열쇠] }
 function figures(s, width, SH, show) {
   // 오른쪽에는 선 끝 이름이 들어갈 자리를 둔다 (이름이 긴 "죽고 싶은 생각"을 켰을 때만 넓게)
-  const n = s.dates.length, L = 18, R = clinicView.lines.some((k) => k === 'si' || k === 'psy') ? 80 : 44, pw = width - L - R, col = pw / n;
+  const n = s.dates.length, L = 18, R = clinicView.lines.includes('si') ? 80 : 44, pw = width - L - R, col = pw / n;
   const cx = (i) => L + col * (i + 0.5);
   const ink = 'style="fill:var(--ink)"', mutedText = 'style="fill:var(--muted)"';
   const marks = s.dates.map((d, i) => (i === 0 || parse(d).getDay() === 1 ? i : -1)).filter((i) => i >= 0);
@@ -159,6 +159,7 @@ function figures(s, width, SH, show) {
     y += 13 + sq + 22;
   };
   SYMPTOMS.filter(([k]) => itemOn(k)).forEach(([k, name]) => squares(name, (e) => e[k] || 0));
+  if (itemOn('psy')) squares(T('정신병적 증상'), (e) => e.psy || 0);   // 그날 몇 가지였는지에 따라 진해진다
   // 부작용(하나라도 있던 날)과 술·운동도 같은 네모 줄로
   if (itemOn('fx') && show.fx) squares(T('부작용'), (e) => (onlyOn(e.fx) ? 3 : 0));
   if (itemOn('tags')) TAGS.filter(([k]) => show.tags.includes(k)).forEach(([k, name]) => squares(name, (e) => (e.tags && e.tags[k] ? 3 : 0)));
@@ -230,6 +231,7 @@ function summaryHtml(weeks) {
     ${Array.from({ length: weeks }, (_, i) => stack(summary(1, (weeks - 1 - i) * 7))).join('')}
     <p class="secnote">${T('위아래로 같은 자리가 같은 날이에요 · 네모는 진할수록 심한 날 · 약은 먹은 날 ○, 안 먹은 날 ×')}</p>
     ${says(T('기분이 높았던 날 체크한 항목'), signs)}
+    ${itemOn('psy') ? says(T('정신병적 증상'), s.psych.map(count)) : ''}
     ${itemOn('fx') ? says(T('부작용'), s.fx.map(count)) : ''}
     ${says(T('지금 떠 있는 신호'), s.signals.map((x) => `<div class="li say">${esc(x)}</div>`))}
     ${says(T('메모'), s.notes.map(([d, note]) => `<div class="li say note"><small>${shortDate(d)}</small> ${esc(note)}</div>`))}
@@ -245,7 +247,7 @@ export function summaryText(weeks) {
     ...(talk.length ? [`\n[${T('진료 때 말할 것')}]`, ...talk.map((x) => `- ${x}`)] : []),
     ...part(T('평균 (가장 낮은 날–가장 높은 날)'), r.averages), ...part(T('눈에 띄는 날'), r.flags),
     ...(s.signals.length ? [`\n[${T('지금 떠 있는 신호')}]`, ...s.signals.map((x) => `- ${x}`)] : []),
-    ...part(T('기분이 높았던 날 체크한 항목'), r.signs), ...part(T('부작용'), s.fx.map(([name, c]) => [name, F('{0}일', c)])), ...part(T('약 먹은 날'), r.meds),
+    ...part(T('기분이 높았던 날 체크한 항목'), r.signs), ...part(T('정신병적 증상'), s.psych.map(([name, c]) => [name, F('{0}일', c)])), ...part(T('부작용'), s.fx.map(([name, c]) => [name, F('{0}일', c)])), ...part(T('약 먹은 날'), r.meds),
     ...part(T('진료 · 약 변경 기록'), clinicData().log.filter((x) => x.date >= s.dates[0]).map((x) => [`${shortDate(x.date)} ${kindName(x.kind)}`, x.text || '–'])),
     ...(s.notes.length ? [`\n[${T('메모')}]`, ...s.notes.map(([d, note]) => `${shortDate(d)} ${note}`)] : []),
     `\n${F('증상은 {0}~{1} 다섯 단계로 적은 것', LEVELS[0], LEVELS[4])}. ${DISCLAIMER}`,

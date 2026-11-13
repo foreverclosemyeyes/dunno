@@ -13,7 +13,7 @@ import { db, save } from './store.js';
 import { applyFont, applyTheme, themeQuery } from './theme.js';
 import { clinicData, clinicWeeks, openLog, summaryText } from './views/clinic.js';
 import { notesListHtml, openNotes } from './views/notes.js';
-import { SLIDERS, cafHead, fxHtml, medsHtml, openRecord, saveEntry, sleepHtml, syncForm } from './views/record.js';
+import { SLIDERS, cafHead, fxHtml, medsHtml, psychHtml, openRecord, saveEntry, sleepHtml, syncForm } from './views/record.js';
 import { openSettings } from './views/settings.js';
 import { shiftAnchor, shiftTrend, trendRange } from './views/trend.js';
 
@@ -60,6 +60,14 @@ const actions = {
     if (!mine.includes(name)) { mine.push(name); save(); }
     ui.draft.fx[`c:${name}`] = true;
     $('#fx').innerHTML = fxHtml();
+  },
+  psyAdd: () => {
+    const name = $('#psy-new').value.trim();
+    if (!name) return;
+    const mine = db.settings.psyCustom || (db.settings.psyCustom = []);
+    if (!mine.includes(name)) { mine.push(name); save(); }
+    ui.draft.psych[`c:${name}`] = true;
+    $('#psych').innerHTML = psychHtml();
   },
   insightDemo: () => { ui.insightDemo = !ui.insightDemo; render(); },
   // 설정: 기록 항목 켜고 끄기 (꺼진 항목의 열쇠를 settings.off에 모아 둔다)
@@ -184,8 +192,8 @@ document.addEventListener('click', (ev) => {
   } else if (t.dataset.sign) {                   // 조건부 체크리스트
     d.signs[t.dataset.sign] = !d.signs[t.dataset.sign];
     t.setAttribute('aria-pressed', String(!!d.signs[t.dataset.sign]));
-  } else if (t.dataset.fx || t.dataset.tag) {    // 딱지 (부작용, 술·운동)
-    const bag = t.dataset.fx ? d.fx : d.tags, k = t.dataset.fx || t.dataset.tag;
+  } else if (t.dataset.fx || t.dataset.tag || t.dataset.psych) {    // 딱지 (부작용, 술·운동, 정신병적 증상)
+    const bag = t.dataset.fx ? d.fx : t.dataset.tag ? d.tags : d.psych, k = t.dataset.fx || t.dataset.tag || t.dataset.psych;
     bag[k] = !bag[k];
     t.setAttribute('aria-pressed', String(!!bag[k]));
   }
@@ -295,7 +303,9 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   }).catch(() => {});
 }
 
-// 부작용을 직접 적는 칸에서 엔터를 누르면 바로 더한다
+// 부작용·정신병적 증상을 직접 적는 칸에서 엔터를 누르면 바로 더한다
 sheet.addEventListener('keydown', (ev) => {
-  if (ev.target.id === 'fx-new' && ev.key === 'Enter' && !ev.isComposing) { ev.preventDefault(); actions.fxAdd(); }
+  if (ev.key !== 'Enter' || ev.isComposing) return;
+  if (ev.target.id === 'fx-new') { ev.preventDefault(); actions.fxAdd(); }
+  if (ev.target.id === 'psy-new') { ev.preventDefault(); actions.psyAdd(); }
 });
