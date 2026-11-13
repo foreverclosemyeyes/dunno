@@ -99,6 +99,13 @@ body.layout-bigcal #right { padding-top: 0; min-height: 0; gap: 0; padding-right
 body.settings-open #app { margin-right: 0 !important; }
 .q-hide { position: absolute; right: -6px; top: -4px; width: 20px; height: 20px; border: 0; border-radius: 50%; background: #0b0b0b; color: #fff; font-size: 13px; line-height: 1; padding: 0; opacity: 0; transition: opacity .12s; cursor: pointer; }
 .q-hide:hover { background: var(--accent); }
+.q-head-right { display: inline-flex; align-items: baseline; gap: 8px; }
+.q-add { border: 0; background: #0b0b0b; color: #fff; padding: 2px 10px; font: 800 11px "Nanum Gothic", sans-serif; clip-path: polygon(6% 0, 100% 0, 94% 100%, 0 100%); cursor: pointer; }
+.q-add:hover { background: var(--accent); }
+.q-form { display: flex; gap: 6px; padding: 4px 2px 8px; border-bottom: 1px solid color-mix(in srgb, var(--card-text-solid) 18%, transparent); }
+.q-form input { border: 0; border-bottom: 1.5px solid #0b0b0b55; background: transparent; color: var(--card-text); font: 700 13px "Nanum Gothic", sans-serif; outline: none; padding: 3px 2px; min-width: 0; }
+.q-form input[type="text"] { flex: 1; }
+.q-form input:focus { border-bottom-color: var(--accent); }
 /* 할 일 추가 칸 */
 #todo-add { display: none; }
 body.layout-bigcal #todo-add { display: flex; align-items: center; gap: 10px; height: var(--rule); padding: 0 4px; font-size: var(--cl-size); flex: none; }

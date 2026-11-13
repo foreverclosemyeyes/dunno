@@ -18,7 +18,7 @@ class NotionError extends Error {
 function friendlyMessage(status, code, message) {
   if (status === 401) return '노션 키가 올바르지 않아요. 설정 > 연결에서 키를 다시 확인해 주세요.';
   if (status === 404 || code === 'object_not_found')
-    return '노션 DB를 찾을 수 없어요. 경영지원_Tasks 페이지의 ••• > 연결(Connections)에 내 통합을 추가했는지 확인해 주세요.';
+    return '노션 DB를 찾을 수 없어요. 업무 DB 페이지의 ••• > 연결(Connections)에 내 통합을 추가했는지 확인해 주세요.';
   if (status === 403) return '이 통합에 권한이 없어요. 노션 통합 설정 > 기능에서 "콘텐츠 읽기"와 "콘텐츠 업데이트"를 켜 주세요.';
   if (status === 429) return '노션 요청이 많아 잠시 쉬는 중이에요. 곧 다시 시도할게요.';
   if (status >= 500) return '노션 서버가 잠시 응답하지 않아요. 곧 다시 시도할게요.';
@@ -348,6 +348,22 @@ async function fetchEvents(client, cfg, rangeStart, rangeEnd, mode = 'tags') {
     .sort((a, b) => a.start.localeCompare(b.start) || b.end.localeCompare(a.end));
 }
 
+// 진행 중 업무 하나 만들기: 상태 '진행중', 담당자 나, 마감일은 기간에. 분류(Cell·우선순위)는 내가 가장 최근에 만든 업무를 따름
+async function createTask(client, cfg, { name, end }) {
+  const recent = await client.request('POST', `/data_sources/${cfg.dataSourceId}/query`, {
+    filter: { property: '담당자', people: { contains: cfg.userId } }, sorts: [{ timestamp: 'created_time', direction: 'descending' }], page_size: 1,
+  }).catch(() => ({ results: [] }));
+  const like = (recent.results[0] && recent.results[0].properties) || {};
+  const properties = {
+    Name: { title: [{ type: 'text', text: { content: name } }] },
+    상태: { status: { name: '진행중' } },
+    담당자: { people: [{ id: cfg.userId }] },
+  };
+  if (end) properties['기간'] = { date: { start: end } };
+  for (const k of ['Cell', '우선순위']) if (like[k] && like[k].select) properties[k] = { select: { name: like[k].select.name } };
+  return client.request('POST', '/pages', { parent: { type: 'data_source_id', data_source_id: cfg.dataSourceId }, properties });
+}
+
 function shiftISO(iso, days) {
   const d = new Date(iso + 'T00:00:00');
   d.setDate(d.getDate() + days);
@@ -363,6 +379,7 @@ module.exports = {
   fetchQuests,
   fetchWeeklyPages,
   fetchEvents,
+  createTask,
   shiftISO,
   toISO,
 };

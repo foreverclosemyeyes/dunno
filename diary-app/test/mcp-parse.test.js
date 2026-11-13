@@ -21,20 +21,20 @@ const md = `<callout icon="👉" color="yellow_bg">
 
 - [x] 커피 주문
 - [x] 뉴스기사 큐레이션
-- [x] 신진연구인력 400만원 분할 이체 줄리께 요청
-  - [x] 신진연구인력에 제출
-- [x] 이단께 daniel 비번 요청
+- [x] 지원금 분할 이체 요청
+  - [x] 증빙 제출
+- [x] 계정 비밀번호 요청
   - [ ] 계정 백업
-- [x] 근로계약서 기본 정보 채워 찰리께 전달
+- [x] 근로계약서 기본 정보 전달
 
 <p />
 </column>
 <column ratio="33.33">
 #### 11/11 (수)
 
-- [ ] 정부지원사업 리서치 일주일 치
+- [ ] 지원사업 리서치
 - [ ] 뉴스기사 큐레이션
-- [ ] 찰리께 정기행사 문의
+- [ ] 정기 행사 문의
   - [ ] 근로계약서 작성하셨는지 확인
   - [ ] 드라이브 권한 요청
 
@@ -90,7 +90,7 @@ console.log('✓ 노션 로그인(MCP) 마크다운 파싱 테스트 통과');
 // 지우기: 하위 항목까지 함께, 다른 날 같은 이름은 그대로
 {
   const { days: d2, anchors: a2 } = parseMarkdown(md, 'P', '2026-11-09');
-  const parent = d2['2026-11-11'][2]; // 찰리께 정기행사 문의 (+ 하위 2개)
+  const parent = d2['2026-11-11'][2]; // 정기 행사 문의 (+ 하위 2개)
   const x = a2.get(parent.id);
   const after = md.replace(x.delOld, x.delNew);
   const r = parseMarkdown(after, 'P', '2026-11-09');

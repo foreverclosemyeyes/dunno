@@ -53,9 +53,9 @@ if (!out) { console.error('쓰는 법: node test/look/snap.js <결과.json>'); p
   };
   const E = (fn, arg) => win.evaluate(fn, arg);
   await E(() => window.__say('짧은 말.')); await snap('main-noskin');
-  await E(() => { D.state.hasKeys.anthropic = true; if (window.__base) D.state.theme.assistant.faces.base = window.__base; window.__say('오늘 체크리스트 5개 중 2개 남았어. 스마일샤크 gws부터 잡자. 내일 마감이라 오후 첫 일로 하는 게 맞아.'); }); await snap('main-char-noskin');
+  await E(() => { D.state.hasKeys.anthropic = true; if (window.__base) D.state.theme.assistant.faces.base = window.__base; window.__say('오늘 체크리스트 5개 중 2개 남았어. 분기 정산 보고서부터 잡자. 내일 마감이라 오후 첫 일로 하는 게 맞아.'); }); await snap('main-char-noskin');
   await E(() => { D.state.theme.layout.skin = window.__skin; window.__say('짧은 말.'); }); await snap('main-skin');
-  await E(() => window.__say('1시야, 점심은 먹었지? 제임스 구글 계정 권한 요청은 끝났고, 이제 아까 말한 대로 스마일샤크 gws부터 잡자. 내일(13일) 마감, D-1이라 오후 첫 일로 하는 게 맞아. 찰리께 문의는 답이 오면 이어서 하자.')); await snap('main-skin-long');
+  await E(() => window.__say('1시야, 점심은 먹었지? 계정 권한 요청은 끝났고, 이제 아까 말한 대로 분기 정산 보고서부터 잡자. 내일 마감이라 오후 첫 일로 하는 게 맞아.')); await snap('main-skin-long');
   await E(() => { D.state.theme.assistant.looks = window.__looks; D.state.theme.assistant.look = 'joker'; D.renderAll(); }); await snap('look');
   await E(() => { window.__set('lastAssistant', { thinking: true, at: Date.now() - 600000 }); D.state.theme.assistant.look = 'auto'; D.renderAll(); D.bubble.update(); }); await snap('thinking');
   await E(() => window.__say('짧은 말.'));

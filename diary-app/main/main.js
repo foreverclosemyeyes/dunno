@@ -17,6 +17,7 @@ const assistant = require('./assistant');
 const statsAuto = require('./stats');
 const weekly = require('./weekly');
 const docsLib = require('./docs');
+const packLib = require('./pack');
 const updater = require('./updater');
 const { NotionMcp, parseMarkdown, cleanText } = require('./notionMcp');
 
@@ -33,11 +34,11 @@ process.on('uncaughtException', (e) => { log('uncaughtException', e); });
 process.on('unhandledRejection', (e) => { log('unhandledRejection', e); });
 
 const SYNC_MS = 2 * 60 * 1000;
-const DEFAULT_CFG = {
-  databaseId: 'ca74544b319f4aef888b8302b527232f',
-  dataSourceId: '77d1be1a-43f1-4944-9e21-79f2de3301f0',
-  userId: '387d872b-594c-813c-9970-0002e617b3d5',
-};
+// 노션 대상(업무 DB·내 사용자 id)은 설정 > 연결에서 넣음. 비어 있으면 노션 없이 이 컴퓨터에만 저장하는 모드로 동작
+const DEFAULT_CFG = { databaseId: '', dataSourceId: '', userId: '' };
+// 예전 판에는 아래 값이 기본값으로 박혀 있었음. 그때부터 쓰던 설치본이 끊기지 않게 한 번만 설정으로 옮겨 저장함.
+// (새로 설치한 사람에게는 적용되지 않음. 옮긴 뒤에는 이 상수를 지워도 됨)
+const LEGACY_CFG = { databaseId: 'ca74544b319f4aef888b8302b527232f', dataSourceId: '77d1be1a-43f1-4944-9e21-79f2de3301f0', userId: '387d872b-594c-813c-9970-0002e617b3d5' };
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'diary-asset', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, corsEnabled: true } },
@@ -68,6 +69,7 @@ const state = {
   syncing: false,
   error: null,
   needsSetup: false,
+  local: false, // 노션 없이 이 컴퓨터에만 저장하는 모드
 };
 
 function snapshot() {
@@ -87,6 +89,7 @@ function snapshot() {
     syncing: state.syncing,
     error: state.error,
     needsSetup: state.needsSetup,
+    local: state.local,
   };
 }
 
@@ -99,6 +102,31 @@ const pushData = () => push('data', snapshot());
 function cfg() {
   return { ...DEFAULT_CFG, ...store.get('notionCfg', {}) };
 }
+
+// ---------- 노션 없이 쓰기 ----------
+// 노션이 연결돼 있지 않거나 노션 대상이 정해지지 않았으면, 체크리스트와 진행 중 업무를 이 컴퓨터에만 저장한다.
+const LOCAL_WEEK = 'local';
+const newId = () => 'l' + crypto.randomBytes(6).toString('hex');
+function notionReady() {
+  const c = cfg();
+  return !!(c.dataSourceId && c.userId) && (secrets.has('notion') || !!(mcp && mcp.loggedIn()));
+}
+function loadLocal() {
+  Object.assign(state, {
+    local: true, needsSetup: false, error: null, syncing: false, events: [],
+    weeks: [{ id: LOCAL_WEEK, url: '', name: '내 체크리스트', start: '0000-01-01', end: '9999-12-31', days: store.get('localDays', {}) }],
+    quests: store.get('localQuests', []),
+    lastSync: new Date().toISOString(),
+  });
+}
+function saveLocal() {
+  if (!state.local) return;
+  const w = state.weeks.find((x) => x.id === LOCAL_WEEK);
+  if (w) store.set('localDays', w.days);
+  store.set('localQuests', state.quests);
+}
+// 노션에 쓰지 않고 앱 안에서만 바꾸는 경우 (노션 없이 쓰기 + 화면 확인용 데모)
+const offline = () => state.local || !!process.env.DIARY_DEMO;
 
 function monthRange(ym) {
   const [y, m] = ym.split('-').map(Number);
@@ -123,14 +151,16 @@ async function doSync(force) {
     updateStats();
     return;
   }
-  const token = secrets.get('notion');
-  if (!token && mcp && mcp.loggedIn()) return syncViaMcp();
-  if (!token) {
-    state.needsSetup = true;
-    state.error = '노션이 아직 연결되지 않았어요. 오른쪽 위 SETTING > 연결에서 "노션으로 로그인"을 눌러 주세요.';
+  if (!notionReady()) { // 노션 없이 쓰기
+    loadLocal();
+    lastSyncAt = Date.now();
     pushData();
+    updateStats();
     return;
   }
+  state.local = false;
+  const token = secrets.get('notion');
+  if (!token) return syncViaMcp();
   state.needsSetup = false;
   state.syncing = true;
   pushData();
@@ -342,6 +372,7 @@ async function runAssistant({ notify, auto = false }) {
     if (auto) return null; // 자동 체크가 실패하면 조용히 넘어감 (다음 시간에 다시)
     msg = { ...assistant.fallbackMessage(ctx, who), note: assistant.friendlyError(e) };
   }
+  if (auto && msg.source !== 'claude') return null; // Claude 없이 쓰는 경우: 정해진 문장으로 매시간 말 걸지 않음
   if (msg.nothing) {
     // 새로 말할 게 없음: 자동 체크면 아무것도 띄우지 않고, 직접 눌렀을 때만 한 줄로 알림
     if (auto) return null;
@@ -429,7 +460,7 @@ async function deleteTodo(id) {
     const walk = (items) => { const k = (items || []).findIndex((x) => x.id === id); if (k >= 0) { items.splice(k, 1); return true; } return (items || []).some((x) => walk(x.children)); };
     for (const w of state.weeks) for (const items of Object.values(w.days || {})) if (walk(items)) return;
   };
-  if (process.env.DIARY_DEMO) { removeLocal(); pushData(); return { ok: true }; }
+  if (offline()) { removeLocal(); saveLocal(); pushData(); return { ok: true }; }
   try {
     const token = secrets.get('notion');
     if (token) await new notion.NotionClient(token).deleteBlock(id);
@@ -457,7 +488,7 @@ async function editTodo(id, text) {
     for (const w of state.weeks) for (const items of Object.values(w.days || {})) if (walk(items)) return true;
     return false;
   };
-  if (process.env.DIARY_DEMO) { setLocal(); pushData(); return { ok: true }; }
+  if (offline()) { setLocal(); saveLocal(); pushData(); return { ok: true }; }
   try {
     const token = secrets.get('notion');
     if (token) await new notion.NotionClient(token).setTodoText(id, text);
@@ -524,11 +555,55 @@ function ensureWeekPage(date) {
   return creatingWeeks.get(week.monday);
 }
 
+// ---------- 진행 중 업무 추가 ----------
+// 노션 연결 상태면 업무 DB 에 페이지를 만들고(상태 '진행중', 담당자 나, 마감일은 기간에), 아니면 이 컴퓨터에만 저장
+async function addQuest(name, end) {
+  name = String(name || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+  end = /^\d{4}-\d{2}-\d{2}$/.test(String(end || '')) ? String(end) : null;
+  if (!name) return { ok: false, message: '업무 이름을 적어 주세요.' };
+  if (offline()) {
+    state.quests.push({ id: newId(), url: '', name, status: '진행중', start: end, end, tags: [], local: true });
+    state.quests.sort((a, b) => (a.end || '9999').localeCompare(b.end || '9999'));
+    saveLocal(); pushData();
+    return { ok: true };
+  }
+  try {
+    const token = secrets.get('notion');
+    if (token) await notion.createTask(new notion.NotionClient(token), cfg(), { name, end });
+    else {
+      const c = cfg();
+      // 내가 가장 최근에 만든 업무의 분류(Cell·우선순위)를 그대로 따름
+      const like = await mcp.sql(c.dataSourceId, `SELECT Cell, "우선순위" FROM {T} WHERE "담당자" LIKE ${sqlStr(`%${c.userId}%`)} ORDER BY createdTime DESC LIMIT 1`).catch(() => []);
+      const properties = { Name: name, 상태: '진행중', 담당자: [c.userId] };
+      if (end) Object.assign(properties, { 'date:기간:start': end, 'date:기간:is_datetime': 0 });
+      for (const k of ['Cell', '우선순위']) if (like[0] && like[0][k]) properties[k] = like[0][k];
+      await mcp.call('notion-create-pages', { parent: { type: 'data_source_id', data_source_id: c.dataSourceId }, pages: [{ properties }], allow_async: false });
+    }
+    await sync(true);
+    return { ok: true, notion: true };
+  } catch (e) {
+    console.error('[add quest]', e);
+    return { ok: false, message: e.friendly || '노션에 업무를 추가하지 못했어요.' };
+  }
+}
+function removeQuest(id) {
+  if (!offline()) return { ok: false, message: '노션에 있는 업무는 노션에서 지워 주세요. (× 는 이 앱에서만 숨겨요)' };
+  state.quests = state.quests.filter((q) => q.id !== id);
+  saveLocal(); pushData();
+  return { ok: true };
+}
+
 // ---------- 새 체크박스 추가 ----------
 async function addTodo(date, text) {
   text = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 300);
   if (!text) return { ok: false, message: '내용을 적어 주세요.' };
   const find = () => state.weeks.find((x) => x.days && (x.days[date] || (x.meta && x.meta[date]) || (x.adders && x.adders[date])));
+  if (state.local) { // 노션 없이 쓰기: 어느 날짜에나 바로 적음
+    const wk = state.weeks.find((x) => x.id === LOCAL_WEEK);
+    (wk.days[date] = wk.days[date] || []).push({ id: newId(), text, checked: false, children: [] });
+    saveLocal(); pushData();
+    return { ok: true };
+  }
   if (process.env.DIARY_DEMO) {
     let wk = state.weeks.find((x) => x.start <= date && (x.end || x.start) >= date), created;
     if (!wk && weekly.canCreate(date, state.today)) { // 데모: 노션 대신 화면 안에서만 새 주를 만듦
@@ -537,7 +612,7 @@ async function addTodo(date, text) {
       state.weeks.push(wk); created = week.name;
     }
     if (!wk) return { ok: false, message: '이 날짜의 운영성 업무 페이지가 없어요.' };
-    (wk.days[date] = wk.days[date] || []).push({ id: 'n' + Date.now(), text, checked: false, children: [] });
+    (wk.days[date] = wk.days[date] || []).push({ id: newId(), text, checked: false, children: [] });
     pushData();
     return { ok: true, created };
   }
@@ -579,7 +654,7 @@ async function toggleTodo(blockId, checked) {
   setLocalTodo(blockId, checked);
   pendingTodos.set(blockId, checked);
   pushData();
-  if (process.env.DIARY_DEMO) { pendingTodos.delete(blockId); updateStats(); return { ok: true }; }
+  if (offline()) { pendingTodos.delete(blockId); saveLocal(); updateStats(); return { ok: true }; }
   try {
     const token = secrets.get('notion');
     if (!token && mcp && mcp.loggedIn()) await toggleViaMcp(blockId, checked);
@@ -871,8 +946,26 @@ function registerIpc() {
     store.set('asstMemory', all);
     return all;
   });
+  // 꾸밈 묶음: 스킨·캐릭터 그림·색을 파일 하나로 내보내기 / 가져오기
+  ipcMain.handle('pack:export', async (_e, theme) => {
+    const r = await dialog.showSaveDialog(win, { defaultPath: '업무다이어리 꾸밈.diarypack', filters: [{ name: '업무다이어리 꾸밈', extensions: ['diarypack'] }] });
+    if (r.canceled || !r.filePath) return { ok: false };
+    const p = packLib.build(theme, (id) => { const f = path.join(assetsDir, path.basename(id)); return fs.existsSync(f) ? fs.readFileSync(f).toString('base64') : null; });
+    fs.writeFileSync(r.filePath, JSON.stringify(p));
+    return { ok: true, images: Object.keys(p.assets).length };
+  });
+  ipcMain.handle('pack:import', async (_e, current) => {
+    const r = await dialog.showOpenDialog(win, { properties: ['openFile'], filters: [{ name: '업무다이어리 꾸밈', extensions: ['diarypack'] }] });
+    if (r.canceled || !r.filePaths[0]) return { ok: false };
+    try {
+      const theme = packLib.apply(JSON.parse(fs.readFileSync(r.filePaths[0], 'utf8')), current, (id, data) => saveAsset(Buffer.from(data, 'base64'), id).url);
+      return { ok: true, theme };
+    } catch (e) { return { ok: false, message: String(e.message || '꾸밈 파일을 읽지 못했어요.') }; }
+  });
   ipcMain.handle('clipboard:write', (_e, text) => { clipboard.writeText(String(text || '')); return true; });
   ipcMain.handle('chat:clear', () => { store.set('chat', []); push('chat', []); return []; });
+  ipcMain.handle('quest:add', (_e, name, end) => addQuest(name, end));
+  ipcMain.handle('quest:remove', (_e, id) => removeQuest(String(id)));
   ipcMain.handle('todo:delete', (_e, id) => deleteTodo(String(id)));
   ipcMain.handle('todo:add', (_e, date, text) => addTodo(String(date), String(text)));
   ipcMain.handle('todo:move', (_e, id, date) => moveTodo(String(id), String(date)));
@@ -978,6 +1071,7 @@ app.whenReady().then(() => {
   const ud = app.getPath('userData');
   store = new JsonStore(path.join(ud, 'diary-data.json'));
   cache = new JsonStore(path.join(ud, 'notion-cache.json'));
+  if (!store.get('notionCfg', null) && (cache.get('snapshot', null) || store.get('chat', []).length)) store.set('notionCfg', LEGACY_CFG);
   secrets = new Secrets(path.join(ud, 'secrets.json'));
   mcp = new NotionMcp({
     load: () => { try { return JSON.parse(secrets.get('notionMcp') || '{}'); } catch { return {}; } },

@@ -413,14 +413,15 @@
     const list = $('#record-list'); list.innerHTML = '';
     if (info && info.items.length) info.items.forEach((i) => list.append(todoNode(i)));
     else {
-      const msg = state.data.needsSetup ? '노션 키를 넣으면 체크리스트가 여기 떠요.\n오른쪽 위 ⚙ 설정 > 연결'
+      const msg = state.data.local ? '아래 칸에 할 일을 적어 보세요.'
         : (sel.getDay() === 0 || sel.getDay() === 6) ? '주말이에요. 푹 쉬어요!' : '이 날짜의 체크리스트가 없어요.';
       const e = h('div', 'empty'); e.append(S('body', msg)); e.style.whiteSpace = 'pre-line';
       const skE = (state.theme.layout.skin || {}).empty;
-      if (skE && !state.data.needsSetup) { const im = h('img', 'empty-tag'); im.src = skE; e.prepend(im); }
+      if (skE) { const im = h('img', 'empty-tag'); im.src = skE; e.prepend(im); }
       list.append(e);
     }
     const btn = $('#btn-open-notion');
+    btn.hidden = !!state.data.local; // 노션 없이 쓸 때는 열 페이지가 없음
     btn.disabled = !info;
     btn.onclick = () => info && window.diary.open(info.url);
     $('#btn-today').hidden = isToday && state.viewMonth === state.today.slice(0, 7);
@@ -437,13 +438,35 @@
     toast(`"${q.name}" 숨김 · SETTING > 연결 > 숨긴 업무에서 되돌릴 수 있어요`, 3500);
   }
 
+  // 진행 중 업무 추가 칸: 이름 + 마감일(안 넣어도 됨). Enter 로 추가
+  function questForm() {
+    const f = h('form', 'q-form');
+    const name = h('input'); name.type = 'text'; name.placeholder = '업무 이름 (Enter)'; name.maxLength = 200;
+    const due = h('input'); due.type = 'date'; due.title = '마감일 (안 넣어도 돼요)';
+    f.append(name, due);
+    f.onsubmit = async (e) => {
+      e.preventDefault();
+      if (!name.value.trim()) return;
+      name.disabled = due.disabled = true;
+      const r = await window.diary.addQuest(name.value, due.value);
+      if (r.ok) { renderQuests.adding = false; toast(r.notion ? '노션 업무 DB에 추가했어요.' : '추가했어요.'); renderQuests(); }
+      else { name.disabled = due.disabled = false; toast(r.message, 5000); }
+    };
+    setTimeout(() => name.focus(), 0);
+    return f;
+  }
+
   function renderQuests() {
     const quests = visibleQuests();
     const head = $('#quest-title'); head.innerHTML = '';
-    head.append(S('section', '진행 중 업무'), h('small', null, `${quests.length}개`));
+    const add = h('button', 'q-add', renderQuests.adding ? '닫기' : '+ 추가');
+    add.onclick = () => { renderQuests.adding = !renderQuests.adding; renderQuests(); };
+    const right = h('span', 'q-head-right'); right.append(h('small', null, `${quests.length}개`), add);
+    head.append(S('section', '진행 중 업무'), right);
     const list = $('#quest-list'); list.innerHTML = '';
-    if (!quests.length) {
-      const e = h('div', 'empty'); e.append(S('body', state.data.needsSetup ? '노션 연결 후 표시돼요.' : '진행 중인 업무가 없어요.'));
+    if (renderQuests.adding) list.append(questForm());
+    if (!quests.length && !renderQuests.adding) {
+      const e = h('div', 'empty'); e.append(S('body', '진행 중인 업무가 없어요.'));
       list.append(e);
     }
     for (const q of quests) {
@@ -454,10 +477,9 @@
       meta.append(h('span', 'st', q.status || ''), h('span', null, q.end ? `마감 ${q.end.slice(5).replace('-', '/')}` : '마감일 없음'));
       row.append(meta);
       row.append(h('div', 'dd', d === null ? '—' : d === 0 ? 'D-DAY' : d > 0 ? `D-${d}` : `D+${-d}`));
-      row.title = '노션에서 열기';
-      row.onclick = () => window.diary.open(q.url);
-      const x = h('button', 'q-hide', '×'); x.title = '이 업무 숨기기 (휴지통에 있는 업무 등)';
-      x.onclick = (e) => { e.stopPropagation(); hideQuest(q); };
+      if (q.url) { row.title = '노션에서 열기'; row.onclick = () => window.diary.open(q.url); }
+      const x = h('button', 'q-hide', '×'); x.title = q.url ? '이 업무 숨기기 (휴지통에 있는 업무 등)' : '이 업무 지우기';
+      x.onclick = async (e) => { e.stopPropagation(); if (q.url) hideQuest(q); else { await window.diary.removeQuest(q.id); toast(`"${q.name}" 지웠어요.`); } };
       row.append(x);
       list.append(row);
     }

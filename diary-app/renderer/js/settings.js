@@ -144,7 +144,8 @@
   }
 
   function renderConnect(body) {
-    const n = C.section('노션 연결', true);
+    const n = C.section('노션 연결 (안 해도 쓸 수 있어요)', true);
+    n.body.append(note(state.data.local ? '<b>지금은 노션 없이 쓰는 중이에요.</b> 체크리스트와 진행 중 업무는 이 컴퓨터에만 저장돼요. 노션과 맞춰 쓰려면 아래에서 연결하고, 맨 아래 <b>노션 대상</b>에 업무 DB와 내 사용자 id 를 넣으세요.' : '노션에 연결돼 있어요. 체크리스트와 진행 중 업무를 노션 업무 DB와 맞춰요.'));
     const lg = h('div', 'key');
     lg.append(h('div', 'ctl-label', '노션으로 로그인 (관리자 권한 없이 — 추천)'));
     lg.append(h('div', 'key-status ' + (state.notionLogin ? 'ok' : ''), state.notionLogin ? '● 로그인됨' : '○ 아직 안 함'));
@@ -161,7 +162,7 @@
       lr.append(btn('로그아웃', '', async () => { await window.diary.notionLogout(); state.notionLogin = false; render(); }));
     }
     lg.append(lr);
-    n.body.append(lg, note('브라우저에서 노션 로그인 화면이 열리면 <b>Buzz & Beyond</b> 워크스페이스를 고르고 <b>허용</b>을 누르세요. 회사에서 API 키를 만들 수 없을 때 쓰는 방법이에요. 아래 노션 키 칸은 비워 두면 돼요.'));
+    n.body.append(lg, note('브라우저에서 노션 로그인 화면이 열리면 쓰는 워크스페이스를 고르고 <b>허용</b>을 누르세요. 회사에서 API 키를 만들 수 없을 때 쓰는 방법이에요. 아래 노션 키 칸은 비워 두면 돼요.'));
     n.body.append(keyField('notion', '노션 내부 통합 키', 'ntn_ 로 시작하는 키 붙여넣기'));
     const test = h('div', 'test-result');
     n.body.append(h('div', 'row-inline', null));
@@ -173,7 +174,7 @@
     n.body.append(test);
     n.body.append(note('키 발급·DB 연결 방법은 <b>안내서(사용설명서.md)</b>의 "노션 연결하기"를 따라 하세요. 키는 이 컴퓨터의 보안 저장소로 암호화돼서 저장되고 화면에는 다시 보이지 않아요.'));
 
-    const ids = C.section('노션 대상 (보통은 바꿀 필요 없음)');
+    const ids = C.section('노션 대상 (업무 DB · 내 사용자 id)');
     const fields = [['userId', '내 노션 user ID'], ['dataSourceId', 'data source ID'], ['databaseId', 'database ID']];
     const inputs = {};
     for (const [k, l] of fields) {
@@ -260,11 +261,28 @@
       }));
       hq.body.append(r);
     }
-    body.append(n.el, gm.el, hq.el, up.el, g.el);
+    ids.body.append(note('노션과 맞춰 쓸 때만 필요해요. 업무 DB에는 <b>Name · 상태 · 담당자 · 기간</b> 속성이 있어야 하고, 날짜별 체크리스트는 이름에 <b>"운영성 업무"</b>가 들어간 주간 페이지에서 읽어요. 비워 두면 노션 없이 이 컴퓨터에만 저장해요.'));
+    body.append(n.el, ids.el, gm.el, hq.el, up.el, g.el);
   }
 
   // ---------- 꾸미기 ----------
   function renderLook(body) {
+    // 한 번에 옮기기: 스킨·캐릭터 그림·색·배치를 파일 하나로 (새로 설치한 사람은 이 파일 하나만 넣으면 됨)
+    const mv = C.section('꾸밈 한 번에 옮기기', true);
+    const mvRow = h('div', 'row-inline');
+    mvRow.append(
+      btn('꾸밈 파일 가져오기', 'primary', async () => {
+        const r = await window.diary.importPack(state.theme);
+        if (r.ok) { loadTheme(r.theme); D.toast('꾸밈을 가져와서 적용했어요.'); } else if (r.message) D.toast(r.message, 6000);
+      }),
+      btn('내 꾸밈 내보내기', '', async () => {
+        D.toast('파일을 만드는 중…');
+        const r = await window.diary.exportPack(state.theme);
+        if (r.ok) D.toast(`내보냈어요. (그림 ${r.images}장 포함)`);
+      }),
+    );
+    mv.body.append(mvRow, note('스킨 그림, 캐릭터와 표정, 색, 배치를 <b>파일 하나(.diarypack)</b>로 주고받아요. 받은 사람은 <b>꾸밈 파일 가져오기</b> 한 번이면 같은 모습이 돼요. 업무 지침·Claude 채팅 주소·참고 문서 같은 개인 설정은 파일에 들어가지 않아요.'));
+    body.append(mv.el);
     const pal = C.section('색 조합 (누르면 한 번에 바뀌어요)', true);
     const pg = h('div', 'pal-grid');
     D.PALETTES.forEach(([name, p], i) => {
@@ -466,7 +484,7 @@
     body.append(mdl.el);
     const cl = C.section(`${asstName} · 업무 지침 · Claude 채팅 연결`, true);
     const ins = h('textarea'); ins.value = work.instructions;
-    ins.placeholder = 'Claude의 "업무비서" 프로젝트 지침(또는 채팅에서 정해 둔 규칙)을 그대로 붙여 넣으세요.\n예: 나는 경영지원 담당이고, 매주 월요일엔 자금일보를 먼저 챙긴다…';
+    ins.placeholder = 'Claude의 "업무비서" 프로젝트 지침(또는 채팅에서 정해 둔 규칙)을 그대로 붙여 넣으세요.\n예: 나는 운영 담당이고, 매주 월요일엔 주간 보고를 먼저 챙긴다…';
     ins.style.minHeight = '140px';
     const url = h('input'); url.type = 'text'; url.value = work.claudeUrl;
     url.placeholder = 'https://claude.ai/project/… 또는 https://claude.ai/chat/…';
@@ -475,7 +493,7 @@
     // 지침을 직접 쓰지 않고, 쓰던 claude.ai 채팅방에서 뽑아 오기
     const how = h('div', 'row-inline');
     how.append(btn('지침 뽑는 프롬프트 복사', '', async () => { await window.diary.copyText(D.INSTRUCTION_PROMPT); D.toast('복사했어요. 그 채팅방에 붙여 넣고, 나온 답을 아래 칸에 넣으세요.', 5000); }));
-    cl.body.append(note('<b>쓰던 Claude 채팅에서 지침 뽑아 오기</b>: 아래 버튼으로 프롬프트를 복사해서 그 채팅방(GMEP, 유연근무 등)에 붙여 넣으면, 그 채팅 내용으로 지침을 정리해 줘요. 나온 답을 <b>업무비서 지침</b> 칸에 붙여 넣고 저장하세요. 맨 끝의 "확신 없었던 부분"은 읽어 보고 틀린 데만 고치고, 칸에는 넣지 마세요.'), how);
+    cl.body.append(note('<b>쓰던 Claude 채팅에서 지침 뽑아 오기</b>: 아래 버튼으로 프롬프트를 복사해서 그 채팅방에 붙여 넣으면, 그 채팅 내용으로 지침을 정리해 줘요. 나온 답을 <b>업무비서 지침</b> 칸에 붙여 넣고 저장하세요. 맨 끝의 "확신 없었던 부분"은 읽어 보고 틀린 데만 고치고, 칸에는 넣지 마세요.'), how);
     // 참고 문서: 분량이 큰 인수인계 파일은 지침 칸 대신 파일로 넣음
     const docs = state.theme.assistant.docs || [];
     const total = docs.reduce((n, d) => n + (d.chars || 0), 0);
@@ -509,7 +527,7 @@
       }),
       btn('Claude 채팅 열기 ↗', '', () => url.value.trim() && window.diary.open(url.value.trim())),
     );
-    cl.body.append(note('<b>지침·채팅 주소·모델은 비서마다 따로</b> 저장돼요. 예를 들어 한 비서에는 GMEP 채팅의 지침과 주소를, 다른 비서에는 유연근무 채팅의 지침과 주소를 넣어 두고, 말풍선의 이름을 눌러 비서를 바꿔 가며 쓰면 돼요. 대화도 비서별로 따로 이어져요.'));
+    cl.body.append(note('<b>지침·채팅 주소·모델은 비서마다 따로</b> 저장돼요. 예를 들어 한 비서에는 A 업무 채팅의 지침과 주소를, 다른 비서에는 B 업무 채팅의 지침과 주소를 넣어 두고, 말풍선의 이름을 눌러 비서를 바꿔 가며 쓰면 돼요. 대화도 비서별로 따로 이어져요.'));
     cl.body.append(note('앱 안의 비서는 Claude(Haiku 5.5)가 이 지침과 오늘 노션 업무를 보고 대답해요. claude.ai 채팅방 자체와 대화 기록이 직접 이어지지는 않아요(Claude가 그걸 외부 앱에 열어 주지 않아요). 대신 지침을 똑같이 맞추고, "Claude에서 열기" 버튼으로 그 채팅방을 바로 열 수 있어요.'));
     // 기억해 둔 것: 대화 중에 "앞으로는 ~해 줘"라고 한 규칙을 비서가 적어 둔 목록 (비서별)
     const castId = state.theme.castActive || 'ren';
@@ -528,7 +546,7 @@
   function init() {
     document.getElementById('btn-settings').onclick = () => (document.body.classList.contains('settings-open') ? close() : open());
     snapshotHistory();
-    if (!state.hasKeys.notion) { tab = 'connect'; setTimeout(open, 400); }
+    if (!state.hasKeys.notion && !state.settings.welcomed) { tab = 'connect'; setTimeout(open, 400); window.diary.setSettings({ welcomed: true }).then((v) => { state.settings = v; }); }
     window.addEventListener('keydown', (e) => {
       const mod = e.metaKey || e.ctrlKey;
       if (!mod) return;
