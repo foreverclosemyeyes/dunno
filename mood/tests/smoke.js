@@ -146,7 +146,7 @@ function seed() {
   check('약 알람 시각 저장', JSON.stringify((await store()).meds[0].alarms) === '["08:30","21:00"]');
   const [icsFile] = await Promise.all([page.waitForEvent('download'), page.click('[data-act=ics]')]);
   const ics = fs.readFileSync(await icsFile.path(), 'utf8');
-  check('알림 파일에 약 이름과 시각이 들어감', ics.includes('알프람 0.25mg 먹을 시간') && ics.includes('T083000') && ics.includes('T210000') && ics.includes('Tide 기록하기'), ics.slice(0, 200));
+  check('알림 파일에 약 이름과 시각이 들어감', ics.includes('알프람 0.25mg 먹을 시간') && ics.includes('T083000') && ics.includes('T210000') && ics.includes('Tidemark 기록하기'), ics.slice(0, 200));
   await page.click('[data-act=alarmDel] >> nth=1');
   check('약 알람 지우기', (await store()).meds[0].alarms.length === 1);
   await page.click('[data-act=close]');

@@ -20,8 +20,8 @@ export function makeIcs() {
     'DURATION:PT5M', 'RRULE:FREQ=DAILY', `SUMMARY:${title}`, `URL:${url}`, 'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${title}`, 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT'] : []);
   const medEvents = db.meds.flatMap((m, i) => [...new Set((m.alarms || []).filter(Boolean))].flatMap((time) =>
     ev(`med${i}-${time.replace(':', '')}`, time, F('{0} 먹을 시간', `${m.name}${m.dose ? ` ${m.dose}` : ''}`))));
-  return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Tide//Reminders//KO', 'CALSCALE:GREGORIAN',
-    ...ev('log', r.log, T('Tide 기록하기')), ...medEvents, 'END:VCALENDAR'].join('\r\n');
+  return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Tidemark//Reminders//KO', 'CALSCALE:GREGORIAN',
+    ...ev('log', r.log, T('Tidemark 기록하기')), ...medEvents, 'END:VCALENDAR'].join('\r\n');
 }
 
 // 파일 건네기: 아이폰에서는 공유 창, 그 밖에는 내려받기

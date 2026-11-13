@@ -69,7 +69,7 @@ export function openSettings() {
       <label class="li"><span class="lk">${T('기록 알림')}</span><input type="time" id="r-log" value="${esc(remind().log || '')}"></label>
       <button class="li add" data-act="ics">${T('캘린더에 알림 추가')}</button>
     </section>
-    <p class="secnote">${T('아이폰 웹앱은 정해진 시간에 스스로 알림을 보낼 수 없어요. 대신 매일 반복되는 캘린더 알림 파일을 만들어 드려요. 약 알람은 아래 “자주 먹는 약”에서 약마다 정하고, 버튼을 누른 뒤 “캘린더에 추가”를 고르세요. 시간을 바꿨으면 캘린더에서 예전 Tide 알림을 지우고 다시 추가해 주세요.')}</p>
+    <p class="secnote">${T('아이폰 웹앱은 정해진 시간에 스스로 알림을 보낼 수 없어요. 대신 매일 반복되는 캘린더 알림 파일을 만들어 드려요. 약 알람은 아래 “자주 먹는 약”에서 약마다 정하고, 버튼을 누른 뒤 “캘린더에 추가”를 고르세요. 시간을 바꿨으면 캘린더에서 예전 Tidemark 알림을 지우고 다시 추가해 주세요.')}</p>
 
     <div class="sec">${T('글씨체')}</div>
     <section class="card list">${Object.keys(FONTS).map((k) => pick('font', `data-font="${k}"`, (db.settings.font || 'system') === k,
@@ -102,7 +102,7 @@ export function openSettings() {
       <li>${T('“홈 화면에 추가”를 누릅니다.')}</li>
     </ol></section>
     <p class="secnote">${DISCLAIMER} ${T('걱정되는 변화가 있으면 진료 때 이 기록을 보여 주며 이야기해 보세요.')}</p>
-    <p class="foot" id="about">Tide ${VERSION} · ${standalone() ? T('홈 화면 앱') : T('브라우저')} · ${screen.width}×${screen.height} / ${innerWidth}×${innerHeight}</p>
+    <p class="foot" id="about">Tidemark ${VERSION} · ${standalone() ? T('홈 화면 앱') : T('브라우저')} · ${screen.width}×${screen.height} / ${innerWidth}×${innerHeight}</p>
   </div>`;
   showSheet();
 }

@@ -1,6 +1,6 @@
 {
-  "name": "Tide — mood & sleep log",
-  "short_name": "Tide",
+  "name": "Tidemark — mood & sleep log",
+  "short_name": "Tidemark",
   "description": "기분과 수면을 10초 만에 기록하는 개인용 기록 도구",
   "lang": "ko",
   "start_url": "./",
