@@ -326,7 +326,8 @@ async function chatWithAssistant(text) {
   push('assistant', { thinking: true });
   let msg;
   try {
-    msg = await assistant.chat(secrets.get('anthropic'), persona(), currentContext(), history, text);
+    const st = store.get('settings', {});
+    msg = await assistant.chat(secrets.get('anthropic'), persona(), currentContext(), history, text, st.gmail ? { gmail: { server: st.gmailServer } } : {});
   } catch (e) {
     console.error('[chat]', e);
     msg = { text: assistant.friendlyError(e), source: 'local', name: persona().name, error: true };
@@ -770,6 +771,12 @@ function registerIpc() {
   ipcMain.handle('update:install', () => installUpdate());
   ipcMain.handle('assistant:ask', () => runAssistant({ notify: false }));
   ipcMain.handle('assistant:chat', (_e, text) => chatWithAssistant(text));
+  // Gmail 연결 확인: 되면 찾은 커넥터 이름을 기억해 둠
+  ipcMain.handle('gmail:check', async () => {
+    const r = await assistant.checkGmail(persona(), store.get('settings', {}).gmailServer);
+    if (r.ok) setSettings({ gmailServer: r.server });
+    return r;
+  });
   ipcMain.handle('chat:clear', () => { store.set('chat', []); push('chat', []); return []; });
   ipcMain.handle('todo:delete', (_e, id) => deleteTodo(String(id)));
   ipcMain.handle('todo:add', (_e, date, text) => addTodo(String(date), String(text)));

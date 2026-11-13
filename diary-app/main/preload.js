@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('diary', {
   askAssistant: () => ipcRenderer.invoke('assistant:ask'),
   chat: (text) => ipcRenderer.invoke('assistant:chat', text),
   clearChat: () => ipcRenderer.invoke('chat:clear'),
+  checkGmail: () => ipcRenderer.invoke('gmail:check'),
   toggleTodo: (id, checked) => ipcRenderer.invoke('todo:toggle', id, checked),
   addTodo: (date, text) => ipcRenderer.invoke('todo:add', date, text),
   deleteTodo: (id) => ipcRenderer.invoke('todo:delete', id),

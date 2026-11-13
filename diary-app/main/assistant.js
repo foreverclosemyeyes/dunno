@@ -123,6 +123,7 @@ const { execFile } = require('child_process');
 const fsx = require('fs');
 const pathx = require('path');
 const osx = require('os');
+const gmail = require('./gmail');
 let cliPath; // undefined = 아직 안 찾음, null = 없음
 function findClaudeCli() {
   if (cliPath !== undefined) return Promise.resolve(cliPath);
@@ -141,17 +142,21 @@ function findClaudeCli() {
   });
 }
 function resetCli() { cliPath = undefined; }
+const cliEnv = (bin) => ({ ...process.env, PATH: `${pathx.dirname(bin)}:${process.env.PATH || ''}` });
 
-function askViaCli(persona, ctx, history, userText) {
+// opts.gmail = { server } 이면 Gmail 커넥터의 읽기·초안 도구만 허용해서 부름 (그 외에는 도구 없이)
+function askViaCli(persona, ctx, history, userText, opts = {}) {
   return findClaudeCli().then((bin) => new Promise((resolve, reject) => {
     if (!bin) return reject(Object.assign(new Error('no cli'), { friendly: 'Claude Code가 설치돼 있지 않아요. 사용설명서 4장을 보고 설치해 주세요.' }));
     const past = toMessages(history).slice(-12).map((m) => `${m.role === 'user' ? '사용자' : '나'}: ${m.content}`).join('\n');
     const prompt = (past ? `[지난 대화]\n${past}\n\n` : '') + `사용자: ${userText}`;
     const cwd = pathx.join(osx.tmpdir(), 'work-diary-assistant');
     try { fsx.mkdirSync(cwd, { recursive: true }); } catch { /* 이미 있음 */ }
-    const args = ['-p', prompt, '--system-prompt', systemPrompt(persona, ctx), '--tools', '', '--output-format', 'json',
-      '--model', chatModel(persona).cli, '--no-session-persistence', '--strict-mcp-config'];
-    execFile(bin, args, { cwd, timeout: 180_000, maxBuffer: 4 * 1024 * 1024, env: { ...process.env, PATH: `${pathx.dirname(bin)}:${process.env.PATH || ''}` } }, (err, out, errOut) => {
+    const g = opts.gmail;
+    const args = ['-p', prompt, '--system-prompt', systemPrompt(persona, ctx) + (g ? '\n' + gmail.PROMPT : ''), '--tools', '', '--output-format', 'json',
+      '--model', chatModel(persona).cli, '--no-session-persistence', ...(g ? gmail.cliArgs(g.server) : ['--strict-mcp-config'])];
+    const env = cliEnv(bin);
+    execFile(bin, args, { cwd, timeout: g ? 300_000 : 180_000, maxBuffer: 4 * 1024 * 1024, env: g ? gmail.childEnv(env) : env }, (err, out, errOut) => {
       let j = null;
       try { j = JSON.parse(out); } catch { /* 아래에서 처리 */ }
       if (j && !j.is_error && typeof j.result === 'string') return resolve(j.result.trim());
@@ -189,9 +194,11 @@ async function generate(apiKey, persona, ctx, history = []) {
 }
 
 // 사용자가 직접 말 걸기
-async function chat(apiKey, persona, ctx, history, userText) {
+// opts.gmail 이 켜져 있으면 API 키가 있어도 Claude Code 로 답함 (Gmail 커넥터는 구독 로그인에서만 쓸 수 있음)
+async function chat(apiKey, persona, ctx, history, userText, opts = {}) {
   let raw;
-  if (apiKey) raw = await ask(apiKey, persona, ctx, history, userText);
+  if (opts.gmail && await findClaudeCli()) raw = await askViaCli(persona, ctx, history, userText, opts);
+  else if (apiKey) raw = await ask(apiKey, persona, ctx, history, userText);
   else if (await findClaudeCli()) raw = await askViaCli(persona, ctx, history, userText);
   else return { text: '대화하려면 Claude Code 설치(구독 그대로 사용) 또는 Anthropic API 키가 필요해요. 사용설명서 4장을 봐 주세요.', source: 'local', name: persona.name };
   const { text, mood } = splitMood(raw);
@@ -206,4 +213,11 @@ function friendlyError(e) {
   return '비서가 잠깐 자리를 비웠어요. (연결 오류)';
 }
 
-module.exports = { findClaudeCli, resetCli, splitMood, generate, chat, buildContext, fallbackMessage, friendlyError, toMessages, CHECK_PROMPT, MODEL };
+// 설정창의 "Gmail 연결 확인"
+async function checkGmail(persona, server) {
+  const bin = await findClaudeCli();
+  if (!bin) return { ok: false, reason: 'nocli', message: 'Claude Code가 설치돼 있지 않아요. 사용설명서 4장을 보고 설치해 주세요.', server };
+  return gmail.probe(bin, chatModel(persona).cli, server, cliEnv(bin));
+}
+
+module.exports = { checkGmail, findClaudeCli, resetCli, splitMood, generate, chat, buildContext, fallbackMessage, friendlyError, toMessages, CHECK_PROMPT, MODEL };

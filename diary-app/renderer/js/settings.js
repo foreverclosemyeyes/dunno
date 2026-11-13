@@ -192,6 +192,25 @@
     a.body.lastChild.append(linkBtn('키 발급 페이지 ↗', 'https://console.anthropic.com/settings/keys'), btn('지금 확인해줘', '', () => window.diary.askAssistant()));
     a.body.append(note('쓴 만큼 요금이 나가요(선불 크레딧). 가볍고 빠른 <b>Claude Haiku 5.5</b>를 쓰고, 매시간 체크를 켜도 한 달에 보통 <b>몇십 원~몇백 원</b> 수준이에요. <b>키 없이 Claude 구독으로 대화하기</b>: 이 맥에 Claude Code를 설치하고 로그인하면(사용설명서 4장), 렌이 구독으로 대답해요. 크레딧은 안 써요. 둘 다 없으면 렌은 정해진 문장으로만 말해요.'));
 
+    // Gmail: 비서가 메일을 읽고 임시보관함에 초안을 씀 (보내기·지우기는 못 함)
+    const gm = C.section('Gmail (비서가 메일 읽기 · 초안 쓰기)', true);
+    const gmRow = h('div', 'ctl');
+    const gmSw = h('label', 'switch'); const gmCb = h('input'); gmCb.type = 'checkbox'; gmCb.checked = !!state.settings.gmail;
+    gmCb.onchange = async () => { state.settings = await window.diary.setSettings({ gmail: gmCb.checked }); };
+    gmSw.append(gmCb, h('span'));
+    gmRow.append(h('label', 'ctl-label', 'Gmail 사용'), gmSw, h('span'));
+    const gmTest = h('div', 'test-result');
+    const gmBtns = h('div', 'row-inline');
+    gmBtns.append(
+      btn('Gmail 연결 확인', '', async (ev) => {
+        ev.target.disabled = true; gmTest.className = 'test-result'; gmTest.textContent = '확인 중… (최근 메일 한 통을 읽어 봐요. 1분쯤 걸릴 수 있어요)';
+        const r = await window.diary.checkGmail();
+        ev.target.disabled = false; gmTest.textContent = r.message; gmTest.className = 'test-result ' + (r.ok ? 'ok' : 'err');
+      }),
+      linkBtn('claude.ai 커넥터 설정 ↗', 'https://claude.ai/customize/connectors'),
+    );
+    gm.body.append(gmRow, gmBtns, gmTest, note('켜 두면 비서에게 <b>"○○에게 온 메일 찾아 줘"</b>, <b>"답장 초안 써 줘"</b>처럼 말할 수 있어요. 비서는 메일을 <b>읽고 임시보관함에 초안만</b> 넣어요. <b>보내기·지우기는 못 하게 막아 뒀고</b>, 보내는 건 Gmail에서 직접 하세요. claude.ai 에 Gmail 커넥터가 연결돼 있고, 이 맥의 Claude Code가 같은 계정으로 로그인돼 있어야 해요.'));
+
     const up = C.section('업데이트', true);
     const u = state.update || {};
     up.body.append(note(`지금 버전: <b>v${state.version || '?'}</b>${u.latest ? ` · 최신: <b>v${u.latest}</b>` : ''}${u.available ? ' · <b style="color:#c62d0d">새 버전 있음</b>' : u.latest ? ' · 최신이에요' : ''}${u.error ? `<br>⚠ ${u.error}` : ''}`));
@@ -239,7 +258,7 @@
       }));
       hq.body.append(r);
     }
-    body.append(n.el, hq.el, up.el, g.el);
+    body.append(n.el, gm.el, hq.el, up.el, g.el);
   }
 
   // ---------- 꾸미기 ----------
