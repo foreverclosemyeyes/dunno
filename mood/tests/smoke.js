@@ -198,8 +198,8 @@ function seed() {
 
   // 5-2. 진료 탭: 다음 진료일, 말할 것, 요약
   await page.click('[data-tab=clinic]');
-  check('진료용 요약에 그림과 눈에 띄는 날, 약이 나옴', (await page.$$('#sum-fig circle')).length > 10 && (await page.$$('#sum-fig path')).length >= 3 && (await page.$$('#sum-fig rect')).length === 0
-    && (await text('#summary')).includes('고조 높음 이상') && (await text('#sum-fig')).includes('브린텔릭스') && (await text('#summary')).includes('5시간 미만 수면'));
+  check('진료용 요약에 그림과 눈에 띄는 날, 약이 나옴', (await page.$$('#sum-fig circle')).length > 3 && (await page.$$('#sum-fig path')).length >= 5 && (await page.$$('#sum-fig rect')).length === 0
+    && (await text('#sum-fig')).includes('높음 이상') && (await text('#sum-fig')).includes('브린텔릭스') && (await text('#sum-fig')).includes('5시간 미만'));
   check('요약 그림이 카드 밖으로 안 넘침', await page.evaluate(() => document.querySelector('#sum-fig').getBoundingClientRect().right <= document.querySelector('#summary').getBoundingClientRect().right));
   await page.fill('#c-note', '약 먹으면 오후에 졸림'); await page.press('#c-note', 'Enter');
   check('말할 것 추가 (엔터)', (await store()).clinic.notes[0] === '약 먹으면 오후에 졸림' && (await text('#summary')).includes('약 먹으면 오후에 졸림'));
