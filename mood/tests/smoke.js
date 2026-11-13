@@ -172,22 +172,20 @@ function seed() {
   await page.click('[data-tab=insight]');
   const mineBefore = JSON.stringify((await store()).entries);
   await page.click('[data-act=insightDemo]');
-  check('기록이 적을 때 예시로 인사이트를 미리 봄 (내 기록은 그대로)', (await page.$$('.li.cmp')).length >= 3 && (await text('#app')).includes('예시 기록') && JSON.stringify((await store()).entries) === mineBefore);
+  check('기록이 적을 때 예시로 인사이트를 미리 봄 (내 기록은 그대로)', (await page.$$('.state li')).length >= 2 && (await text('#app')).includes('예시 기록') && JSON.stringify((await store()).entries) === mineBefore);
   await page.click('[data-act=insightDemo]');
-  check('예시를 닫으면 원래 안내로 돌아옴', (await page.$$('.li.cmp')).length === 0);
+  check('예시를 닫으면 원래 안내로 돌아옴', (await page.$$('.state')).length === 0 && (await text('#app')).includes('4일 이상 적으면'));
   await page.click('[data-tab=today]');
   await put(seed());
   check('오늘 화면에는 인사이트 배너를 띄우지 않음', (await page.$$('#app .signal')).length === 0);
   await page.click('[data-tab=insight]');
-  const says = await page.$$eval('.li.cmp', (x) => x.map((el) => el.textContent));
-  check('인사이트는 짧게: 시기 목록·시기별 표는 없고 비교는 세 개까지', !(await text('#app')).includes('지금까지의 시기') && (await page.$$('.li.cmp')).length <= 3 && (await page.$$('.state li')).length <= 6);
+  check('인사이트는 짧게: 시기 목록·비교 목록은 없고 근거는 여섯 줄까지', !(await text('#app')).includes('지금까지의 시기') && (await page.$$('.li.cmp')).length === 0 && (await page.$$('.state li')).length <= 6);
   // 잠자는 시간대가 당겨진 기록을 넣으면 그 점을 짚어 준다 (최근 연구 반영)
   await page.evaluate(([k]) => { const d = JSON.parse(localStorage.getItem(k)); Object.keys(d.entries).sort().reverse().forEach((date, i) => { d.entries[date].bed = i < 5 ? '22:00' : '01:00'; }); localStorage.setItem(k, JSON.stringify(d)); }, [KEY]);
   await page.reload(); await page.waitForSelector('h1'); await page.click('[data-tab=insight]');
   check('최근 7일 읽기: 잠자는 시간대가 당겨진 것을 짚어 줌', (await text('.state')).includes('잠자는 시간대가 평소보다') && (await text('.state')).includes('당겨짐'));
   check('최근 7일 읽기: 언제부터 며칠째인지도 말함',(await text('.state .flow')).includes('일째') && (await text('.state .flow')).includes('경조증 기준 기간(4일)을 넘음'));
   check('최근 7일 읽기: 들뜬 날이 이어지면 겹치는 점을 근거와 함께 보여 줌', (await text('.state')).includes('경조증·조증 때의 모습과 많이 겹쳐요') && (await text('.state')).includes('경조증 기준 증상 7가지 중') && (await text('.state')).includes('진단이 아니에요'));
-  check('인사이트: 두 숫자 비교', says.some((s) => s.includes('에너지가 높았던 날') && s.includes('그런 날') && s.includes('다른 날')), says.join(' / '));
   await page.click('[data-tab=trend]');
   check('주 그래프', (await page.$$('.plot svg')).length >= 4);
   await page.click('[data-mode=month]');

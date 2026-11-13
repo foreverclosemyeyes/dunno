@@ -1,14 +1,12 @@
 // 초기 신호 · 인사이트 · 진료용 요약 계산 (전부 이 폰 안에서)
-import { SIGNS, STIMULANTS, cafMg, customText, drinkText, fxName, fxNames, psyName, psyNames } from './constants.js';
-import { WD, addDays, durText, md, parse, today } from './dates.js';
+import { SIGNS, cafMg, customText, drinkText, fxName, fxNames, psyName, psyNames } from './constants.js';
+import { addDays, durText, md, parse, today } from './dates.js';
 import { F, T } from './i18n.js';
 import { aided, medsFor, medsText } from './meds.js';
 import { customDefs, db, usesOn } from './store.js';
 
 // ---------- 초기 신호 · 인사이트 (전부 이 폰 안에서 계산) ----------
 export const avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
-// 인사이트가 나오기 시작하는 기록 일수
-export const INSIGHT_MIN_DAYS = 5;
 
 export function signals() {
   const out = [], t = today();
@@ -230,107 +228,6 @@ export function medChanges() {
         [T('우울이 보통 이상'), count(b, (e) => e.dep >= 2), count(a, (e) => e.dep >= 2)], [T('불안이 보통 이상'), count(b, (e) => e.anx >= 2), count(a, (e) => e.anx >= 2)]],
     };
   }).filter(Boolean).reverse();
-}
-
-// 인사이트: 두 묶음의 평균을 견준 관찰들. 차이가 큰 것부터 나온다.
-// 누구에게나 흔한 쪽으로 나온 것(카페인을 많이 마시면 덜 잔다 등)은 새로운 정보가 아니라서 뺀다:
-// say의 세 번째 값이 "흔히 예상되는 쪽"(0 = 앞 문장, 1 = 뒤 문장)이고, 기록이 그 반대로 나왔을 때만 넣는다. 예상이 따로 없는 것은 그대로 넣는다.
-//   { text: 한 줄 결론, a: [이름, 값, 날 수], b: [이름, 값, 날 수] }
-// 차이가 뚜렷할 때만 넣는다. entries를 주면 그 기록으로 계산한다 (예시 기록 미리 보기).
-// 약에 관한 비교는 내 약 기록을 보기 때문에 내 기록일 때만 넣는다.
-export function insights(entries = db.entries) {
-  const all = Object.keys(entries).sort().map((k) => entries[k]), out = [], mine = entries === db.entries;
-  if (all.length < INSIGHT_MIN_DAYS) return out;
-  const mean = (list, key) => avg(list.map((e) => e[key]));
-  const dur = (m) => durText(Math.round(m)), num = (x) => x.toFixed(1);
-  // 두 묶음(각 min일 이상)의 평균이 gap 이상 차이 나면 넣는다. say는 [앞쪽이 낮을 때 문장, 높을 때 문장], {0}에 차이가 들어간다.
-  // unit은 "한 칸"의 크기(수면 60분, 점수 1점)로, 서로 다른 항목의 차이를 같은 잣대로 줄 세울 때 쓴다.
-  // dx: 이 비교가 특히 관련 있는 진단명들. 사용자가 고른 진단명과 겹치면 순서를 앞으로 당긴다 (1.5배).
-  const chosen = usesOn(), boost = (dx) => (dx && dx.some((k) => chosen.includes(k)) ? 1.5 : 1);
-  const compare = (key, a, b, labels, { min = 3, gap, fmt, unit, dx }, say) => {
-    if (a.length < min || b.length < min) return;
-    const x = mean(a, key), y = mean(b, key), d = Math.abs(x - y);
-    if (d < gap || say[2] === (x < y ? 0 : 1)) return;
-    out.push({ text: F(say[x < y ? 0 : 1], fmt(d)), a: [labels[0], fmt(x), a.length], b: [labels[1], fmt(y), b.length], weight: d / unit * boost(dx) });
-  };
-  const sleep = { gap: 20, fmt: dur, unit: 60 }, score = { gap: 0.8, fmt: num, unit: 1 }, days = [T('그런 날'), T('다른 날')];
-  // 항목을 따로따로 적을 수 있어서 빈 값(null)이 섞여 있다. null은 비교에서 0처럼 굴기 때문에, 값이 있는 날만 골라서 나눈다.
-  const has = (key) => (e) => e[key] != null;
-  const sl = all.filter(has('sleepMin')), slE = sl.filter(has('energy')), slM = sl.filter(has('mood')), withMood = all.filter(has('mood'));
-  const night = (e) => entries[addDays(e.date, 1)];   // 그날 밤의 잠과 다음 날 기분은 다음 날 기록에 있다
-
-  // 잠과 에너지·기분
-  compare('energy', slE.filter((e) => e.sleepMin < 360), slE.filter((e) => e.sleepMin >= 360), [T('적게 잔 날'), T('다른 날')], { ...score, dx: ['bipolar'] },
-    ['6시간보다 적게 잔 날은 에너지가 {0} 낮았어요.', '6시간보다 적게 잔 날은 에너지가 {0} 높았어요.', 0]);
-  compare('sleepMin', slE.filter((e) => e.energy >= 7), slE.filter((e) => e.energy < 7), days, { ...sleep, dx: ['bipolar'] },
-    ['에너지가 높았던 날은 전날 밤에 {0} 덜 잤어요.', '에너지가 높았던 날은 전날 밤에 {0} 더 잤어요.', 1]);
-  compare('sleepMin', slM.filter((e) => e.mood <= 3), slM.filter((e) => e.mood > 3), days, { ...sleep, dx: ['depression', 'bipolar'] },
-    ['기분이 가라앉은 날은 전날 밤에 {0} 덜 잤어요.', '기분이 가라앉은 날은 전날 밤에 {0} 더 잤어요.', 0]);
-  compare('sleepMin', sl.filter((e) => e.tired), sl.filter((e) => !e.tired), days, sleep,
-    ['일어났을 때 피곤했던 날은 {0} 덜 잤어요.', '일어났을 때 피곤했던 날은 {0} 더 잤어요.', 0]);
-  // 진단명을 골랐을 때만 넣는 비교들 (내 기록일 때만)
-  if (mine && chosen.includes('adhd') && db.meds.some((m) => STIMULANTS.includes(m.name))) {
-    const took = (e) => medsFor(e.date).some((m) => STIMULANTS.includes(m.name)), pair = [T('먹은 날'), T('안 먹은 날')], adhd = { dx: ['adhd'] };
-    compare('energy', ...[all.filter(has('energy'))].flatMap((l) => [l.filter(took), l.filter((e) => !took(e))]), pair, { ...score, ...adhd },
-      ['각성제를 먹은 날은 에너지가 {0} 낮았어요.', '각성제를 먹은 날은 에너지가 {0} 높았어요.']);
-    const nights = all.filter((e) => night(e) && night(e).sleepMin != null);
-    compare('sleepMin', nights.filter(took).map(night), nights.filter((e) => !took(e)).map(night), pair, { ...sleep, ...adhd },
-      ['각성제를 먹은 날 밤에는 {0} 덜 잤어요.', '각성제를 먹은 날 밤에는 {0} 더 잤어요.']);
-    compare('appetite', ...[all.filter(has('appetite'))].flatMap((l) => [l.filter(took), l.filter((e) => !took(e))]), pair, { ...score, gap: 1, ...adhd },
-      ['각성제를 먹은 날은 식욕이 {0} 낮았어요.', '각성제를 먹은 날은 식욕이 {0} 높았어요.']);
-  }
-  if (mine && chosen.includes('psychosis') && db.meds.length) {
-    compare('psy', all.filter((e) => !medsFor(e.date).length), all.filter((e) => medsFor(e.date).length), [T('안 먹은 날'), T('먹은 날')], { gap: 0.3, fmt: num, unit: 0.5, dx: ['psychosis'] },
-      ['약을 안 먹은 날은 정신병적 증상이 {0}가지 적었어요.', '약을 안 먹은 날은 정신병적 증상이 {0}가지 많았어요.']);
-  }
-  // 약
-  if (mine && db.meds.length) {
-    compare('mood', withMood.filter((e) => !medsFor(e.date).length), withMood.filter((e) => medsFor(e.date).length), [T('안 먹은 날'), T('먹은 날')], score,
-      ['약을 안 먹은 날은 기분이 {0} 낮았어요.', '약을 안 먹은 날은 기분이 {0} 높았어요.', 0]);
-    compare('sleepMin', sl.filter(aided), sl.filter((e) => !aided(e)), [T('먹은 날'), T('안 먹은 날')], { ...sleep, min: 2 },
-      ['안정제·수면제를 먹은 날 밤에는 {0} 덜 잤어요.', '안정제·수면제를 먹은 날 밤에는 {0} 더 잤어요.', 1]);
-  }
-  // 카페인 · 술 · 운동 · 생리
-  const caf = all.filter((e) => e.caffeine != null && night(e) && night(e).sleepMin != null);
-  compare('sleepMin', caf.filter((e) => e.caffeine >= 7).map(night), caf.filter((e) => e.caffeine < 7).map(night), days, sleep,
-    ['카페인을 많이 마신 날 밤에는 {0} 덜 잤어요.', '카페인을 많이 마신 날 밤에는 {0} 더 잤어요.', 0]);
-  const ap = all.filter((e) => e.caffeine != null && e.appetite != null);
-  compare('appetite', ap.filter((e) => e.caffeine >= 7), ap.filter((e) => e.caffeine < 7), days, { ...score, gap: 1 },
-    ['카페인을 많이 마신 날은 식욕이 {0} 낮았어요.', '카페인을 많이 마신 날은 식욕이 {0} 높았어요.', 0]);
-  // 내 항목 가운데 했음/안 했음 항목: 한 다음 날의 기분, 한 날 밤의 잠 (내 기록일 때만. 흔한 예상은 따로 두지 않는다)
-  if (mine) customDefs().filter((c) => c.type === 'check').forEach((c) => {
-    const did = (e) => !!(e.custom && e.custom[c.id]), named = (text) => F(text, '{0}', c.name);
-    const nextMood = all.filter((e) => night(e) && night(e).mood != null), nextSleep = all.filter((e) => night(e) && night(e).sleepMin != null);
-    compare('mood', nextMood.filter(did).map(night), nextMood.filter((e) => !did(e)).map(night), days, score,
-      [named('“{1}” 한 다음 날은 기분이 {0} 낮았어요.'), named('“{1}” 한 다음 날은 기분이 {0} 높았어요.')]);
-    compare('sleepMin', nextSleep.filter(did).map(night), nextSleep.filter((e) => !did(e)).map(night), days, sleep,
-      [named('“{1}” 한 날 밤에는 {0} 덜 잤어요.'), named('“{1}” 한 날 밤에는 {0} 더 잤어요.')]);
-  });
-  compare('mood', withMood.filter((e) => e.period), withMood.filter((e) => !e.period), [T('생리 중'), T('다른 날')], score,
-    ['생리 중인 날은 기분이 {0} 낮았어요.', '생리 중인 날은 기분이 {0} 높았어요.', 0]);
-  // 기분이 가장 낮은 요일 (요일마다 2일 이상 적었을 때)
-  const byDay = WD().map((name, d) => [name, withMood.filter((e) => parse(e.date).getDay() === d)]).filter(([, list]) => list.length >= 2);
-  if (byDay.length >= 4) {
-    const [name, low] = byDay.reduce((m, x) => (mean(x[1], 'mood') < mean(m[1], 'mood') ? x : m));
-    const rest = withMood.filter((e) => !low.includes(e)), d = mean(rest, 'mood') - mean(low, 'mood'), day = F('{0}요일', name);
-    if (d >= 1) out.push({ text: F('기분이 가장 낮은 요일은 {0}이에요.', day), a: [day, num(mean(low, 'mood')), low.length], b: [T('다른 요일'), num(mean(rest, 'mood')), rest.length], weight: d });
-  }
-  // 증상이 있던 날과 없던 날: 전날 밤 잠, 그리고 증상끼리 같이 움직이는지
-  const level = { gap: 0.8, fmt: num, unit: 1 };
-  const split = (list, test) => [list.filter(test), list.filter((e) => !test(e))];
-  const isDep = (e) => e.dep >= 2, isAnx = (e) => e.anx >= 2, isPsy = (e) => e.psy >= 1, isSi = (e) => e.si >= 1;
-  compare('sleepMin', ...split(sl.filter(has('dep')), isDep), days, { ...sleep, dx: ['depression', 'bipolar'] }, ['우울이 보통 이상인 날은 전날 밤에 {0} 덜 잤어요.', '우울이 보통 이상인 날은 전날 밤에 {0} 더 잤어요.']);
-  compare('sleepMin', ...split(sl.filter(has('anx')), isAnx), days, { ...sleep, dx: ['anxiety'] }, ['불안이 보통 이상인 날은 전날 밤에 {0} 덜 잤어요.', '불안이 보통 이상인 날은 전날 밤에 {0} 더 잤어요.', 0]);
-  compare('sleepMin', ...split(sl, isPsy), days, { ...sleep, dx: ['psychosis'] }, ['정신병적 증상이 있던 날은 전날 밤에 {0} 덜 잤어요.', '정신병적 증상이 있던 날은 전날 밤에 {0} 더 잤어요.', 0]);
-  compare('sleepMin', ...split(sl.filter(has('si')), isSi), days, sleep, ['죽고 싶은 생각이 있던 날은 전날 밤에 {0} 덜 잤어요.', '죽고 싶은 생각이 있던 날은 전날 밤에 {0} 더 잤어요.']);
-  const both = (a, b) => all.filter((e) => e[a] != null && e[b] != null);
-  compare('energy', ...split(all.filter(has('energy')), isPsy), days, { ...score, dx: ['psychosis'] }, ['정신병적 증상이 있던 날은 에너지가 {0} 낮았어요.', '정신병적 증상이 있던 날은 에너지가 {0} 높았어요.']);
-  compare('mood', ...split(withMood, isPsy), days, { ...score, dx: ['psychosis'] }, ['정신병적 증상이 있던 날은 기분이 {0} 낮았어요.', '정신병적 증상이 있던 날은 기분이 {0} 높았어요.']);
-  compare('dep', ...split(both('anx', 'dep'), isAnx), days, { ...level, dx: ['anxiety', 'depression'] }, ['불안이 보통 이상인 날은 우울이 {0}단계 낮았어요.', '불안이 보통 이상인 날은 우울이 {0}단계 높았어요.', 1]);
-  compare('anx', ...split(all.filter(has('anx')), isPsy), days, { ...level, dx: ['psychosis'] }, ['정신병적 증상이 있던 날은 불안이 {0}단계 낮았어요.', '정신병적 증상이 있던 날은 불안이 {0}단계 높았어요.', 1]);
-  compare('caffeine', ...split(both('anx', 'caffeine'), isAnx), days, { ...score, gap: 1, dx: ['anxiety'] }, ['불안이 보통 이상인 날은 카페인이 {0} 적었어요.', '불안이 보통 이상인 날은 카페인이 {0} 많았어요.', 1]);
-  // 차이가 큰 것부터 세 개까지만 (사용자가 짧게 보고 싶어 함)
-  return out.sort((p, q) => q.weight - p.weight).slice(0, 3);
 }
 
 // AI 앱에 붙여 넣을 수 있는 최근 4주 요약 글
