@@ -3,6 +3,7 @@ import { signals } from '../analysis.js';
 import { DISCLAIMER, HELPLINE, LEVELS, SIGNS, SI_CARE_FROM, cafMg, drinkText, nameOf } from '../constants.js';
 import { WD, addDays, durText, longDate, parse, today, weekStart } from '../dates.js';
 import { app, esc } from '../dom.js';
+import { backupDue, daysSinceBackup } from '../files.js';
 import { F, T } from '../i18n.js';
 import { IC } from '../icons.js';
 import { doseRowsHtml, medsFor, medsText } from '../meds.js';
@@ -30,12 +31,18 @@ export function viewToday() {
     ? `<div class="card hint"><div><b>${T('홈 화면에 추가해서 쓰세요.')}</b><br>${T('사파리 아래쪽 공유 버튼(네모에 화살표) → “홈 화면에 추가”를 누르면 앱처럼 열려요.')}</div>
        <button class="x" data-act="closeHint" aria-label="${T('닫기')}">✕</button></div>` : '';
 
+  const since = daysSinceBackup();
+  const backup = backupDue()
+    ? `<div class="card hint"><div><b>${since == null ? T('아직 백업한 적이 없어요.') : F('백업한 지 {0}일 됐어요.', since)}</b><br>${T('기록은 이 폰에만 있어요. 백업 파일을 만들어 두면 폰을 바꿔도 안전해요.')}
+         <button class="mini" data-act="export" style="display:block;margin-top:10px">${T('지금 백업하기')}</button></div>
+       <button class="x" data-act="snoozeBackup" aria-label="${T('닫기')}">✕</button></div>` : '';
+
   app.innerHTML = `
     <header class="top">
       <div><div class="over">${sel === t ? longDate(sel) : T('지난 기록')}</div><h1>${sel === t ? T('오늘') : longDate(sel)}</h1></div>
       <button class="icon-btn" data-act="settings" aria-label="${T('설정과 백업')}">${IC.sliders}</button>
     </header>
-    ${hint}
+    ${hint}${sel === t ? backup : ''}
     ${sel === t && e && e.si >= SI_CARE_FROM ? `<div class="card signal"><i></i><span>${F('죽고 싶은 생각이 강한 날이에요. 혼자 버티지 않아도 돼요. {0}에 전화하거나 다니는 병원에 연락해 보세요.',
     `<a href="tel:${HELPLINE}">${T('109 (자살예방상담전화, 24시간)')}</a>`)}</span></div>` : ''}
     ${sel === t ? signals().map((m) => `<div class="card signal"><i></i><span>${m}</span></div>`).join('') : ''}

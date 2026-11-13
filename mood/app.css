@@ -248,8 +248,8 @@ ol.steps li { margin: 3px 0; }
 .calkey i.pdot { display: inline-block; vertical-align: 2px; }
 
 /* 아래 탭 */
-.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; justify-content: center; gap: 26px; background: var(--bar); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border-top: 0.5px solid var(--line); padding: 5px 0 calc(var(--safe-b) + 4px); }
-.tabbar button { width: 80px; min-height: 46px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--muted); font-size: calc(10.5px * var(--fs, 1.12)); font-weight: 500; }
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; justify-content: center; gap: 6px; background: var(--bar); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border-top: 0.5px solid var(--line); padding: 5px 0 calc(var(--safe-b) + 4px); }
+.tabbar button { width: 82px; min-height: 46px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--muted); font-size: calc(10.5px * var(--fs, 1.12)); font-weight: 500; }
 .tabbar button .ic { width: 24px; height: 24px; }
 .tabbar button[aria-pressed=true] { color: var(--ink); }
 
@@ -323,3 +323,46 @@ input[type=range].unset { opacity: .45; }
 button.li { text-align: left; }
 button.li .lv { margin-left: auto; }
 .signal a { color: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+
+/* 진료 탭 · 진료용 요약 */
+input[type=date] { border: 0; outline: none; background: var(--card2); color: var(--text); border-radius: 8px; padding: 6px 10px; font-size: calc(16px * var(--fs, 1.12)); -webkit-appearance: none; appearance: none; min-width: 0; }
+.talk { white-space: normal; overflow-wrap: anywhere; }
+.sum-top { padding: 16px 16px 4px; }
+.sum-top b { display: block; font-size: calc(18px * var(--fs, 1.12)); letter-spacing: -0.02em; }
+.sum-top span { color: var(--muted); font-size: calc(12.5px * var(--fs, 1.12)); }
+.sum-h { color: var(--muted); font-size: calc(12px * var(--fs, 1.12)); font-weight: 600; padding: 16px 16px 2px; }
+.sum-h + .li::before { display: none; }
+#summary .li { min-height: 38px; padding: 6px 16px; font-size: calc(14px * var(--fs, 1.12)); }
+#summary .li .lv { max-width: 62%; overflow-wrap: anywhere; }
+#summary .li.say small { color: var(--muted); margin-right: 4px; }
+.sp { display: flex; align-items: center; gap: 10px; padding: 3px 16px; font-size: calc(13px * var(--fs, 1.12)); }
+.sp span { width: 52px; flex: none; color: var(--muted); }
+.sp svg { display: block; }
+.sum-foot { color: var(--faint); font-size: calc(11px * var(--fs, 1.12)); padding: 14px 16px 16px; margin: 0; }
+
+/* 인쇄·PDF: 요약 한 장만, 흰 바탕에 검은 글씨로 */
+@media print {
+  :root, :root[data-theme=light] { --bg: #fff; --text: #000; --ink: #000; --muted: #444; --faint: #777; --line: #ccc; --card: transparent; --card2: transparent; --shadow: none; }
+  body::before, .tabbar, .toast, .sheet { display: none !important; }
+  body * { visibility: hidden; }
+  #summary, #summary * { visibility: visible; }
+  #app { padding: 0; max-width: none; }
+  #summary { position: absolute; left: 0; right: 0; top: 0; margin: 0; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
+}
+
+/* 메모 모아 보기 */
+.li.note small { display: block; color: var(--muted); font-size: calc(12px * var(--fs, 1.12)); margin-bottom: 2px; }
+#summary .li.note small { display: inline; }
+
+/* 잠금 화면 */
+.lock { position: fixed; inset: 0; z-index: 50; background: var(--glow), var(--bg); display: grid; place-items: center; padding: var(--safe-t) 24px var(--safe-b); }
+.lock-in { width: 100%; max-width: 300px; text-align: center; }
+.lock-title { font-size: calc(18px * var(--fs, 1.12)); font-weight: 600; }
+.lock-msg { min-height: 22px; margin-top: 6px; color: var(--muted); font-size: calc(13px * var(--fs, 1.12)); }
+.lock-dots { display: flex; justify-content: center; gap: 16px; margin: 18px 0 30px; }
+.lock-dots i { width: 13px; height: 13px; border-radius: 50%; border: 1.5px solid var(--muted); }
+.lock-dots i.on { background: var(--ink); border-color: var(--ink); }
+.lock-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 22px; justify-items: center; }
+.lock-pad button { width: 74px; height: 74px; border-radius: 50%; background: var(--card); color: var(--text); font-family: var(--round); font-size: 28px; font-weight: 500; text-align: center; }
+.lock-pad button:active { background: var(--fill); }
+.lock-pad .lock-txt { background: none; font-family: inherit; font-size: calc(14px * var(--fs, 1.12)); color: var(--muted); }

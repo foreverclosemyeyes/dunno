@@ -1,5 +1,5 @@
 // 파일: 캘린더 알림, 백업 내보내기·불러오기
-import { today } from './dates.js';
+import { addDays, parse, today } from './dates.js';
 import { toast } from './dom.js';
 import { F, T } from './i18n.js';
 import { medKey } from './meds.js';
@@ -43,8 +43,29 @@ export async function giveFile(name, text, type) {
 
 export async function exportData() {
   const name = `tide-backup-${today()}.json`;
-  const text = JSON.stringify(Object.assign({ app: 'tide', exportedAt: new Date().toISOString() }, db), null, 2);
-  if (await giveFile(name, text, 'application/json')) toast(T('백업 파일을 만들었어요'));
+  // 잠금 비밀번호는 백업에 넣지 않는다 (다른 폰에서 불러왔을 때 잠겨 버리지 않게)
+  const settings = Object.assign({}, db.settings);
+  delete settings.pin;
+  const text = JSON.stringify(Object.assign({ app: 'tide', exportedAt: new Date().toISOString() }, db, { settings }), null, 2);
+  if (!(await giveFile(name, text, 'application/json'))) return;
+  db.settings.lastBackup = today();
+  delete db.settings.backupSnooze;
+  save();
+  render();
+  toast(T('백업 파일을 만들었어요'));
+}
+
+// 백업 챙기기: 기록이 일주일치 넘게 쌓였는데 백업한 적이 없거나 2주가 넘었으면 오늘 화면에 한 줄 알려 준다
+const BACKUP_EVERY = 14, BACKUP_SNOOZE = 7;
+export const daysSinceBackup = () => (db.settings.lastBackup ? Math.round((parse(today()) - parse(db.settings.lastBackup)) / 86400000) : null);
+export function backupDue() {
+  const since = daysSinceBackup();
+  if (Object.keys(db.entries).length < 7 || (since != null && since < BACKUP_EVERY)) return false;
+  return !db.settings.backupSnooze || db.settings.backupSnooze <= today();
+}
+export function snoozeBackup() {
+  db.settings.backupSnooze = addDays(today(), BACKUP_SNOOZE);
+  save();
 }
 
 export function importData(file) {
@@ -53,7 +74,7 @@ export function importData(file) {
     let inc;
     try { inc = JSON.parse(reader.result); } catch (e) { inc = null; }
     const ok = inc && typeof inc.entries === 'object' && inc.entries &&
-      Object.values(inc.entries).every((e) => e && typeof e.mood === 'number' && /^\d{4}-\d{2}-\d{2}$/.test(e.date || ''));
+      Object.values(inc.entries).every((e) => e && (e.mood == null || typeof e.mood === 'number') && /^\d{4}-\d{2}-\d{2}$/.test(e.date || ''));
     if (!ok) { toast(T('이 앱의 백업 파일이 아니에요')); return; }
     migrate(inc);
     const n = Object.keys(inc.entries).length;
@@ -66,6 +87,12 @@ export function importData(file) {
       if (m && m.name && !db.meds.some((s) => medKey(s) === medKey(m))) db.meds.push({ name: String(m.name), dose: String(m.dose || ''), alarms: (Array.isArray(m.alarms) ? m.alarms : []).filter((t) => /^\d\d:\d\d$/.test(t)) });
     });
     Object.keys(inc.taken || {}).forEach((k) => { if (!db.taken[k] && !db.entries[k] && Array.isArray(inc.taken[k])) db.taken[k] = inc.taken[k]; });
+    // 진료 탭: 말할 것은 없는 줄만 더하고, 다음 진료일은 비어 있을 때만 가져온다
+    if (inc.clinic && typeof inc.clinic === 'object') {
+      const mine = db.clinic || (db.clinic = { next: '', notes: [] });
+      (Array.isArray(inc.clinic.notes) ? inc.clinic.notes : []).forEach((x) => { if (typeof x === 'string' && !mine.notes.includes(x)) mine.notes.push(x); });
+      if (!mine.next && /^\d{4}-\d{2}-\d{2}$/.test(inc.clinic.next || '')) mine.next = inc.clinic.next;
+    }
     if (!save()) return;
     render();
     openSettings();

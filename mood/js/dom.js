@@ -16,6 +16,17 @@ export function toast(msg) {
 
 export const toTop = () => window.scrollTo(0, 0);
 
+// 글을 클립보드에 복사한다 (권한이 없으면 예전 방식으로)
+export async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return; } catch (e) { /* 아래 방식으로 다시 */ }
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); } catch (e) { /* 복사 불가 */ }
+  ta.remove();
+}
+
 // 클래스를 뗐다 붙여서 CSS 애니메이션을 처음부터 다시 돌린다
 function replay(el, cls, ms) {
   el.classList.remove(cls);

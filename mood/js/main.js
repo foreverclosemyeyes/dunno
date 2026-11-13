@@ -1,15 +1,18 @@
 // 시작점: 누르기·입력 처리와 앱 시작
 import { aiSummary } from './analysis.js';
 import { addDays, today } from './dates.js';
-import { $, app, closeSheet, enterApp, sheet, sheetOpen, toTop, toast } from './dom.js';
-import { exportData, giveFile, hasAlarms, importData, makeIcs, remind } from './files.js';
+import { $, app, closeSheet, copyText, enterApp, sheet, sheetOpen, toTop, toast } from './dom.js';
+import { exportData, giveFile, hasAlarms, importData, makeIcs, remind, snoozeBackup } from './files.js';
 import { T } from './i18n.js';
+import { lockNow, removePin, setPin } from './lock.js';
 import { addDose, medKey, medsFor, normDose, setMeds, sugHtml, toggleDoseTime } from './meds.js';
 import { render } from './render.js';
 import { onSwipe } from './swipe.js';
-import { standalone, trend, ui } from './state.js';
+import { clinicView, standalone, trend, ui } from './state.js';
 import { db, save } from './store.js';
 import { applyFont, applyTheme, themeQuery } from './theme.js';
+import { clinicData, summaryText } from './views/clinic.js';
+import { notesListHtml, openNotes } from './views/notes.js';
 import { SLIDERS, cafHead, medsHtml, openRecord, saveEntry, sleepHtml, syncForm } from './views/record.js';
 import { openSettings } from './views/settings.js';
 import { shiftAnchor, shiftTrend, trendRange } from './views/trend.js';
@@ -46,24 +49,27 @@ const actions = {
   // 설정: 약마다 알람 시각 더하기·지우기 (시각 고치기는 아래 input 처리에서)
   alarmAdd: (el) => { const m = db.meds[Number(el.dataset.m)]; m.alarms = (m.alarms || []).concat('09:00'); save(); redrawSettings(); },
   alarmDel: (el) => { db.meds[Number(el.dataset.m)].alarms.splice(Number(el.dataset.i), 1); save(); redrawSettings(); },
-  copyAi: async () => {
-    const text = aiSummary();
-    try { await navigator.clipboard.writeText(text); }
-    catch (e) {
-      const ta = document.createElement('textarea');
-      ta.value = text; document.body.appendChild(ta); ta.select();
-      try { document.execCommand('copy'); } catch (err) { /* 복사 불가 */ }
-      ta.remove();
-    }
-    toast(T('복사했어요. AI 앱에 붙여 넣으세요'));
+  copyAi: async () => { await copyText(aiSummary()); toast(T('복사했어요. AI 앱에 붙여 넣으세요')); },
+  // 진료 탭
+  clinicWeeks: (el) => { clinicView.weeks = Number(el.dataset.w); render(); },
+  clinicNoteAdd: () => {
+    const text = $('#c-note').value.trim();
+    if (!text) return;
+    clinicData().notes.push(text);
+    save(); render();
+    $('#c-note').focus();
   },
+  clinicNoteDel: (el) => { clinicData().notes.splice(Number(el.dataset.i), 1); save(); render(); },
+  printSummary: () => window.print(),
+  copySummary: async () => { await copyText(summaryText(clinicView.weeks)); toast(T('복사했어요')); },
   lang: (el) => { db.settings.lang = el.dataset.lang; if (save()) location.reload(); },
   size: (el) => { db.settings.size = el.dataset.size; save(); applyFont(); render(); openSettings(); },
   font: (el) => { db.settings.font = el.dataset.font; save(); applyFont(); openSettings(); },
   mode: (el) => { trend.mode = el.dataset.mode; trend.pick = null; if (trend.anchor > today()) trend.anchor = today(); render(); },
   shift: (el) => { shiftTrend(Number(el.dataset.step)); render(); },
   pickDay: (el) => { const i = Number(el.dataset.i); trend.pick = trend.pick === i ? null : i; render(); },
-  openDay: (el) => { ui.selected = el.dataset.date; ui.tab = 'today'; toTop(); render(); enterApp(); },
+  openDay: (el) => { if (sheetOpen()) closeSheet(); ui.selected = el.dataset.date; ui.tab = 'today'; toTop(); render(); enterApp(); },
+  notes: openNotes,
   pick: (el) => { ui.selected = el.dataset.date; render(); },
   week: (el) => {
     const next = addDays(ui.selected, 7 * Number(el.dataset.step));
@@ -72,6 +78,10 @@ const actions = {
   },
   goToday: () => { ui.selected = today(); render(); },
   closeHint: () => { db.settings.hintClosed = true; save(); render(); },
+  snoozeBackup: () => { snoozeBackup(); render(); },
+  // 설정: 잠금. 비밀번호를 정하는 동안 설정 화면은 뒤에 그대로 있고, 끝나면 다시 그린다.
+  pinSet: () => { closeSheet(); setPin(); },
+  pinOff: () => { removePin(); redrawSettings(); toast(T('잠금을 껐어요')); },
   record: (el) => openRecord(ui.selected, el.dataset.focus),
   // 기록 화면: 수면 칸 펼치기·지우기, 슬라이더 값 다시 비우기
   sleepOn: () => { ui.draft.sleepSet = true; $('#sleep').innerHTML = sleepHtml(); syncForm(); },
@@ -145,6 +155,7 @@ sheet.addEventListener('pointerdown', (ev) => {
 sheet.addEventListener('input', (ev) => {
   const d = ui.draft, el = ev.target;
   if (el.id === 'med-name') { $('#med-sug').innerHTML = sugHtml(el.value.trim()); return; }
+  if (el.id === 'q-notes') { $('#notes-list').innerHTML = notesListHtml(el.value); return; }
   if (el.id.startsWith('r-')) { remind()[el.id.slice(2)] = el.value; save(); return; }
   if (el.classList.contains('alarm-at')) { db.meds[Number(el.dataset.m)].alarms[Number(el.dataset.i)] = el.value; save(); return; }
   if (!d) return;
@@ -155,6 +166,16 @@ sheet.addEventListener('input', (ev) => {
   else if (el.id === 'f-note') d.note = el.value;
   else return;
   syncForm();
+});
+
+// 진료 탭: 다음 진료일을 고르면 바로 저장, 말할 것은 엔터로도 추가
+app.addEventListener('change', (ev) => {
+  if (ev.target.id !== 'c-next') return;
+  clinicData().next = ev.target.value;
+  save(); render();
+});
+app.addEventListener('keydown', (ev) => {
+  if (ev.target.id === 'c-note' && ev.key === 'Enter' && !ev.isComposing) actions.clinicNoteAdd();
 });
 
 // 옆으로 밀면 날짜가 넘어간다: 오늘 탭은 하루씩, 흐름 탭은 한 주(한 달)씩. 미래로는 못 간다.
@@ -207,6 +228,9 @@ if (standalone()) {
 applyTheme();
 applyFont();
 render();
+// 잠금: 열 때 가리고, 다른 앱으로 나갈 때도 바로 가려서 앱 전환 화면에 기록이 비치지 않게 한다
+lockNow();
+document.addEventListener('visibilitychange', () => { if (document.hidden) lockNow(); });
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 // 새 버전 받기: 아이폰 홈 화면 앱은 껐다 켜도 예전 화면을 그대로 들고 있는 일이 많다.
 // 앱으로 돌아올 때마다 새 버전이 있는지 확인하고, 새 버전이 자리 잡으면 화면을 한 번 다시 연다.

@@ -33,7 +33,7 @@ function seed() {
     const hot = i < 6, date = dayAgo(i);
     entries[date] = { date, mood: hot ? 8 : (i % 7 < 2 ? 3 : 5), energy: hot ? 9 : i % 5, conf: hot ? 9 : 5, dep: hot ? 0 : (i % 7 < 2 ? 3 : 1), elev: hot ? 3 : 0, anx: 1,
       sleepMin: hot ? 270 : 430 + (i % 4) * 15, tired: !hot && i % 3 === 0, period: i >= 18 && i < 23, appetite: i % 4 === 0 ? 3 : 6, caffeine: i % 4 === 0 ? 8 : 3,
-      meds: i % 5 ? [{ name: '브린텔릭스', dose: '10mg' }] : [], note: '', signs: {} };
+      meds: i % 5 ? [{ name: '브린텔릭스', dose: '10mg' }] : [], note: { 2: '저녁에 산책함', 9: '회의가 길었음' }[i] || '', signs: {} };
   }
   return { version: 2, entries, meds: [{ name: '브린텔릭스', dose: '10mg' }], taken: {}, settings: { hintClosed: true } };
 }
@@ -196,6 +196,34 @@ function seed() {
   await swipe(30);
   check('조금만 밀면 안 넘어감', (await text('h1')) === '오늘');
 
+  // 5-2. 진료 탭: 다음 진료일, 말할 것, 요약
+  await page.click('[data-tab=clinic]');
+  check('진료용 요약에 눈에 띄는 날과 약이 나옴', (await text('#summary')).includes('고조 높음 이상') && (await text('#summary')).includes('브린텔릭스 10mg') && (await text('#summary')).includes('5시간 미만 수면'));
+  await page.fill('#c-note', '약 먹으면 오후에 졸림'); await page.press('#c-note', 'Enter');
+  check('말할 것 추가 (엔터)', (await store()).clinic.notes[0] === '약 먹으면 오후에 졸림' && (await text('#summary')).includes('약 먹으면 오후에 졸림'));
+  await page.fill('#c-next', dayAgo(-3));
+  check('다음 진료일까지 남은 날', (await text('.top .over')) === '진료까지 3일' && (await store()).clinic.next === dayAgo(-3));
+  await page.click('[data-act=clinicWeeks][data-w="4"]');
+  check('4주 요약', (await text('#summary')).includes('/ 28일'));
+  await page.click('[data-act=copySummary]');
+  check('요약을 글로 복사', await page.waitForFunction(() => document.querySelector('#toast').textContent === '복사했어요', null, { timeout: 3000 }).then(() => true, () => false));
+  await page.click('[data-act=clinicNoteDel]');
+  check('말할 것 지우기', (await store()).clinic.notes.length === 0);
+
+  // 5-3. 메모 모아 보기
+  await page.click('[data-tab=insight]'); await page.click('[data-act=notes]');
+  check('메모가 날짜별로 모임', (await page.$$('#notes-list .note')).length === 2);
+  await page.fill('#q-notes', '산책');
+  check('낱말로 찾기', (await page.$$('#notes-list .note')).length === 1);
+  await page.click('#notes-list .note');
+  check('메모를 누르면 그날로 감', (await text('h1')) !== '오늘' && (await text('#app .note')).includes('산책'));
+  await page.click('[data-act=goToday]');
+
+  // 5-4. 백업 챙기기
+  check('백업한 적이 없으면 오늘 화면에 알림', await page.isVisible('#app [data-act=snoozeBackup]'));
+  await page.click('#app [data-act=snoozeBackup]');
+  check('닫으면 일주일 동안 안 보임', (await page.$$('#app [data-act=snoozeBackup]')).length === 0 && (await store()).settings.backupSnooze > today);
+
   // 6. 설정: 언어 · 화면 모드 · 색 · 글씨 크기
   await page.click('[data-tab=today]');
   await page.click('[data-act=settings]'); await page.click('[data-lang=en]'); await page.waitForLoadState('load'); await page.waitForSelector('h1');
@@ -228,8 +256,9 @@ function seed() {
 
   // 7. 백업 내보내기 → 지우기 → 불러오기
   await page.click('[data-act=settings]');
-  const [dl] = await Promise.all([page.waitForEvent('download'), page.click('[data-act=export]')]);
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#sheet [data-act=export]')]);
   const backup = fs.readFileSync(await dl.path());
+  check('백업하면 날짜가 남고 알림이 사라짐', (await store()).settings.lastBackup === today && (await page.$$('#app [data-act=snoozeBackup]')).length === 0);
   await page.evaluate(() => localStorage.clear()); await page.reload();
   await page.setInputFiles('#importFile', { name: 'backup.json', mimeType: 'application/json', buffer: backup });
   await page.waitForFunction((k) => localStorage.getItem(k) && Object.keys(JSON.parse(localStorage.getItem(k)).entries).length > 20, KEY);
@@ -240,6 +269,24 @@ function seed() {
   await page.click('[data-act=record]'); await page.click('.savebar [data-act=save]');
   const moved = await store();
   check('예전 기록 변환', moved.version === 2 && moved.entries[today].appetite === 8 && moved.entries[today].caffeine === 4, JSON.stringify(moved.entries[today]));
+
+  // 9. 잠금: 비밀번호 정하기 → 다시 열면 가려짐 → 틀리면 그대로, 맞으면 열림 → 끄기
+  const tap = async (digits) => { for (const k of digits) await page.click(`#lock [data-k="${k}"]`); await page.waitForTimeout(250); };
+  await page.click('[data-act=settings]'); await page.click('[data-act=pinSet]');
+  await tap('1234'); await tap('1234');
+  check('비밀번호 저장 (그대로 저장하지 않음)', !!(await store()).settings.pin && !(await store()).settings.pin.includes('1234'));
+  await page.reload();
+  check('다시 열면 잠금 화면', await page.isVisible('#lock'));
+  await tap('0000');
+  check('틀린 비밀번호로는 안 열림', await page.isVisible('#lock'));
+  await tap('1234');
+  check('맞는 비밀번호로 열림', await page.isHidden('#lock'));
+  await page.click('[data-act=settings]');
+  const [dl2] = await Promise.all([page.waitForEvent('download'), page.click('#sheet [data-act=export]')]);
+  check('백업 파일에는 비밀번호가 안 들어감', !fs.readFileSync(await dl2.path(), 'utf8').includes('"pin"'));
+  await page.click('[data-act=pinOff]');
+  check('잠금 끄기', !(await store()).settings.pin);
+  await page.click('[data-act=close]');
 
   check('화면 오류 없음', errors.length === 0, errors.join(' | '));
   await browser.close();

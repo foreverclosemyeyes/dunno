@@ -2,9 +2,10 @@
 import { VERSION } from '../config.js';
 import { DISCLAIMER, FONTS, SIZES } from '../constants.js';
 import { esc, sheet, showSheet } from '../dom.js';
-import { remind } from '../files.js';
+import { daysSinceBackup, remind } from '../files.js';
 import { EN, F, T } from '../i18n.js';
 import { IC } from '../icons.js';
+import { hasPin } from '../lock.js';
 import { medAddHtml, medKey } from '../meds.js';
 import { standalone } from '../state.js';
 import { db } from '../store.js';
@@ -62,7 +63,13 @@ export function openSettings() {
       <button class="li add" data-act="export">${T('백업 파일 내보내기')}</button>
       <button class="li add" data-act="import">${T('백업 파일 불러오기')}</button>
     </section>
-    <p class="secnote">${T('기록은 이 아이폰 안에만 저장돼요. 폰을 바꾸거나 앱을 지우면 사라지니, 가끔 백업 파일을 만들어 “파일” 앱이나 iCloud에 넣어 두세요.')}</p>
+    <p class="secnote">${daysSinceBackup() == null ? T('아직 백업한 적이 없어요.') : F('마지막 백업: {0}일 전.', daysSinceBackup())} ${T('기록은 이 아이폰 안에만 저장돼요. 폰을 바꾸거나 앱을 지우면 사라지니, 가끔 백업 파일을 만들어 “파일” 앱이나 iCloud에 넣어 두세요.')}</p>
+
+    <div class="sec">${T('잠금')}</div>
+    <section class="card list">${hasPin()
+    ? `<button class="li add" data-act="pinSet">${T('비밀번호 바꾸기')}</button><button class="li add" data-act="pinOff">${T('잠금 끄기')}</button>`
+    : `<button class="li add" data-act="pinSet">${T('비밀번호로 잠그기')}</button>`}</section>
+    <p class="secnote">${T('앱을 열 때 숫자 4자리를 물어요. 옆 사람이 바로 못 보게 하는 가림막이고, 기록이 암호로 바뀌는 것은 아니에요. 비밀번호를 잊으면 되찾을 수 없어요.')}</p>
 
     <div class="sec" id="sec-meds">${T('자주 먹는 약')}</div>
     <section class="card list">${meds}${medAddHtml()}</section>

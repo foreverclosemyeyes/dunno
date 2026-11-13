@@ -1,4 +1,4 @@
-// 초기 신호 · 인사이트 계산 (전부 이 폰 안에서)
+// 초기 신호 · 인사이트 · 진료용 요약 계산 (전부 이 폰 안에서)
 import { SIGNS, cafMg, drinkText } from './constants.js';
 import { addDays, durText, today } from './dates.js';
 import { F, T } from './i18n.js';
@@ -96,4 +96,29 @@ export function aiSummary() {
 진단은 하지 말고, 눈에 띄는 패턴과 진료 때 의사에게 이야기하거나 물어볼 만한 점을 쉬운 말로 정리해 줘.
 
 ${lines.join('\n') || '(기록 없음)'}`;
+}
+
+// ---------- 진료용 요약: 최근 n주를 숫자로 정리 (화면·글·인쇄가 같이 쓴다) ----------
+export const SHORT_SLEEP = 300;   // 이 분(5시간)보다 짧게 잔 날을 따로 적는다
+export function summary(weeks) {
+  const n = weeks * 7, t = today();
+  const dates = Array.from({ length: n }, (_, i) => addDays(t, i - n + 1));
+  const days = dates.map((d) => db.entries[d] || null), got = days.filter(Boolean);
+  const stat = (key) => {
+    const v = got.map((e) => e[key]).filter((x) => x != null);
+    return v.length ? { avg: avg(v), min: Math.min(...v), max: Math.max(...v), n: v.length } : null;
+  };
+  // 그 항목이 from 단계 이상이었던 날짜들
+  const when = (key, from) => got.filter((e) => e[key] != null && e[key] >= from).map((e) => e.date);
+  return {
+    weeks, dates, days, got,
+    mood: stat('mood'), energy: stat('energy'), conf: stat('conf'), sleep: stat('sleepMin'),
+    high: { dep: when('dep', 3), elev: when('elev', 3), anx: when('anx', 3), si: when('si', 1) },
+    shortSleep: got.filter((e) => e.sleepMin != null && e.sleepMin < SHORT_SLEEP).map((e) => e.date),
+    signs: SIGNS.map(([k, label]) => [label, got.filter((e) => e.signs && e.signs[k]).length]).filter(([, c]) => c),
+    meds: db.meds.map((m) => [m, dates.filter((d) => medsFor(d).some((x) => x.name === m.name && (x.dose || '') === (m.dose || ''))).length]),
+    period: got.filter((e) => e.period).map((e) => e.date),
+    notes: got.filter((e) => e.note).map((e) => [e.date, e.note]),
+    signals: signals(),
+  };
 }
