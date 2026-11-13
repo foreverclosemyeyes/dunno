@@ -33,7 +33,7 @@ function seed() {
     const hot = i < 6, date = dayAgo(i);
     entries[date] = { date, mood: hot ? 8 : (i % 7 < 2 ? 3 : 5), energy: hot ? 9 : i % 5, conf: hot ? 9 : 5, dep: hot ? 0 : (i % 7 < 2 ? 3 : 1), elev: hot ? 3 : 0, anx: 1,
       sleepMin: hot ? 270 : 430 + (i % 4) * 15, tired: !hot && i % 3 === 0, period: i >= 18 && i < 23, appetite: i % 4 === 0 ? 3 : 6, caffeine: i % 4 === 0 ? 8 : 3,
-      meds: i % 5 ? [{ name: '브린텔릭스', dose: '10mg' }] : [], note: { 2: '저녁에 산책함', 9: '회의가 길었음' }[i] || '', signs: {} };
+      meds: i % 5 ? [{ name: '브린텔릭스', dose: '10mg' }] : [], note: { 2: '저녁에 산책함', 9: '회의가 길었음' }[i] || '', signs: hot ? { racing: true, talkative: true } : {} };
   }
   return { version: 2, entries, meds: [{ name: '브린텔릭스', dose: '10mg' }], taken: {}, settings: { hintClosed: true } };
 }
@@ -181,8 +181,8 @@ function seed() {
   await page.click('[data-tab=insight]');
   const says = await page.$$eval('.li.cmp', (x) => x.map((el) => el.textContent));
   check('인사이트: 지금까지의 시기와 시기별 내 평균 표가 나옴', (await text('#app')).includes('지금까지의 시기') && (await text('.tbl')).includes('들뜬 시기') && !(await text('#app')).includes('그 전 7일'));
-  check('최근 7일 읽기: 언제부터 며칠째인지도 말함', (await text('.state .flow')).includes('일째 이어지고 있어요'));
-  check('최근 7일 읽기: 들뜬 날이 이어지면 겹치는 점을 근거와 함께 보여 줌', (await text('.state')).includes('경조증 때 흔히 보이는 모습') && (await text('.state')).includes('에너지가 7 이상인 날') && (await text('.state')).includes('진단이 아니에요'));
+  check('최근 7일 읽기: 언제부터 며칠째인지도 말함', (await text('.state .flow')).includes('일째 이어지고 있어요') && (await text('.state .flow')).includes('경조증의 기간(4일 이상)'));
+  check('최근 7일 읽기: 들뜬 날이 이어지면 겹치는 점을 근거와 함께 보여 줌', (await text('.state')).includes('경조증·조증 때 흔히 보이는 모습') && (await text('.state')).includes('진단 기준 증상 7가지 중') && (await text('.state')).includes('에너지가 7 이상인 날') && (await text('.state')).includes('진단이 아니에요'));
   check('인사이트: 두 숫자 비교', says.some((s) => s.includes('에너지가 높았던 날') && s.includes('그런 날') && s.includes('다른 날')), says.join(' / '));
   await page.click('[data-tab=trend]');
   check('주 그래프', (await page.$$('.plot svg')).length >= 4);

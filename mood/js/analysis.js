@@ -29,6 +29,19 @@ export function signals() {
 
 // ---------- 종합 읽기: 최근 7일의 모습, 언제부터인지, 그 전에 무엇이 달랐는지 ----------
 // 사용자가 요청했다: "경조증 같은 게 보인다" 같은, 증상들을 다 합쳐서 본 인사이트.
+//
+// 기준 숫자의 근거 (2026-11-13에 찾아 읽은 것. 원문 전체가 아니라 공개된 요약·초록·표로 확인했다):
+//  [1] DSM-5-TR 조증·경조증 삽화: 기분이 들뜨거나 과민하고 활동·에너지가 늘어남. 경조증은 4일 이상, 조증은 1주 이상.
+//      증상 7가지(부풀어 오른 자존감, 잠을 덜 자도 됨, 말이 많아짐, 생각이 빠름, 산만함, 목표 지향 활동 증가, 위험한 일에 몰두) 중 3가지 이상.
+//  [2] DSM-5-TR 주요우울 삽화: 같은 2주 동안 9가지 증상 중 5가지 이상, 그중 하나는 우울한 기분이나 흥미 상실.
+//  [3] DSM-5 혼재 양상: 한쪽 삽화 중에 반대쪽 증상이 3가지 이상.
+//  [4] Jackson, Cavanagh, Scott (2003) J Affect Disord, 조증·우울 전조 체계적 고찰: 조증의 가장 뚜렷한 초기 증상은 수면 문제(중앙값 77%).
+//      Van Meter 외 (2016) JAACAP 메타분석: 재발 전의 약한 증상은 평균 1.0±0.9개월 이어짐.
+//  [5] Bauer 외 (2006) Bipolar Disord, (2008) Psychol Med: 하루 사이에 수면이 3시간 넘게 달라지면 큰 기분 변화가 뒤따르기도 함 (환자의 약 40%에서 하루 간격으로 관련).
+//  [6] Mitchell 외 (2008) Bipolar Disord: 조울증의 우울은 과수면·식욕 증가·정신운동 지연·정신병적 증상이 조금 더 흔함. 이것만으로 가를 수는 없음(확률적 접근).
+//  [7] Adult ADHD vs. bipolar disorder in the DSM-5 era (2014) J Psychiatr Pract: ADHD는 늘 이어지고 조울증은 삽화로 옴.
+//      잠을 덜 자도 피곤하지 않은 것과 부풀어 오른 자신감은 ADHD의 모습이 아님.
+//  [8] Birchwood 외 (1989, 2000), Eisner 외 (2013) Clin Psychol Rev: 정신병 재발 몇 주 전에 불안·불면 등이 먼저 나타남. 예측력은 보통 수준이고, 자기 평소와 견줄 때 더 나음.
 // 진단이 아니라, 그런 때 흔히 보이는 모습과 기록이 겹치는 점을 세어서 보여 주는 것이다. 문장도 "겹친다"까지만 말한다.
 
 // 들뜬 날 / 가라앉은 날로 보는 기준
@@ -47,11 +60,12 @@ function runs(entries, test) {
   return out.filter((r) => r.n >= 3);
 }
 
-// 어떤 시기가 시작되기 전 사흘이 평소(그 앞 4주)와 어떻게 달랐는지. mine이면 약 기록도 본다.
+// 어떤 시기가 시작되기 전 2주가 평소(그 앞 4주)와 어떻게 달랐는지. mine이면 약 기록도 본다.
+// 2주로 잡은 까닭: 재발 전에 나타나는 약한 증상은 평균 한 달쯤(0.5~1.3개월) 이어진다 [근거 4].
 function before(entries, start, mine) {
   const pick = (from, to) => Object.keys(entries).filter((k) => k >= addDays(start, -from) && k <= addDays(start, -to)).map((k) => entries[k]);
-  const win = pick(3, 1), base = pick(31, 4), vals = (list, key) => list.map((e) => e[key]).filter((x) => x != null);
-  if (win.length < 2) return { points: [], lessSleep: false };
+  const win = pick(14, 1), base = pick(42, 15), vals = (list, key) => list.map((e) => e[key]).filter((x) => x != null);
+  if (win.length < 4) return { points: [], lessSleep: false };
   const points = [], sw = vals(win, 'sleepMin'), sb = vals(base, 'sleepMin');
   const sleepDiff = sw.length && sb.length >= 3 ? Math.round(avg(sw) - avg(sb)) : 0;
   if (Math.abs(sleepDiff) >= 45) points.push(F(sleepDiff < 0 ? '잠이 평소보다 {0} 적었어요' : '잠이 평소보다 {0} 많았어요', durText(Math.abs(sleepDiff))));
@@ -65,79 +79,122 @@ function before(entries, start, mine) {
     if (n) points.push(F('“{0}” 한 날이 {1}일 있었어요', c.name, n));
   });
   const anxious = win.filter((e) => e.anx >= 2).length;
-  if (anxious >= 2) points.push(F('불안이 보통 이상인 날이 {0}일 있었어요', anxious));
+  if (anxious >= 3) points.push(F('불안이 보통 이상인 날이 {0}일 있었어요', anxious));
   if (win.some((e) => e.period)) points.push(T('생리 중이었어요'));
   return { points, lessSleep: sleepDiff <= -45 };
 }
 
-// 최근 7일 읽기.
-//   { kind: 'high'(들뜬 쪽) | 'low'(가라앉은 쪽) | 'mixed'(둘 다) | 'even'(뚜렷하지 않음), title,
-//     flow: 언제부터 며칠째인지와 방향(없으면 ''), groups: [[묶음 이름, [근거 문장, …]], …],
-//     lead: 이번 흐름이 시작되기 전 사흘 { title, points, past: 예전 시기들과 견준 문장 } 또는 null }
-// 최근 7일 중 4일 이상 적었을 때만 나온다 (모자라면 null). 수면은 그 전 4주의 내 평균과 견준다.
+// 최근 7일 읽기. 진단 기준의 틀을 빌려서 센다 (진단을 내리는 것이 아니라, 기준에 나오는 모습이 기록에 얼마나 있는지 세는 것).
+//   들뜬 쪽: 기분과 에너지가 둘 다 높은 날이 대부분이고 [근거 1: 경조증·조증은 기분과 활동·에너지가 함께 올라감],
+//            기준 증상 7가지 가운데 3가지 이상이 기록에 있을 때 [근거 1]
+//   가라앉은 쪽: 우울한 날이 대부분이고, 이 앱으로 적는 기준 증상 6가지(전체 9가지 가운데) 중 3가지 이상이 있을 때 [근거 2: 9가지 중 5가지 이상, 2주]
+//   섞인 모습: 한쪽이 뚜렷한데 반대쪽 증상이 3가지 이상 함께 있을 때 [근거 3: 혼재 양상은 반대쪽 증상 3가지 이상]
+//   "거의 매일"은 7일 중 4일 이상으로 본다. 수면은 그 전 4주의 내 평균과 견준다 [근거 8: 자기 평소와 견줄 때 더 잘 맞음].
+// 돌려주는 것: { kind: 'high' | 'low' | 'mixed' | 'up'(높지만 기준 증상은 적음) | 'down'(우울하지만 기준 증상은 적음) | 'even', title,
+//   flow: 언제부터 며칠째인지·기준 기간과 견준 말·요 사흘 방향, groups: [[묶음 이름, [근거 문장, …]], …], notes: [덧붙이는 말, …],
+//   lead: 시작되기 전 2주 { title, points, past } 또는 null, beyond: 고른 진단명에 없는 모습일 때의 말 }
+// 최근 7일 중 4일 이상 적었을 때만 나온다 (모자라면 null).
 export function recentState(entries = db.entries) {
-  const t = today(), mine = entries === db.entries;
-  const span = (from, to) => Object.keys(entries).filter((k) => k > addDays(t, -from) && k <= addDays(t, -to)).map((k) => entries[k]);
+  const t = today(), mine = entries === db.entries, dx = usesOn();
+  const span = (from, to) => Object.keys(entries).sort().filter((k) => k > addDays(t, -from) && k <= addDays(t, -to)).map((k) => entries[k]);
   const now = span(7, 0), prior = span(35, 7);
   if (now.length < 4) return null;
   const vals = (list, key) => list.map((e) => e[key]).filter((x) => x != null);
-  // 평균이 아니라 "그런 날이 며칠이었는지"로 센다 (7일 중 4~5일만 들떠도 평균은 묻히기 때문에). 4일 이상이면 근거로 넣는다.
-  const daysWith = (test) => now.filter(test).length, sleep = avg(vals(now, 'sleepMin'));
-  const base = vals(prior, 'sleepMin'), sleepDiff = sleep != null && base.length >= 3 ? Math.round(sleep - avg(base)) : null;
-  const high = [], low = [], also = [];
-  const add = (list, n, min, text) => { if (n >= min) list.push(F(text, n)); };
-  const energyUp = daysWith((e) => e.energy >= 7);
-  add(high, daysWith((e) => e.mood >= 7), 4, '기분이 7 이상인 날 {0}일');
-  add(high, energyUp, 4, '에너지가 7 이상인 날 {0}일');
-  if (sleepDiff != null && sleepDiff <= -60 && energyUp >= 3) high.push(F('잠이 평소보다 {0} 줄었는데 에너지는 높음', durText(-sleepDiff)));
-  add(high, daysWith((e) => e.conf >= 8), 4, '자신감이 8 이상인 날 {0}일');
-  add(high, daysWith((e) => !!e.signs && Object.keys(e.signs).some((k) => e.signs[k])), 2, '말·생각이 빨라지거나 일을 벌인 날 {0}일');
-  add(low, daysWith((e) => e.mood != null && e.mood <= 3), 4, '기분이 3 이하인 날 {0}일');
-  add(low, daysWith((e) => e.energy != null && e.energy <= 3), 4, '에너지가 3 이하인 날 {0}일');
-  add(low, daysWith((e) => e.dep >= 2), 4, '우울이 보통 이상인 날 {0}일');
-  if (sleepDiff != null && Math.abs(sleepDiff) >= 60 && high.length < 3) low.push(F(sleepDiff > 0 ? '잠이 평소보다 {0} 늘어남' : '잠이 평소보다 {0} 줄어듦', durText(Math.abs(sleepDiff))));
-  add(low, daysWith((e) => e.si >= 1), 1, '죽고 싶은 생각이 있던 날 {0}일');
-  // 어느 쪽이든 함께 봐야 하는 것
-  const psyDays = daysWith((e) => e.psy >= 1);
-  add(also, psyDays, 1, '정신병적 증상이 있던 날 {0}일');
-  const anxDays = daysWith((e) => e.anx >= 2);
-  add(also, anxDays, 3, '불안이 보통 이상인 날 {0}일');
-  add(also, daysWith((e) => e.sleepMin != null && e.sleepMin < SHORT_SLEEP), 2, '5시간 미만으로 잔 밤 {0}일');
-  if (mine && db.meds.length) add(also, daysWith((e) => !medsFor(e.date).length), 2, '약을 안 먹은 날 {0}일');
+  const n = (test) => now.filter(test).length, most = (test) => n(test) >= 4;
+  const sleep = avg(vals(now, 'sleepMin')), base = vals(prior, 'sleepMin'), sleepDiff = sleep != null && base.length >= 3 ? Math.round(sleep - avg(base)) : null;
+  const sign = (k) => n((e) => !!(e.signs && e.signs[k])) >= 2, label = (k) => SIGNS.find(([key]) => key === k)[1];
 
-  const isHigh = high.length >= 3, isLow = low.length >= 3, kind = isHigh && isLow ? 'mixed' : isHigh ? 'high' : isLow ? 'low' : 'even';
+  // 들뜬 쪽: 기분·에너지(A), 기준 증상 7가지(B) [근거 1]
+  const moodUp = n((e) => e.mood >= 7), energyUp = n((e) => e.energy >= 7), hasEnergy = now.some((e) => e.energy != null);
+  const aHigh = moodUp >= 4 && (!hasEnergy || energyUp >= 4);
+  const lessNeed = sign('lessSleep') || (sleepDiff != null && sleepDiff <= -60 && n((e) => e.tired) <= 1);   // 잠이 줄었는데 피곤하지 않음
+  const grand = most((e) => e.conf >= 8);
+  const B = [[T('자신감이 크게 높아짐'), grand], [label('lessSleep'), lessNeed], [label('talkative'), sign('talkative')], [label('racing'), sign('racing')],
+    [label('distract'), sign('distract')], [label('projects'), sign('projects')], [label('impulsive'), sign('impulsive')]].filter(([, on]) => on).map(([name]) => name);
+  // 가라앉은 쪽: 우울한 기분(A), 이 앱으로 적는 기준 증상 6가지 [근거 2]. 흥미 없음·몸이 느려짐·집중 어려움은 적는 칸이 없어서 못 센다.
+  const depMood = most((e) => e.dep >= 2 || (e.mood != null && e.mood <= 3));
+  const moreSleep = sleepDiff != null && sleepDiff >= 60, moreAppetite = most((e) => e.appetite >= 9);
+  const D = [[T('우울한 기분'), depMood], [T('식욕이 크게 줄거나 늘어남'), most((e) => e.appetite != null && (e.appetite <= 2 || e.appetite >= 9))],
+    [T('잠이 평소보다 한 시간 넘게 늘거나 줄어듦'), sleepDiff != null && Math.abs(sleepDiff) >= 60 && !lessNeed], [T('기운이 없음'), most((e) => e.energy != null && e.energy <= 3)],
+    [T('자신감이 크게 낮아짐'), most((e) => e.conf != null && e.conf <= 2)], [T('죽고 싶은 생각'), n((e) => e.si >= 1) >= 2]].filter(([, on]) => on).map(([name]) => name);
+
+  const isHigh = aHigh && B.length >= 3, isLow = depMood && D.length >= 3;
+  const kind = (isHigh && (isLow || D.length >= 3)) || (isLow && B.length >= 3) ? 'mixed' : isHigh ? 'high' : isLow ? 'low' : aHigh ? 'up' : depMood ? 'down' : 'even';
+
+  // 어느 쪽이든 함께 봐야 하는 것
+  const also = [], add = (count, min, text) => { if (count >= min) also.push(F(text, count)); };
+  const psyDays = n((e) => e.psy >= 1), anxDays = n((e) => e.anx >= 2);
+  add(psyDays, 1, '정신병적 증상이 있던 날 {0}일');
+  add(anxDays, 3, '불안이 보통 이상인 날 {0}일');
+  add(n((e) => e.sleepMin != null && e.sleepMin < SHORT_SLEEP), 2, '5시간 미만으로 잔 밤 {0}일');
+  // 하루 사이에 잠이 3시간 넘게 달라진 날: 큰 기분 변화에 하루쯤 앞서 나타나기도 한다 [근거 5]
+  const withSleep = span(8, 0).filter((e) => e.sleepMin != null);
+  add(withSleep.filter((e, i) => i && dayGap(withSleep[i - 1].date, e.date) === 1 && Math.abs(e.sleepMin - withSleep[i - 1].sleepMin) > 180).length, 1, '하루 사이에 잠이 3시간 넘게 달라진 날 {0}일');
+  if (mine && db.meds.length) add(n((e) => !medsFor(e.date).length), 2, '약을 안 먹은 날 {0}일');
+
+  const psyAlso = psyDays ? T(' 정신병적 증상도 함께 적혀 있어요.') : '';
   const title = {
     mixed: T('최근 7일은 들뜬 모습과 가라앉은 모습이 함께 보여요.'),
-    high: psyDays ? T('최근 7일은 경조증·조증 때 흔히 보이는 모습과 겹치는 점이 많고, 정신병적 증상도 함께 적혀 있어요.') : T('최근 7일은 경조증 때 흔히 보이는 모습과 겹치는 점이 많아요.'),
-    low: psyDays ? T('최근 7일은 우울 삽화 때 흔히 보이는 모습과 겹치는 점이 많고, 정신병적 증상도 함께 적혀 있어요.') : T('최근 7일은 우울 삽화 때 흔히 보이는 모습과 겹치는 점이 많아요.'),
-    even: psyDays ? T('최근 7일은 기분이 한쪽으로 뚜렷하게 기울지는 않았지만, 정신병적 증상이 적혀 있어요.')
-      : anxDays >= 4 ? T('최근 7일은 기분이 한쪽으로 뚜렷하게 기울지는 않았지만, 불안이 높은 날이 많아요.') : T('최근 7일은 한쪽으로 뚜렷하게 기운 모습이 보이지 않아요.'),
-  }[kind];
-  const groups = [[T('들뜬 쪽'), high], [T('가라앉은 쪽'), low], [T('함께 보이는 것'), also]].filter(([, list]) => list.length);
+    high: T('최근 7일은 경조증·조증 때 흔히 보이는 모습과 겹치는 점이 많아요.'),
+    low: T('최근 7일은 우울 삽화 때 흔히 보이는 모습과 겹치는 점이 많아요.'),
+    up: T('최근 7일은 기분과 에너지가 높은 날이 많아요. 진단 기준에 나오는 다른 증상은 기록에 많지 않아요.'),
+    down: T('최근 7일은 우울한 날이 많아요. 진단 기준에 나오는 다른 증상은 기록에 많지 않아요.'),
+    even: anxDays >= 4 ? T('최근 7일은 기분이 한쪽으로 뚜렷하게 기울지는 않았지만, 불안이 높은 날이 많아요.') : T('최근 7일은 한쪽으로 뚜렷하게 기운 모습이 보이지 않아요.'),
+  }[kind] + psyAlso;
+  const upLines = [moodUp >= 4 ? F('기분이 7 이상인 날 {0}일', moodUp) : '', energyUp >= 4 ? F('에너지가 7 이상인 날 {0}일', energyUp) : '', ...B].filter(Boolean);
+  const groups = [
+    [F('들뜬 쪽 · 진단 기준 증상 7가지 중 {0}가지', B.length), aHigh || B.length >= 2 ? upLines : []],
+    [F('가라앉은 쪽 · 이 앱으로 적는 기준 증상 6가지 중 {0}가지', D.length), depMood || D.length >= 2 ? D : []],
+    [T('함께 보이는 것'), also],
+  ].filter(([, list]) => list.length);
 
-  // 언제부터인지, 요 사흘 방향은 어떤지, 그리고 시작되기 전 사흘
-  let flow = '', lead = null;
-  if (kind === 'high' || kind === 'low') {
-    const all = runs(entries, kind === 'high' ? upDay : downDay), cur = all[all.length - 1];
+  // 언제부터인지, 기준에 나오는 기간과 견주면 어떤지, 요 사흘 방향은 어떤지, 그리고 시작되기 전 2주
+  let flow = '', lead = null, started = '';
+  const up = kind === 'high' || kind === 'up', down = kind === 'low' || kind === 'down';
+  if (up || down) {
+    const all = runs(entries, up ? upDay : downDay), cur = all[all.length - 1];
     if (cur && dayGap(cur.end, t) <= 2) {
-      const moods = vals(now, 'mood'), late = moods.slice(-3), early = moods.slice(0, -3);
+      const days = dayGap(cur.start, t) + 1, moods = vals(now, 'mood'), late = moods.slice(-3), early = moods.slice(0, -3);
       const turn = late.length === 3 && early.length >= 2 ? avg(late) - avg(early) : 0;
       const dir = turn >= 1 ? T(' 요 사흘은 기분이 더 올라가는 중이에요.') : turn <= -1 ? T(' 요 사흘은 기분이 더 내려가는 중이에요.') : '';
-      flow = F('{0}쯤부터 {1}일째 이어지고 있어요.', md(parse(cur.start)), dayGap(cur.start, t) + 1) + dir;
+      // 진단 기준의 기간: 경조증 4일 이상, 조증 1주 이상 [근거 1], 우울 삽화 2주 이상 [근거 2]
+      const length = up ? (days >= 7 ? T(' 진단 기준에서 말하는 조증의 기간(1주 이상)만큼 이어졌어요.') : days >= 4 ? T(' 진단 기준에서 말하는 경조증의 기간(4일 이상)만큼 이어졌어요.') : T(' 진단 기준에서 말하는 경조증의 기간(4일)보다는 아직 짧아요.'))
+        : days >= 14 ? T(' 진단 기준에서 말하는 우울 삽화의 기간(2주 이상)만큼 이어졌어요.') : T(' 진단 기준에서 말하는 우울 삽화의 기간(2주)보다는 아직 짧아요.');
+      flow = F('{0}쯤부터 {1}일째 이어지고 있어요.', md(parse(cur.start)), days) + length + dir;
+      started = cur.start;
       const b = before(entries, cur.start, mine), past = all.slice(0, -1);
       const pastLess = past.filter((r) => before(entries, r.start, mine).lessSleep).length;
-      const pastText = past.length >= 2 ? F(kind === 'high' ? '지금까지 들뜬 시기 {0}번 중 {1}번은 시작 전에 잠이 줄었어요.' : '지금까지 가라앉은 시기 {0}번 중 {1}번은 시작 전에 잠이 줄었어요.', past.length, pastLess) : '';
-      if (b.points.length || pastText) lead = { title: kind === 'high' ? T('들뜬 흐름이 시작되기 전 사흘') : T('가라앉은 흐름이 시작되기 전 사흘'), points: b.points, past: pastText };
+      const pastText = past.length >= 2 ? F(up ? '지금까지 들뜬 시기 {0}번 중 {1}번은 시작 전에 잠이 줄었어요.' : '지금까지 가라앉은 시기 {0}번 중 {1}번은 시작 전에 잠이 줄었어요.', past.length, pastLess) : '';
+      if (b.points.length || pastText) lead = { title: up ? T('들뜬 흐름이 시작되기 전 2주') : T('가라앉은 흐름이 시작되기 전 2주'), points: b.points, past: pastText };
     }
   }
+
+  // 덧붙이는 말: 비슷해 보이는 것들을 가르는 데 연구에서 쓰는 단서가 기록에 있으면 알려 준다 (어느 쪽이라고 정하지는 않는다)
+  const notes = [];
+  // ADHD와 들뜬 시기: ADHD는 늘 이어지고, 들뜬 시기는 어느 날부터 시작된다. 잠이 줄어도 피곤하지 않은 것과 부풀어 오른 자신감은 ADHD의 모습이 아니다 [근거 7]
+  if (up && (dx.includes('adhd') || !dx.includes('bipolar'))) {
+    const clues = [started && prior.filter(upDay).length <= prior.length / 4 ? T('어느 날부터 시작됨') : '', lessNeed ? T('잠이 줄었는데 피곤하지 않음') : '', grand ? T('자신감이 크게 높아짐') : ''].filter(Boolean);
+    notes.push(clues.length >= 2
+      ? F('산만함이나 충동은 ADHD에서도 흔하지만, 이번에는 {0}이 함께 보여요. 이런 점은 ADHD보다 들뜬 시기에서 흔한 모습이에요.', clues.join(' · '))
+      : T('산만함이나 충동만 있고 잠과 자신감이 평소와 비슷하다면, ADHD에서도 흔한 모습이에요.'));
+  }
+  // 가라앉은 시기에 잠·식욕이 늘거나 정신병적 증상이 있는 것은 조울증의 우울에서 조금 더 흔하다. 그것만으로 가를 수는 없다 [근거 6]
+  if (down && !dx.includes('bipolar')) {
+    const clues = [moreSleep ? T('잠이 늘어남') : '', moreAppetite ? T('식욕이 늘어남') : '', psyDays ? T('정신병적 증상') : ''].filter(Boolean);
+    if (clues.length) notes.push(F('가라앉은 시기에 {0}이 함께 있는 것은, 연구에서 조울증의 우울에서 조금 더 흔하다고 알려진 모습이에요. 이것만으로 구분되지는 않으니 진료 때 이야기해 보세요.', clues.join(' · ')));
+  }
+  // 조현병: 재발 몇 주 전에 불안과 잠 문제가 먼저 나타나기도 한다 [근거 8]
+  if ((dx.includes('psychosis') || Object.keys(entries).some((k) => entries[k].psy >= 1)) && !psyDays && anxDays >= 3 && sleepDiff != null && sleepDiff <= -60) {
+    notes.push(T('불안과 잠 문제가 함께 늘었어요. 정신병적 증상은 다시 나타나기 몇 주 전에 이런 변화가 먼저 오기도 해요.'));
+  }
+
   // 고른 진단명은 참고일 뿐이다 (진단이 틀렸을 수도 있다: 조울증이 우울증으로, ADHD가 조울증으로 진단되는 일이 있다).
   // 그래서 기록에 보이는 모습을 진단명으로 걸러 내지 않고, 고른 진단명에 없는 모습이 보이면 그 점을 따로 짚어 준다.
-  const dx = usesOn();
   const beyond = (kind === 'high' || kind === 'mixed') && dx.length && !dx.includes('bipolar')
     ? T('고른 진단명에는 조울증이 없지만, 기록에는 들뜬 시기에 가까운 모습이 보여요. 진단이 틀렸다는 뜻은 아니에요. 진료 때 이 기록을 보여 주며 이야기해 볼 만해요.')
     : kind === 'low' && dx.length && !dx.includes('depression') && !dx.includes('bipolar')
       ? T('고른 진단명에는 우울증이나 조울증이 없지만, 기록에는 가라앉은 시기에 가까운 모습이 보여요. 진료 때 이 기록을 보여 주며 이야기해 볼 만해요.') : '';
-  return { kind, title, flow, groups, lead, beyond };
+  return { kind, title, flow, groups, notes, lead, beyond };
 }
 
 // ---------- 내 시기들 · 시기별 내 평균 · 약을 바꾼 앞뒤 ----------

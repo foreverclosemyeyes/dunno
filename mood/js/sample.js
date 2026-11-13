@@ -9,8 +9,8 @@ export function sampleEntries() {
     const date = addDays(t, -i), high = i < 6;
     const cafYesterday = (i + 1) % 5 === 2, movedYesterday = (i + 1) % 4 === 1;
     const period = i >= 16 && i <= 20, caf = i % 5 === 2;
-    // 들뜨기 직전 사흘(i 6~8)은 잠이 먼저 줄어 있다
-    const sleepMin = high ? 290 : i <= 8 ? 345 : 440 - (cafYesterday ? 70 : 0) + (movedYesterday ? 40 : 0);
+    // 들뜨기 전 아흐레쯤(i 6~14)은 잠이 먼저 줄어 있다
+    const sleepMin = high ? 290 : i <= 14 ? 350 : 440 - (cafYesterday ? 70 : 0) + (movedYesterday ? 40 : 0);
     out[date] = {
       date, mood: high ? 8 : 5 - (period ? 1 : 0), energy: high ? 9 : 4 + (i % 2), conf: high ? 8 : 5,
       sleepMin, tired: !high && sleepMin < 400, period, caffeine: caf ? 8 : 3, appetite: caf ? 3 : 6,

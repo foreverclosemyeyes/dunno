@@ -32,11 +32,11 @@ export function viewInsight() {
     <section class="card state"><b>${state.title}</b>
       ${state.flow ? `<div class="flow">${state.flow}</div>` : ''}
       ${state.groups.map(([name, list]) => `<h3>${name}</h3>${bullets(list)}`).join('')}
-      ${state.beyond ? `<div class="beyond">${state.beyond}</div>` : ''}
+      ${state.notes.map((x) => `<div class="beyond">${x}</div>`).join('')}${state.beyond ? `<div class="beyond">${state.beyond}</div>` : ''}
       <p>${T('진단이 아니에요. 기록에서 겹쳐 보이는 점을 모은 것이니, 진료 때 보여 주며 이야기해 보세요.')}</p></section>
     ${state.lead ? `<div class="sec">${state.lead.title}</div>
     <section class="card state">${bullets(state.lead.points)}${state.lead.past ? `<div class="flow">${state.lead.past}</div>` : ''}
-      <p>${T('그 전 4주의 내 평소와 견준 것이에요. 원인이라는 뜻은 아니에요.')}</p></section>` : ''}` : ''}
+      <p>${T('그 앞 4주의 내 평소와 견준 것이에요. 원인이라는 뜻은 아니에요.')}</p></section>` : ''}` : ''}
     ${ep.list.length ? `<div class="sec">${T('지금까지의 시기')}</div>
     <section class="card list">${ep.list.slice(0, 6).map((r) => `<div class="li"><span class="lk">${r.kind === 'high' ? T('들뜬 시기') : T('가라앉은 시기')}</span><span class="lv">${span(r)} · ${F('{0}일', r.days)}</span></div>`).join('')}</section>
     <p class="secnote">${epStat}${ep.beyond ? `<br>${ep.beyond}` : ''}</p>` : ''}

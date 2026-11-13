@@ -397,6 +397,7 @@ input[type=date] { border: 0; outline: none; background: var(--card2); color: va
 /* 인사이트: 최근 7일 읽기 (결론, 근거 목록, 진단이 아니라는 말) */
 .state b { display: block; font-size: calc(16px * var(--fs, 1.12)); font-weight: 600; line-height: 1.4; }
 .state .flow { margin-top: 8px; color: var(--muted); font-size: calc(14px * var(--fs, 1.12)); line-height: 1.45; }
+.state .beyond + .beyond { margin-top: 8px; }
 .state .beyond { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: var(--card2); font-size: calc(13.5px * var(--fs, 1.12)); line-height: 1.45; }
 .state h3 { margin: 14px 0 0; color: var(--muted); font-size: calc(12px * var(--fs, 1.12)); font-weight: 600; }
 .state h3 + ul { margin-top: 4px; }
