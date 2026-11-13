@@ -365,10 +365,14 @@ input[type=date] { border: 0; outline: none; background: var(--card2); color: va
 .lock-pad .lock-txt { background: none; font-family: inherit; font-size: calc(14px * var(--fs, 1.12)); color: var(--muted); }
 
 /* 진료용 요약: 숫자 네 칸, 한눈에 보는 그림, 딱지 */
+.sum-togs { display: flex; flex-wrap: wrap; gap: 6px; padding: 16px 16px 0; }
+.sum-tog { background: var(--card2); border-radius: 999px; padding: 6px 12px; font-size: calc(12.5px * var(--fs, 1.12)); color: var(--faint); }
+.sum-tog b { font-family: var(--round); font-weight: 600; }
+.sum-tog[aria-pressed=true] { background: var(--sel); color: var(--text); font-weight: 600; }
 .sum-fig { padding: 18px 16px 0; }
 .sum-fig svg { display: block; overflow: visible; font-family: inherit; }
 .sum-key { color: var(--faint); font-size: calc(10.5px * var(--fs, 1.12)); margin: 6px 16px 0; line-height: 1.45; }
 .sum-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 16px 2px; }
 .sum-chip { background: var(--card2); border-radius: 999px; padding: 5px 11px; font-size: calc(12.5px * var(--fs, 1.12)); color: var(--muted); }
 .sum-chip b { color: var(--text); font-weight: 600; }
-@media print { .sum-chip { border: 1px solid #ccc; } }
+@media print { .sum-chip { border: 1px solid #ccc; } .sum-togs { display: none; } }

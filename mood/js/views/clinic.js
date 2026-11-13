@@ -1,5 +1,5 @@
 // 진료 화면: 다음 진료일, 진료 때 말할 것, 진료용 요약 (최근 2주/4주를 한 장으로)
-import { SHORT_SLEEP, summary } from '../analysis.js';
+import { summary } from '../analysis.js';
 import { DISCLAIMER, LEVELS } from '../constants.js';
 import { durText, md, parse, today } from '../dates.js';
 import { app, esc } from '../dom.js';
@@ -25,30 +25,36 @@ function nextText() {
   return left > 0 ? F('진료까지 {0}일', left) : left === 0 ? T('오늘 진료') : '';
 }
 
-// 한눈에 보는 그림: 날짜를 가로로 맞춰 놓고 항목마다 한 칸씩 위에서 아래로 쌓는다.
-// 칸마다 왼쪽 위에 이름(과 평균), 오른쪽 위에 한 줄 요약, 그 아래에 그림이 온다.
-//   기분·에너지(곡선) → 수면(곡선, 5시간 미만인 밤에 점) → 증상(곡선, 높을수록 심함) → 약·생리(그날에 점)
-// 선은 전부 부드러운 실선, 표시는 전부 동그라미다. 색은 CSS 변수를 따라가서 다크·라이트·인쇄에서 그대로 읽힌다.
+// 큰 그래프에 켜고 끌 수 있는 선들: [열쇠, 이름, 가장 높은 값]. 증상(0~4)은 그래프 높이에 맞춰 늘려 그린다.
+const lineDefs = () => [
+  ['mood', T('기분'), 10], ['energy', T('에너지'), 10], ['conf', T('자신감'), 10],
+  ['dep', T('우울'), 4], ['elev', T('고조'), 4], ['anx', T('불안'), 4], ['si', T('죽고 싶은 생각'), 4],
+];
+
+// 한눈에 보는 그림: 날짜를 가로로 맞춰 놓고
+//   큰 그래프 하나(켜 둔 선들, 선 끝에 이름) → 수면(곡선) → 약(먹은 날 ○, 안 먹은 날 ×) → 생리(○)
+// 를 위에서 아래로 쌓는다. 선은 전부 부드러운 실선이다. 색은 CSS 변수를 따라가서 다크·라이트·인쇄에서 그대로 읽힌다.
 function figure(s, width) {
-  const n = s.dates.length, pw = width - 20, col = pw / n;
-  const cx = (i) => col * (i + 0.5);
+  // 오른쪽에는 선 끝 이름이 들어갈 자리를 둔다 (이름이 긴 "죽고 싶은 생각"을 켰을 때만 넓게)
+  const n = s.dates.length, L = 18, R = clinicView.lines.includes('si') ? 80 : 44, pw = width - L - R, col = pw / n;
+  const cx = (i) => L + col * (i + 0.5);
   const ink = 'style="fill:var(--ink)"', mutedText = 'style="fill:var(--muted)"';
   const accent = tone('mood', 10) || 'var(--ink)';
   const marks = s.dates.map((d, i) => (i === 0 || parse(d).getDay() === 1 ? i : -1)).filter((i) => i >= 0);
-  let out = '', y = 12;
+  let out = '', y = 6;
 
   const head = (left, right) => {
-    out += `<text x="0" y="${y}" font-size="12.5" font-weight="600" ${ink}>${left}</text>`;
+    out += `<text x="${L}" y="${y}" font-size="12.5" font-weight="600" ${ink}>${left}</text>`;
     if (right) out += `<text x="${width}" y="${y}" font-size="11.5" text-anchor="end" ${mutedText}>${right}</text>`;
   };
   // 주마다(월요일) 세로줄: 그림이 있는 칸 안에만 긋는다
   const weekLines = (y1, y2) => marks.filter(Boolean).forEach((i) => {
-    out += `<line x1="${(col * i).toFixed(1)}" x2="${(col * i).toFixed(1)}" y1="${y1}" y2="${y2}" style="stroke:var(--line)"/>`;
+    out += `<line x1="${(L + col * i).toFixed(1)}" x2="${(L + col * i).toFixed(1)}" y1="${y1}" y2="${y2}" style="stroke:var(--line)"/>`;
   });
   const dateLabels = (at) => marks.forEach((i) => {
-    out += `<text x="${(col * i + 2).toFixed(1)}" y="${at}" font-size="10" ${mutedText}>${shortDate(s.dates[i])}</text>`;
+    out += `<text x="${(L + col * i + 2).toFixed(1)}" y="${at}" font-size="10" ${mutedText}>${shortDate(s.dates[i])}</text>`;
   });
-  const points = (key, yOf) => s.days.map((e, i) => (e && e[key] != null ? [cx(i), yOf(e[key]), e[key]] : null)).filter(Boolean);
+  const points = (key, yOf) => s.days.map((e, i) => (e && e[key] != null ? [cx(i), yOf(e[key])] : null)).filter(Boolean);
   // 값이 있는 날들을 부드러운 곡선으로 잇는다 (하루뿐이면 점 하나). area가 있으면 곡선 아래를 옅게 채운다.
   const curve = (pts, yMin, yMax, color, w, area) => {
     if (pts.length < 2) { pts.forEach((p) => { out += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" style="fill:${color}"/>`; }); return; }
@@ -56,58 +62,57 @@ function figure(s, width) {
     if (area) out += `<path d="${d}L${pts[pts.length - 1][0].toFixed(1)},${yMax}L${pts[0][0].toFixed(1)},${yMax}Z" style="fill:var(--fill)" stroke="none"/>`;
     out += `<path d="${d}" fill="none" stroke-linejoin="round" stroke-linecap="round" style="stroke:${color}" stroke-width="${w}"/>`;
   };
-  const floor = (at) => { out += `<line x1="0" x2="${pw}" y1="${at}" y2="${at}" style="stroke:var(--line)"/>`; };
-  const dots = (has) => {
-    const r = Math.max(2, Math.min(col / 2 - 1, 4));
-    s.dates.forEach((d, i) => { if (has(d, s.days[i])) out += `<circle cx="${cx(i).toFixed(1)}" cy="${y + 13}" r="${r.toFixed(1)}" ${ink}/>`; });
-    weekLines(y + 5, y + 21);
-  };
-  const avgOf = (st) => (st ? ` ${one(st.avg)}` : '');
+  const floor = (at) => { out += `<line x1="${L}" x2="${L + pw}" y1="${at}" y2="${at}" style="stroke:var(--line)"/>`; };
 
-  // 1. 기분 · 에너지 (0~10)
-  head(`<tspan style="fill:${accent}">${T('기분')}</tspan>${avgOf(s.mood)}<tspan dx="12" ${mutedText}>${T('에너지')}${avgOf(s.energy)}</tspan>`);
-  const SH = 96, top = y + 12, sy = (v) => top + (1 - v / 10) * SH;
-  [0, 5, 10].forEach((v) => { floor(sy(v)); out += `<text x="${pw + 6}" y="${sy(v) + 3.5}" font-size="10" ${mutedText}>${v}</text>`; });
+  // 1. 큰 그래프: 켜 둔 선들을 한 축 위에. 선 끝에 이름을 적는다 (겹치면 아래로 민다).
+  const SH = 150, top = y, sy = (v) => top + (1 - v / 10) * SH;
+  [0, 5, 10].forEach((v) => { floor(sy(v)); out += `<text x="${L - 6}" y="${sy(v) + 3.5}" font-size="10" text-anchor="end" ${mutedText}>${v}</text>`; });
   weekLines(top, top + SH);
-  curve(points('energy', sy), top, top + SH, 'var(--muted)', 1.6);
-  curve(points('mood', sy), top, top + SH, accent, 3);
+  const ends = [];
+  lineDefs().filter(([key]) => clinicView.lines.includes(key)).reverse().forEach(([key, name, max]) => {
+    const pts = points(key, (v) => sy(v / max * 10));
+    if (!pts.length) return;
+    const color = key === 'mood' ? accent : max === 10 ? 'var(--muted)' : 'var(--ink)';
+    curve(pts, top, top + SH, color, key === 'mood' ? 3 : 1.8);
+    ends.push({ name, color, x: pts[pts.length - 1][0] + 7, y: pts[pts.length - 1][1] + 3.5, bold: key === 'mood' });
+  });
+  ends.sort((a, b) => a.y - b.y).forEach((e, i) => {
+    if (i && e.y < ends[i - 1].y + 12) e.y = ends[i - 1].y + 12;
+    out += `<text x="${e.x.toFixed(1)}" y="${e.y.toFixed(1)}" font-size="10.5" font-weight="${e.bold ? 700 : 500}" style="fill:${e.color}">${e.name}</text>`;
+  });
   dateLabels(top + SH + 13);
-  y = top + SH + 40;
+  y = top + SH + 42;
 
-  // 2. 수면 (0~12시간): 5시간 미만인 밤에는 점을 찍는다
+  // 2. 수면 (0~12시간)
   head(`${T('수면')}${s.sleep ? ` ${durText(Math.round(s.sleep.avg))}` : ''}`, s.shortSleep.length ? F('5시간 미만 {0}일', s.shortSleep.length) : '');
-  const BH = 44, sTop = y + 10, base = sTop + BH, sleepPts = points('sleepMin', (m) => base - Math.min(m, 720) / 720 * BH);
+  const BH = 44, sTop = y + 10, base = sTop + BH;
   weekLines(sTop, base);
-  curve(sleepPts, sTop, base, 'var(--ink)', 2, true);
-  sleepPts.filter((p) => p[2] < SHORT_SLEEP).forEach((p) => { out += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3.4" ${ink}/>`; });
+  curve(points('sleepMin', (m) => base - Math.min(m, 720) / 720 * BH), sTop, base, 'var(--ink)', 2, true);
   floor(base);
   y = base + 28;
 
-  // 3. 증상 (없음~매우 높음): 선이 높을수록 심한 날. 한 번도 없었으면 그림 없이 "없음"만 적는다.
-  [['dep', T('우울')], ['elev', T('고조')], ['anx', T('불안')], ['si', T('죽고 싶은 생각')]].forEach(([key, name]) => {
-    const any = s.days.some((e) => e && e[key]), high = s.high[key].length;
-    head(name, high ? F(key === 'si' ? '{0}일' : '높음 이상 {0}일', high) : any ? '' : T('없음'));
-    if (!any) { y += 24; return; }
-    const H = 26, t = y + 9, b = t + H;
-    weekLines(t, b);
-    curve(points(key, (v) => b - v / 4 * H), t, b, 'var(--ink)', 1.8, true);
-    floor(b);
-    y = b + 26;
-  });
-
-  // 4. 약 · 생리: 그날에 점
+  // 3. 약 · 생리: 얇은 선으로 먹은 날 ○, 안 먹은 날 ×
+  const r = Math.max(2, Math.min(col / 2 - 1.5, 4.2));
+  const marksRow = (has, cross) => {
+    s.dates.forEach((d, i) => {
+      const x = cx(i), my = y + 14;
+      if (has(d, s.days[i])) out += `<circle cx="${x.toFixed(1)}" cy="${my}" r="${r.toFixed(1)}" fill="none" stroke-width="1.2" style="stroke:var(--ink)"/>`;
+      else if (cross) {
+        const k = r * 0.75;
+        out += `<path d="M${(x - k).toFixed(1)},${(my - k).toFixed(1)}L${(x + k).toFixed(1)},${(my + k).toFixed(1)}M${(x + k).toFixed(1)},${(my - k).toFixed(1)}L${(x - k).toFixed(1)},${(my + k).toFixed(1)}" fill="none" stroke-width="1" stroke-linecap="round" style="stroke:var(--faint)"/>`;
+      }
+    });
+    y += 44;
+  };
   s.meds.forEach(([m, count]) => {
     head(esc(`${m.name}${m.dose ? ` ${m.dose}` : ''}`), F('{0}일 중 {1}일', n, count));
-    if (count) dots((d) => medsFor(d).some((x) => medKey(x) === medKey(m)));
-    y += count ? 44 : 24;
+    marksRow((d) => medsFor(d).some((x) => medKey(x) === medKey(m)), true);
   });
   if (s.period.length) {
     head(T('생리'), F('{0}일', s.period.length));
-    dots((d, e) => e && e.period);
-    y += 44;
+    marksRow((d, e) => e && e.period, false);
   }
-  dateLabels(y);
-  y += 8;
+  dateLabels(y - 6);
   return `<svg id="sum-fig" width="${width}" height="${y}" role="img" aria-label="${T('진료용 요약')}">${out}</svg>`;
 }
 
@@ -131,15 +136,19 @@ function summaryRows(s) {
 export function summaryHtml(weeks) {
   const s = summary(weeks), talk = clinicData().notes;
   const width = Math.max(240, Math.min(app.clientWidth, 480) - 32 - 32);
-  // 그림에 안 나오는 것만 짧은 딱지로: 자신감 평균, 기분이 높았던 날 체크한 항목
+  // 큰 그래프의 선을 켜고 끄는 단추: 기분·에너지·자신감은 평균을 옆에 적는다
+  const toggles = lineDefs().map(([key, name, max]) => `<button class="sum-tog" data-act="clinicLine" data-k="${key}" aria-pressed="${clinicView.lines.includes(key)}">${name}${max === 10 && s[key] ? ` <b>${one(s[key].avg)}</b>` : ''}</button>`).join('');
+  // 눈에 띄는 것은 짧은 딱지로: 며칠인지만 적는다
   const chips = [
-    ...(s.conf ? [[T('자신감 평균'), one(s.conf.avg)]] : []), ...s.signs.map(([name, c]) => [name, F('{0}일', c)]),
-  ].map(([name, value]) => `<span class="sum-chip">${esc(name)} <b>${value}</b></span>`).join('');
+    [T('우울 높음 이상'), s.high.dep.length], [T('고조 높음 이상'), s.high.elev.length], [T('불안 높음 이상'), s.high.anx.length],
+    [T('죽고 싶은 생각'), s.high.si.length], ...s.signs,
+  ].filter(([, c]) => c).map(([name, c]) => `<span class="sum-chip">${esc(name)} <b>${F('{0}일', c)}</b></span>`).join('');
   return `
     <div class="sum-top"><b>${T('진료용 요약')}</b><span>${md(parse(s.dates[0]))} – ${md(parse(s.dates[s.dates.length - 1]))} · ${F('기록 {0}일 / {1}일', s.got.length, s.dates.length)}</span></div>
     ${talk.length ? `<div class="sum-h">${T('진료 때 말할 것')}</div>${talk.map((x) => `<div class="li say">${esc(x)}</div>`).join('')}` : ''}
+    <div class="sum-togs">${toggles}</div>
     <div class="sum-fig">${figure(s, width)}</div>
-    <p class="sum-key">${T('이름 옆 숫자는 평균 · 수면 선의 점은 5시간 미만인 밤 · 증상은 선이 높을수록 심한 날')}</p>
+    <p class="sum-key">${T('위 이름을 누르면 선이 켜지고 꺼져요 · 이름 옆 숫자는 평균 · 증상은 맨 아래가 없음, 맨 위가 매우 높음 · 약은 먹은 날 ○, 안 먹은 날 ×')}</p>
     ${chips ? `<div class="sum-chips">${chips}</div>` : ''}
     ${s.signals.length ? `<div class="sum-h">${T('지금 떠 있는 신호')}</div>${s.signals.map((x) => `<div class="li say">${esc(x)}</div>`).join('')}` : ''}
     ${s.notes.length ? `<div class="sum-h">${T('메모')}</div>${s.notes.map(([d, note]) => `<div class="li say note"><small>${shortDate(d)}</small> ${esc(note)}</div>`).join('')}` : ''}

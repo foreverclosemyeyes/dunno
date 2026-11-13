@@ -8,5 +8,5 @@ export const standalone = () => window.navigator.standalone === true || matchMed
 // ---------- 흐름 화면 (주 / 월) ----------
 export const trend = { mode: 'week', anchor: today(), pick: null };
 
-// ---------- 진료 화면 (요약 기간: 2주 / 4주) ----------
-export const clinicView = { weeks: 2 };
+// ---------- 진료 화면 (요약 기간: 2주 / 4주, 큰 그래프에 켜 둔 선) ----------
+export const clinicView = { weeks: 2, lines: ['mood', 'dep', 'elev'] };

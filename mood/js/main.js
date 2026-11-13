@@ -52,6 +52,11 @@ const actions = {
   copyAi: async () => { await copyText(aiSummary()); toast(T('복사했어요. AI 앱에 붙여 넣으세요')); },
   // 진료 탭
   clinicWeeks: (el) => { clinicView.weeks = Number(el.dataset.w); render(); },
+  clinicLine: (el) => {
+    const k = el.dataset.k, on = clinicView.lines;
+    clinicView.lines = on.includes(k) ? on.filter((x) => x !== k) : [...on, k];
+    render();
+  },
   clinicNoteAdd: () => {
     const text = $('#c-note').value.trim();
     if (!text) return;
