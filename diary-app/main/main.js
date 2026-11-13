@@ -15,6 +15,7 @@ const { Secrets } = require('./secrets');
 const notion = require('./notion');
 const assistant = require('./assistant');
 const statsAuto = require('./stats');
+const weekly = require('./weekly');
 const updater = require('./updater');
 const { NotionMcp, parseMarkdown, cleanText } = require('./notionMcp');
 
@@ -137,7 +138,7 @@ async function doSync(force) {
   const c = cfg();
   try {
     // 보고 있는 달 + 오늘이 있는 달을 모두 포함
-    const months = new Set([state.viewMonth, state.today.slice(0, 7)]);
+    const months = new Set([state.viewMonth, state.today.slice(0, 7), ...extraMonths]);
     let start = '9999', end = '0000';
     for (const ym of months) {
       const [s, e] = monthRange(ym);
@@ -184,6 +185,7 @@ async function doSync(force) {
 
 // ---------- 노션으로 로그인 (MCP) 경로 ----------
 let mcp = null;
+const extraMonths = new Set(); // 보고 있는 달이 아니어도 같이 불러올 달 (새로 만든 주 페이지가 든 달)
 const mcpPages = new Map(); // pageId → { md, lastEdited, start }
 let mcpAnchors = new Map();
 const idOf = (url) => { const m = String(url || '').replace(/-/g, '').match(/([0-9a-f]{32})(?:[?#].*)?$/i); return m ? m[1] : url; };
@@ -204,7 +206,7 @@ async function syncViaMcp() {
   lastSyncAt = Date.now();
   const c = cfg();
   try {
-    const months = new Set([state.viewMonth, state.today.slice(0, 7)]);
+    const months = new Set([state.viewMonth, state.today.slice(0, 7), ...extraMonths]);
     let start = '9999', end = '0000';
     for (const ym of months) { const [s0, e0] = monthRange(ym); if (s0 < start) start = s0; if (e0 > end) end = e0; }
     const me = sqlStr(`%${c.userId}%`);
@@ -447,28 +449,64 @@ async function moveTodo(id, toDate) {
   if (!found) return { ok: false, message: '항목을 못 찾았어요. 새로고침 후 다시 해 주세요.' };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(toDate) || toDate === fromDate) return { ok: false, message: '넘길 날짜를 다시 골라 주세요.' };
   const texts = [found.text, ...(found.children || []).filter((c) => !c.checked).map((c) => c.text)];
+  let created;
   for (const t of texts) {
     const r = await addTodo(toDate, t);
     if (!r.ok) return { ok: false, message: r.message };
+    created = created || r.created; // 넘길 주의 페이지가 없어서 새로 만든 경우
   }
   const d = await deleteTodo(id);
   if (!d.ok) return { ok: false, message: `${toDate.slice(5).replace('-', '/')}에 적었지만 원래 항목은 못 지웠어요. 직접 지워 주세요.` };
-  return { ok: true, count: texts.length };
+  return { ok: true, count: texts.length, created };
+}
+
+// ---------- 주간 운영성 업무 페이지가 없으면 새로 만들기 ----------
+// 이번 주~앞으로 4주 안의 평일인데 그 주 페이지가 아직 없을 때만. 같은 주를 동시에 두 번 만들지 않게 줄을 세움
+const creatingWeeks = new Map(); // 월요일 날짜 → 진행 중인 작업
+function ensureWeekPage(date) {
+  if (!weekly.canCreate(date, state.today)) return Promise.resolve({ created: false });
+  const week = weekly.weekOf(date);
+  if (state.weeks.some((x) => x.start <= week.friday && (x.end || x.start) >= week.monday)) return Promise.resolve({ created: false });
+  if (!creatingWeeks.has(week.monday)) {
+    const job = (async () => {
+      const token = secrets.get('notion');
+      const r = token ? await weekly.createViaApi(new notion.NotionClient(token), cfg(), week)
+        : mcp && mcp.loggedIn() ? await weekly.createViaMcp(mcp, cfg(), week)
+          : { created: false };
+      extraMonths.add(week.monday.slice(0, 7)); extraMonths.add(week.friday.slice(0, 7));
+      await sync(true);
+      return { ...r, name: week.name };
+    })().finally(() => creatingWeeks.delete(week.monday));
+    creatingWeeks.set(week.monday, job);
+  }
+  return creatingWeeks.get(week.monday);
 }
 
 // ---------- 새 체크박스 추가 ----------
 async function addTodo(date, text) {
   text = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 300);
   if (!text) return { ok: false, message: '내용을 적어 주세요.' };
-  const w = state.weeks.find((x) => x.days && (x.days[date] || (x.meta && x.meta[date]) || (x.adders && x.adders[date])));
+  const find = () => state.weeks.find((x) => x.days && (x.days[date] || (x.meta && x.meta[date]) || (x.adders && x.adders[date])));
   if (process.env.DIARY_DEMO) {
-    const wk = state.weeks.find((x) => x.start <= date && (x.end || x.start) >= date);
+    let wk = state.weeks.find((x) => x.start <= date && (x.end || x.start) >= date), created;
+    if (!wk && weekly.canCreate(date, state.today)) { // 데모: 노션 대신 화면 안에서만 새 주를 만듦
+      const week = weekly.weekOf(date);
+      wk = { id: 'demo-' + week.monday, url: '', name: week.name, status: '시작 전', start: week.monday, end: week.friday, days: {} };
+      state.weeks.push(wk); created = week.name;
+    }
     if (!wk) return { ok: false, message: '이 날짜의 운영성 업무 페이지가 없어요.' };
     (wk.days[date] = wk.days[date] || []).push({ id: 'n' + Date.now(), text, checked: false, children: [] });
     pushData();
-    return { ok: true };
+    return { ok: true, created };
   }
-  if (!w) return { ok: false, message: '이 날짜가 있는 운영성 업무 페이지를 못 찾았어요. 노션 페이지에 날짜 제목(예: 11/12 (목))이 있는지 확인해 주세요.' };
+  let w = find(), created;
+  try {
+    if (!w) { const r = await ensureWeekPage(date); if (r.created) created = r.name; w = find(); }
+  } catch (e) {
+    console.error('[week page]', e);
+    return { ok: false, message: e.friendly || '노션에 이 주의 운영성 업무 페이지를 만들지 못했어요.' };
+  }
+  if (!w) return { ok: false, message: created ? `노션에 "${created}" 페이지는 만들었는데 아직 불러오지 못했어요. 잠시 뒤 다시 적어 주세요.` : '이 날짜가 있는 운영성 업무 페이지를 못 찾았어요. 노션 페이지에 날짜 제목(예: 11/12 (목))이 있는지 확인해 주세요.' };
   try {
     const token = secrets.get('notion');
     if (token && w.meta && w.meta[date]) {
@@ -488,7 +526,7 @@ async function addTodo(date, text) {
       return { ok: false, message: '노션이 연결되지 않았어요.' };
     }
     await sync(true);
-    return { ok: true };
+    return { ok: true, created };
   } catch (e) {
     console.error('[add todo]', e);
     return { ok: false, message: e.friendly || '노션에 추가하지 못했어요.' };

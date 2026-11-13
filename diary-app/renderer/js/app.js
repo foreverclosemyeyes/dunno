@@ -276,7 +276,7 @@
       menu.remove(); row.classList.add('busy');
       const r = await window.diary.moveTodo(item.id, date);
       row.classList.remove('busy');
-      toast(r.ok ? `${label(parse(date))}로 넘겼어요.` : r.message, r.ok ? 2500 : 6000);
+      toast(r.ok ? `${label(parse(date))}로 넘겼어요.${r.created ? ` 노션에 "${r.created}" 페이지를 새로 만들었어요.` : ''}` : r.message, r.ok ? (r.created ? 5000 : 2500) : 6000);
     };
     const opt = (text, date) => { const b = h('button', null, text); b.onclick = (e) => { e.stopPropagation(); go(date); }; return b; };
     menu.append(h('b', null, '언제로 넘길까요?'), opt(`다음 날  ${label(next)}`, iso(next)));
@@ -1052,7 +1052,7 @@
       inp.disabled = true;
       const r = await window.diary.addTodo(state.selected, text);
       inp.disabled = false;
-      if (r.ok) { inp.value = ''; inp.focus(); } else toast(r.message, 5000);
+      if (r.ok) { inp.value = ''; inp.focus(); if (r.created) toast(`노션에 "${r.created}" 페이지를 새로 만들었어요. (상태: 시작 전)`, 5000); } else toast(r.message, 5000);
     };
     $('#bc-prev').onclick = () => shiftMonth(-1);
     $('#bc-next').onclick = () => shiftMonth(1);
