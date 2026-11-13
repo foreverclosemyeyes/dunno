@@ -1,7 +1,7 @@
 // 진료 화면: 다음 진료일, 진료 때 말할 것, 진료용 요약 (최근 2주/4주를 한 장으로)
 import { SHORT_SLEEP, summary } from '../analysis.js';
 import { DISCLAIMER, LEVELS, SYMPTOMS } from '../constants.js';
-import { WD, durText, md, parse, today } from '../dates.js';
+import { durText, md, parse, today } from '../dates.js';
 import { app, esc } from '../dom.js';
 import { F, T } from '../i18n.js';
 import { medKey, medsFor } from '../meds.js';
@@ -124,18 +124,17 @@ function figures(s, width, SH) {
   }
   const sleep = take('sum-sleep', y);
 
-  // 3. 증상: 날마다 요일이 적힌 네모 한 칸, 그런 날은 색칠 (단계가 높을수록 진하게). 위 그래프와 같은 날짜 자리에 놓인다.
-  //    칸이 좁으면(4주) 요일 글자는 뺀다.
-  const sq = Math.max(4, Math.min(col - 2, 19)), wd = WD();
+  // 3. 증상: 날마다 요일(영어 한 글자, 사용자가 고름)이 적힌 네모 한 칸, 그런 날은 색칠 (단계가 높을수록 진하게). 위 그래프와 같은 날짜 자리에 놓인다.
+  const sq = Math.max(4, Math.min(col - 2, 19));
   SYMPTOMS.filter(([k]) => itemOn(k)).forEach(([k, name]) => {
     const count = s.days.filter((e) => e && e[k]).length;
     head(name, count ? F('{0}일', count) : T('없음'));
     s.dates.forEach((d, i) => {
-      const v = (s.days[i] && s.days[i][k]) || 0, x = cx(i) - sq / 2, top = y + 8;
+      const v = (s.days[i] && s.days[i][k]) || 0, x = cx(i) - sq / 2, top = y + 13;
       out += `<rect x="${x.toFixed(1)}" y="${top}" width="${sq.toFixed(1)}" height="${sq.toFixed(1)}" rx="${(sq * 0.28).toFixed(1)}" ${v ? `style="fill:var(--ink)" fill-opacity="${[0, 0.3, 0.5, 0.75, 1][v]}"` : 'class="c0"'}/>`;
-      if (sq >= 13) out += `<text x="${cx(i).toFixed(1)}" y="${(top + sq / 2 + 3.2).toFixed(1)}" text-anchor="middle" font-size="9" style="fill:${v >= 3 ? 'var(--ink-inv)' : v ? 'var(--text)' : 'var(--faint)'}">${wd[parse(d).getDay()][0]}</text>`;
+      out += `<text x="${cx(i).toFixed(1)}" y="${(top + sq / 2 + 3.2).toFixed(1)}" text-anchor="middle" font-size="9" style="fill:${v >= 3 ? 'var(--ink-inv)' : v ? 'var(--text)' : 'var(--faint)'}">${'SMTWTFS'[parse(d).getDay()]}</text>`;
     });
-    y += 8 + sq + 22;
+    y += 13 + sq + 22;
   });
 
   // 4. 약 · 생리: 얇은 선으로 먹은 날 ○, 안 먹은 날 ×
