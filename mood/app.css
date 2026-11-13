@@ -71,10 +71,10 @@
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+/* 바탕색은 html에만 칠한다. body에도 칠하면 그 색이 배경 빛(body::before, 맨 뒤 겹)을 덮어서 빛이 안 보인다. */
 html { -webkit-text-size-adjust: 100%; background: var(--bg); }
 body {
   margin: 0;
-  background: var(--bg);
   color: var(--text);
   font-family: var(--font, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif);
   font-size: calc(15px * var(--fs, 1.12));

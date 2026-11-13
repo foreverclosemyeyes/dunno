@@ -56,6 +56,7 @@ function seed() {
   await page.goto(url);
   check('처음 열면 오늘 화면', (await text('h1')) === '오늘');
   check('빈 날에 기록하기 버튼', await page.isVisible('[data-act=record]'));
+  check('배경 빛이 바탕색에 안 덮임 (body는 투명)', await page.evaluate(() => getComputedStyle(document.body).backgroundColor === 'rgba(0, 0, 0, 0)' && getComputedStyle(document.body, '::before').backgroundImage.includes('gradient')));
 
   // 2. 기록하기: 만진 항목만 저장된다
   await page.click('.btn[data-act=record]');
