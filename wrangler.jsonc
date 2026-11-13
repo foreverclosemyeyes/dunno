@@ -1,0 +1,7 @@
+// Cloudflare가 이 저장소를 올릴 때 읽는 설정.
+// 만들 것(빌드)은 없고, mood/ 폴더 안의 파일을 그대로 웹에 내보낸다. 주소는 name이 정한다.
+{
+  "name": "tidemark-app",
+  "compatibility_date": "2025-04-01",
+  "assets": { "directory": "./mood" }
+}
