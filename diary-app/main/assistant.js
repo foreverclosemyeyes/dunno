@@ -91,6 +91,15 @@ function systemPrompt(persona, ctx) {
     '사용자가 묻지 않은 할 일이나 마감을 먼저 꺼내 재촉하지 마. 이미 한 번 말한 리마인드는 다시 하지 마. 잔소리하지 마.',
     '확인한 사실과 확인하지 못한 것을 구분해서 말하고, 추측을 사실처럼 단정하지 마. 필요하면 다음에 할 행동 하나를 구체적으로 짚어 줘.',
     '메일·메신저 문장을 써 달라고 하면 설명보다 바로 붙여 넣을 수 있는 글을 먼저 줘.',
+    [
+      '[남이 보낸 글을 붙여 넣었을 때] 사용자가 다른 사람이 보낸 슬랙·카톡·메일 내용을 그대로 붙여 넣으면(보낸 사람 이름·시각이 있거나, 사용자에게 하는 말투의 글), 뜻풀이가 아니라 답장을 원하는 거야.',
+      '- 바로 보낼 수 있는 답장을 <답장> 과 </답장> 사이에 써. 그 안에는 답장 글만 넣어.',
+      '- 매체에 맞춰: 슬랙·카톡이면 짧게 한두 문단, 메일이면 인사·본문·맺음과 서명.',
+      '- 상대에게 쓰는 호칭과 사용자의 평소 말투를 따라(참고 문서, 기억해 둔 것, 지난 대화, Gmail 을 쓸 수 있으면 그 상대에게 보낸 메일). 모르면 정중한 존댓말.',
+      '- 상대가 물은 것·부탁한 것에 빠짐없이 답해. 사용자만 아는 사실(날짜, 금액, 가능 여부)은 지어내지 말고 [확인 필요: 무엇] 으로 비워 둬.',
+      '- 답장 뒤에는 꼭 필요할 때만 한두 줄: 보내기 전에 확인할 것, 놓치기 쉬운 조건. 없으면 아무것도 덧붙이지 마.',
+      '- 사용자가 방향을 같이 말했으면(예: "거절하고 싶어", "더 짧게") 그대로 반영해.',
+    ].join('\n'),
     persona.memory ? `\n[기억해 둔 것] 사용자가 전에 앞으로 이렇게 해 달라고 한 것들이야. 꼭 지켜.\n${persona.memory}\n` : '',
     '사용자가 "앞으로는 ~해 줘", "~는 꼭 확인해야 해"처럼 계속 지켜야 할 규칙을 말하면, 답변 맨 끝에 [기억: 그 규칙을 한 문장으로] 를 한 줄 붙여. 그 줄은 사용자에게 보이지 않고 저장돼. 그때그때의 부탁에는 붙이지 마.',
     '답변 맨 앞에 지금 표정 하나를 [표정:기본] 처럼 붙인다. 고를 수 있는 표정: 기본, 웃음, 윙크, 진지, 눈감음. (끝낸 일을 인정하거나 좋은 소식이면 웃음, 가벼운 농담·격려면 윙크, 마감 임박·지난 일 경고면 진지, 다 끝나서 마무리할 때는 눈감음, 그 외 기본)',
@@ -126,6 +135,13 @@ function splitMemory(text) {
   const notes = [];
   const rest = String(text || '').replace(/\n?\[\s*기억\s*[:：]\s*([^\]\n]{2,300})\]/g, (_m, note) => { notes.push(note.trim()); return ''; }).trim();
   return { text: rest, notes };
+}
+
+// 답변 속 <답장>…</답장> 을 찾아 냄 → { text: 꼬리표를 뗀 글, draft: 답장 글(여러 개면 마지막 것) }
+function splitDraft(text) {
+  let draft = '';
+  const rest = String(text || '').replace(/<답장>\s*([\s\S]*?)\s*<\/답장>/g, (_m, body) => { draft = body.trim(); return `\n${body.trim()}\n`; }).replace(/\n{3,}/g, '\n\n').trim();
+  return { text: rest, draft };
 }
 
 function splitMood(text) {
@@ -227,8 +243,8 @@ async function chat(apiKey, persona, ctx, history, userText, opts = {}) {
   else if (apiKey) raw = await ask(apiKey, persona, ctx, history, userText);
   else if (await findClaudeCli()) raw = await askViaCli(persona, ctx, history, userText);
   else return { text: '대화하려면 Claude Code 설치(구독 그대로 사용) 또는 Anthropic API 키가 필요해요. 사용설명서 4장을 봐 주세요.', source: 'local', name: persona.name };
-  const m = splitMood(raw), { text, notes } = splitMemory(m.text);
-  return { text: text || '그 질문에는 답하기 어렵습니다. 다른 걸 물어봐 주세요.', mood: m.mood, notes, source: 'claude', name: persona.name };
+  const m = splitMood(raw), mem = splitMemory(m.text), { text, draft } = splitDraft(mem.text);
+  return { text: text || '그 질문에는 답하기 어렵습니다. 다른 걸 물어봐 주세요.', mood: m.mood, notes: mem.notes, ...(draft ? { draft } : {}), source: 'claude', name: persona.name };
 }
 
 function friendlyError(e) {
@@ -246,4 +262,4 @@ async function checkGmail(persona, server) {
   return gmail.probe(bin, chatModel(persona).cli, server, cliEnv(bin));
 }
 
-module.exports = { systemPrompt, splitMemory, checkGmail, findClaudeCli, resetCli, splitMood, generate, chat, buildContext, fallbackMessage, friendlyError, toMessages, CHECK_PROMPT, MODEL };
+module.exports = { systemPrompt, splitMemory, splitDraft, checkGmail, findClaudeCli, resetCli, splitMood, generate, chat, buildContext, fallbackMessage, friendlyError, toMessages, CHECK_PROMPT, MODEL };

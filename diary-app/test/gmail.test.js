@@ -65,4 +65,9 @@ const { splitMemory } = require('../main/assistant');
 assert.deepStrictEqual(splitMemory('알겠어. 앞으로 그렇게 할게.\n[기억: 세금계산서 발행 요청 뒤에는 기한까지 완료됐는지 확인한다]'), { text: '알겠어. 앞으로 그렇게 할게.', notes: ['세금계산서 발행 요청 뒤에는 기한까지 완료됐는지 확인한다'] });
 assert.deepStrictEqual(splitMemory('그냥 답변'), { text: '그냥 답변', notes: [] });
 
+// 답변 속 <답장> 은 꼬리표만 떼고, 답장 글은 복사용으로 따로 꺼냄
+const { splitDraft } = require('../main/assistant');
+assert.deepStrictEqual(splitDraft('<답장>\n네, 내일 오전까지 드리겠습니다.\n</답장>\n금액은 보내기 전에 확인해.'), { text: '네, 내일 오전까지 드리겠습니다.\n\n금액은 보내기 전에 확인해.', draft: '네, 내일 오전까지 드리겠습니다.' });
+assert.deepStrictEqual(splitDraft('답장이 없는 평소 대답'), { text: '답장이 없는 평소 대답', draft: '' });
+
 console.log('✓ Gmail 연동 규칙·연결 확인 판정 테스트 통과');

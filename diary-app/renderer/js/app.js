@@ -492,6 +492,7 @@
       toast(`비서: ${state.theme.assistant.name}`);
     };
     const msg = state.lastAssistant;
+    $('#asst-copy').hidden = !(msg && msg.draft); // 남이 보낸 글에 대한 답장을 써 줬을 때만
     // 새 말이 오면 말풍선이 꼬리 쪽에서 '탁' 펼쳐짐
     const stamp = msg ? `${msg.at || ''}|${msg.thinking ? 't' : ''}|${a.name}` : a.name;
     if (stamp !== renderAssistant._stamp) {
@@ -1097,6 +1098,7 @@
     $('#btn-chat-close').onclick = () => openChat(false);
     window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#chat-log').hidden) openChat(false); });
     $('#btn-chat-clear').onclick = async () => { if (confirm('비서와의 대화 기록을 지울까요?')) state.chat = await window.diary.clearChat(); renderChat(); };
+    $('#asst-copy').onclick = async () => { const m = state.lastAssistant; if (m && m.draft) { await window.diary.copyText(m.draft); toast('답장을 복사했어요.'); } };
     $('#btn-claude').onclick = () => window.diary.open(D.asstWork(state.theme, state.settings).claudeUrl || 'https://claude.ai/new');
     $('#chk-hourly').onchange = (e) => window.diary.setSettings({ hourly: e.target.checked });
     $('#btn-pin').onclick = () => window.diary.setSettings({ alwaysOnTop: !state.settings.alwaysOnTop });
