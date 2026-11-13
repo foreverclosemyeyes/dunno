@@ -1,7 +1,7 @@
 // 진료 화면: 다음 진료일, 진료 때 말할 것, 진료용 요약 (최근 2주/4주를 한 장으로)
 import { SHORT_SLEEP, summary } from '../analysis.js';
 import { DISCLAIMER, LEVELS } from '../constants.js';
-import { durText, md, parse, today } from '../dates.js';
+import { WD, durText, md, parse, today } from '../dates.js';
 import { app, esc } from '../dom.js';
 import { F, T } from '../i18n.js';
 import { medKey, medsFor } from '../meds.js';
@@ -161,6 +161,27 @@ function summaryRows(s) {
   };
 }
 
+// 눈에 띄는 날: 항목마다 요일 칸을 놓고 그런 날을 색칠한다 (7일이 한 줄, 여러 주면 줄이 늘어난다).
+// 증상은 단계가 높을수록 진하게, "5시간 미만 수면"은 해당하는 밤만 칠한다. 인쇄에도 나오도록 SVG로 그린다.
+function dayGrids(s, width) {
+  const w = Math.floor((width - 14) / 2), rows = s.dates.length / 7, lab = rows > 1 ? 30 : 0, cell = (w - lab) / 7, sz = cell - 3, wd = WD();
+  const items = [
+    ...[['dep', T('우울')], ['anx', T('불안')], ['si', T('죽고 싶은 생각')]].filter(([k]) => itemOn(k)).map(([k, name]) => [name, `var(--l-${k})`, (e) => (e && e[k]) || 0]),
+    ...(itemOn('sleep') ? [[T('5시간 미만 수면'), 'var(--ink)', (e) => (e && e.sleepMin != null && e.sleepMin < SHORT_SLEEP ? 4 : 0)]] : []),
+  ];
+  return items.map(([name, color, level]) => {
+    const vals = s.days.map(level), count = vals.filter(Boolean).length;
+    let out = '';
+    for (let c = 0; c < 7; c++) out += `<text x="${(lab + cell * c + sz / 2).toFixed(1)}" y="9" text-anchor="middle" font-size="9.5" style="fill:var(--muted)">${wd[parse(s.dates[c]).getDay()]}</text>`;
+    vals.forEach((v, i) => {
+      const x = lab + cell * (i % 7), y = 15 + cell * Math.floor(i / 7);
+      if (lab && i % 7 === 0) out += `<text x="0" y="${(y + sz / 2 + 3.5).toFixed(1)}" font-size="9" style="fill:var(--faint)">${shortDate(s.dates[i])}</text>`;
+      out += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${sz.toFixed(1)}" height="${sz.toFixed(1)}" rx="${(sz * 0.28).toFixed(1)}" ${v ? `style="fill:${color}" fill-opacity="${[0, 0.4, 0.6, 0.8, 1][v]}"` : 'class="c0"'}/>`;
+    });
+    return `<div class="sum-grid"><div class="sg-h"><span>${name}</span><span>${count ? F('{0}일', count) : T('없음')}</span></div><svg width="${w}" height="${(15 + cell * rows).toFixed(1)}" role="img">${out}</svg></div>`;
+  }).join('');
+}
+
 // 요약 본문: 그림 세 장과 눈에 띄는 날·신호·메모를 카드로 나눠 놓는다 (인쇄하면 이 부분이 한 장으로 나간다)
 function summaryHtml(weeks) {
   const s = summary(weeks);
@@ -168,10 +189,8 @@ function summaryHtml(weeks) {
   const fig = figures(s, width);
   // 큰 그래프의 선을 켜고 끄는 단추: 기분·에너지·자신감은 평균을 옆에 적는다
   const toggles = lineDefs().map(([key, name, max]) => `<button class="sum-tog" data-act="clinicLine" data-k="${key}" aria-pressed="${clinicView.lines.includes(key)}"><i style="background:${lineColor(key)}"></i>${name}${max === 10 && s[key] ? ` <b>${one(s[key].avg)}</b>` : ''}</button>`).join('');
-  const flags = [
-    ['dep', T('우울 높음 이상')], ['anx', T('불안 높음 이상')], ['si', T('죽고 싶은 생각')],
-  ].filter(([key]) => itemOn(key)).map(([key, name]) => [name, s.high[key].length]).concat(s.signs)
-    .filter(([, c]) => c).map(([name, c]) => li(esc(name), F('{0}일', c))).join('');
+  const grids = dayGrids(s, width);
+  const signs = s.signs.map(([name, c]) => li(esc(name), F('{0}일', c)));
   const says = (title, rows) => (rows.length ? `<div class="sec">${title}</div><section class="card list">${rows.join('')}</section>` : '');
   return `
     <div class="sec">${md(parse(s.dates[0]))} – ${md(parse(s.dates[s.dates.length - 1]))} · ${F('기록 {0}일 / {1}일', s.got.length, s.dates.length)}</div>
@@ -182,7 +201,9 @@ function summaryHtml(weeks) {
     </section>` : ''}
     ${itemOn('sleep') ? `<section class="card">${fig.sleep}</section>` : ''}
     ${fig.marks ? `<section class="card">${fig.marks}</section>` : ''}
-    ${flags ? `<div class="sec">${T('눈에 띄는 날')}</div><section class="card list">${flags}</section>` : ''}
+    ${grids ? `<div class="sec">${T('눈에 띄는 날')}</div><section class="card" id="sum-days"><div class="sum-grids">${grids}</div>
+      <p class="sum-key">${T('한 칸이 하루예요. 색이 진할수록 심한 날이에요.')}</p></section>` : ''}
+    ${says(T('기분이 높았던 날 체크한 항목'), signs)}
     ${says(T('지금 떠 있는 신호'), s.signals.map((x) => `<div class="li say">${esc(x)}</div>`))}
     ${says(T('메모'), s.notes.map(([d, note]) => `<div class="li say note"><small>${shortDate(d)}</small> ${esc(note)}</div>`))}
     <p class="foot">${DISCLAIMER}</p>`;
@@ -207,7 +228,8 @@ export function viewClinic() {
   const c = clinicData(), weeks = clinicView.weeks;
   app.innerHTML = `
     <header class="top"><div><div class="over">${nextText() || T('의사에게 보여 줄 것들')}</div><h1>${T('진료')}</h1></div>
-      <div class="segc"><button data-act="clinicWeeks" data-w="2" aria-pressed="${weeks === 2}">${T('2주')}</button>
+      <div class="segc"><button data-act="clinicWeeks" data-w="1" aria-pressed="${weeks === 1}">${T('1주')}</button>
+        <button data-act="clinicWeeks" data-w="2" aria-pressed="${weeks === 2}">${T('2주')}</button>
         <button data-act="clinicWeeks" data-w="4" aria-pressed="${weeks === 4}">${T('4주')}</button></div></header>
 
     <section class="card list">

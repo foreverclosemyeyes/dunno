@@ -42,6 +42,8 @@ const DICT = {
   '진료까지 {0}일': '{0} days to your appointment',
   '오늘 진료': 'Appointment today',
   '의사에게 보여 줄 것들': 'Things to show your doctor',
+  '1주': '1 wk',
+  '한 칸이 하루예요. 색이 진할수록 심한 날이에요.': 'Each square is a day. Darker means a harder day.',
   '2주': '2 wk',
   '4주': '4 wk',
   '다음 진료일': 'Next appointment',

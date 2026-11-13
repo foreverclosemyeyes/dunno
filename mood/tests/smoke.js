@@ -198,8 +198,8 @@ function seed() {
 
   // 5-2. 진료 탭: 다음 진료일, 말할 것, 요약
   await page.click('[data-tab=clinic]');
-  check('진료용 요약에 그림과 눈에 띄는 날, 약이 나옴', (await page.$$('#sum-meds circle')).length > 3 && (await page.$$('#sum-fig path')).length >= 3 && (await page.$$('#summary rect')).length === 0
-    && (await text('#summary')).includes('우울 높음 이상') && (await text('#sum-meds')).includes('브린텔릭스') && (await text('#sum-sleep')).includes('5시간 미만'));
+  check('진료용 요약에 그림과 눈에 띄는 날, 약이 나옴', (await page.$$('#sum-meds circle')).length > 3 && (await page.$$('#sum-fig path')).length >= 3 && (await page.$$('#sum-days rect')).length % 14 === 0 && (await page.$$('#sum-days rect[style]')).length > 0
+    && (await text('#sum-days')).includes('우울') && (await text('#sum-meds')).includes('브린텔릭스') && (await text('#sum-sleep')).includes('5시간 미만'));
   const anxOff = !(await text('#sum-fig')).includes('불안');
   await page.click('.sum-tog[data-k=anx]');
   check('큰 그래프에서 선을 켜고 끔', anxOff && (await text('#sum-fig')).includes('불안') && (await page.getAttribute('.sum-tog[data-k=anx]', 'aria-pressed')) === 'true');
@@ -211,6 +211,9 @@ function seed() {
   check('다음 진료일까지 남은 날', (await text('.top .over')) === '진료까지 3일' && (await store()).clinic.next === dayAgo(-3));
   await page.click('[data-act=clinicWeeks][data-w="4"]');
   check('4주 요약', (await text('#summary')).includes('/ 28일'));
+  await page.click('[data-act=clinicWeeks][data-w="1"]');
+  check('1주 요약: 요일 칸이 항목마다 7개', (await text('#summary')).includes('/ 7일') && (await page.$$('#sum-days .sum-grid:first-child rect')).length === 7);
+  await page.click('[data-act=clinicWeeks][data-w="4"]');
   await page.click('[data-act=copySummary]');
   check('요약을 글로 복사', await page.waitForFunction(() => document.querySelector('#toast').textContent === '복사했어요', null, { timeout: 3000 }).then(() => true, () => false));
   await page.click('[data-act=clinicNoteDel]');
