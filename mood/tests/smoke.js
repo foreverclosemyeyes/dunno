@@ -43,6 +43,11 @@ function seed() {
   const url = `http://localhost:${server.address().port}/`;
   const browser = await chromium.launch();
   const page = await (await browser.newContext({ ...devices['iPhone 14'], deviceScaleFactor: 1, colorScheme: 'dark' })).newPage();
+  // 설정을 열고 접힌 묶음을 모두 펼친다
+  const openSet = async () => {
+    await page.click('[data-act=settings]');
+    for (const g of ['rec', 'look', 'remind', 'data', 'help']) await page.click(`[data-g=${g}]`);
+  };
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
@@ -140,7 +145,7 @@ function seed() {
   check('죽고 싶은 생각이 높으면 오늘 화면에 상담전화가 보임', (await store()).entries[today].si === 3 && (await page.$$('#app a[href="tel:109"]')).length === 1);
 
   // 4-1-2. 약마다 알람 시각을 정하면 캘린더 알림 파일에 들어간다
-  await page.click('[data-act=settings]');
+  await openSet();
   await page.click('[data-act=alarmAdd]'); await page.click('[data-act=alarmAdd]');
   await page.fill('.alarm-at >> nth=0', '08:30'); await page.fill('.alarm-at >> nth=1', '21:00');
   check('약 알람 시각 저장', JSON.stringify((await store()).meds[0].alarms) === '["08:30","21:00"]');
@@ -249,7 +254,7 @@ function seed() {
   await page.click('[data-act=logSave]');
   await page.click('[data-act=clinicWeeks][data-w=since]');
   check('"진료 후"는 지난 진료일이 들어가는 주 단위 (9일 전 → 2주)', (await text('#summary')).includes('/ 14일') && (await store()).clinic.log[0].kind === 'visit');
-  await page.click('[data-tab=today]'); await page.click('[data-act=settings]');
+  await page.click('[data-tab=today]'); await openSet();
   await page.fill('#cu-name', '술'); await page.click('[data-act=customAdd]');
   await page.fill('#cu-name', '걸음 수'); await page.click('[data-act=customType][data-t=number]'); await page.fill('#cu-unit', '보'); await page.click('[data-act=customAdd]');
   await page.click('.sheet-top [data-act=close]');
@@ -267,7 +272,7 @@ function seed() {
   check('진료 화면에 부작용과 내 항목이 네모 줄로 나옴', (await text('#summary')).includes('부작용') && (await page.$$eval('.sum-rows', (x) => x.map((el) => el.textContent).join(' '))).includes('걸음 수'));
 
   // 5-2-1. 설정에서 기록 항목 끄기: 화면에서만 빠지고 적어 둔 값은 남는다
-  await page.click('[data-tab=today]'); await page.click('[data-act=settings]');
+  await page.click('[data-tab=today]'); await openSet();
   await page.click('[data-act=item][data-k=conf]'); await page.click('[data-act=item][data-k=anx]');
   await page.click('.sheet-top [data-act=close]');
   const entriesBefore = JSON.stringify((await store()).entries);
@@ -276,7 +281,7 @@ function seed() {
   check('끈 항목은 기록 화면에 없음', (await page.$$('#f-conf, [data-field=anx]')).length === 0 && (await page.$$('#f-mood, [data-field=dep]')).length === 2);
   await page.click('.sheet-top [data-act=close]');
   check('끈 항목에 적어 둔 값은 그대로', JSON.stringify((await store()).entries) === entriesBefore && (await store()).settings.off.length === 2);
-  await page.click('[data-act=settings]');
+  await openSet();
   await page.click('[data-act=item][data-k=conf]'); await page.click('[data-act=item][data-k=anx]');
   await page.click('.sheet-top [data-act=close]');
   check('다시 켜면 칸이 돌아옴', (await page.$$('.tile[data-focus=conf]')).length === 1 && (await store()).settings.off.length === 0);
@@ -297,12 +302,12 @@ function seed() {
 
   // 6. 설정: 언어 · 화면 모드 · 색 · 글씨 크기
   await page.click('[data-tab=today]');
-  await page.click('[data-act=settings]'); await page.click('[data-lang=en]'); await page.waitForLoadState('load'); await page.waitForSelector('h1');
+  await openSet(); await page.click('[data-lang=en]'); await page.waitForLoadState('load'); await page.waitForSelector('h1');
   check('영어로 전환', (await text('h1')) === 'Today');
   const left = (await page.evaluate(() => document.querySelector('#app').innerText)).split('\n').filter((s) => HANGUL.test(s) && !s.includes('브린텔릭스') && !s.includes('발진') && !/술|걸음 수|7500 보/.test(s));   // 사용자가 적은 약 이름·부작용·내 항목은 한글 그대로
   check('영어 화면에 한글이 남지 않음', left.length === 0, left.join(' | '));
-  await page.click('[data-act=settings]'); await page.click('[data-lang=ko]'); await page.waitForLoadState('load'); await page.waitForSelector('h1');
-  await page.click('[data-act=settings]'); await page.click('[data-theme-pick=light]');
+  await openSet(); await page.click('[data-lang=ko]'); await page.waitForLoadState('load'); await page.waitForSelector('h1');
+  await openSet(); await page.click('[data-theme-pick=light]');
   check('라이트 모드', (await page.evaluate(() => document.documentElement.dataset.theme)) === 'light');
   await page.click('[data-font=batang]');
   await page.waitForFunction(() => document.fonts.check('16px "Gowun Batang"', '가1'));
@@ -328,7 +333,7 @@ function seed() {
   // 7. 백업 내보내기 → 지우기 → 불러오기 (앱을 지웠다가 다시 깔았을 때와 같은 흐름)
   await page.evaluate(([k]) => { const d = JSON.parse(localStorage.getItem(k)); Object.assign(d.settings, { color: 'blue', use: ['depression', 'adhd'], fxCustom: ['발진'], custom: [{ id: 'walk', name: '걸음 수', type: 'number', unit: '보' }] }); d.clinic = { next: '', notes: ['잠 이야기'], log: [{ date: Object.keys(d.entries)[0], kind: 'med', text: '10mg → 15mg' }] }; localStorage.setItem(k, JSON.stringify(d)); }, [KEY]);
   await page.reload(); await page.waitForSelector('h1');
-  await page.click('[data-act=settings]');
+  await openSet();
   const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#sheet [data-act=export]')]);
   const backup = fs.readFileSync(await dl.path());
   check('백업하면 날짜가 남고 알림이 사라짐', (await store()).settings.lastBackup === today && (await page.$$('#app [data-act=snoozeBackup]')).length === 0);
@@ -348,7 +353,7 @@ function seed() {
 
   // 9. 잠금: 비밀번호 정하기 → 다시 열면 가려짐 → 틀리면 그대로, 맞으면 열림 → 끄기
   const tap = async (digits) => { for (const k of digits) await page.click(`#lock [data-k="${k}"]`); await page.waitForTimeout(250); };
-  await page.click('[data-act=settings]'); await page.click('[data-act=pinSet]');
+  await openSet(); await page.click('[data-act=pinSet]');
   await tap('1234'); await tap('1234');
   check('비밀번호 저장 (그대로 저장하지 않음)', !!(await store()).settings.pin && !(await store()).settings.pin.includes('1234'));
   await page.reload();
@@ -357,7 +362,7 @@ function seed() {
   check('틀린 비밀번호로는 안 열림', await page.isVisible('#lock'));
   await tap('1234');
   check('맞는 비밀번호로 열림', await page.isHidden('#lock'));
-  await page.click('[data-act=settings]');
+  await openSet();
   const [dl2] = await Promise.all([page.waitForEvent('download'), page.click('#sheet [data-act=export]')]);
   check('백업 파일에는 비밀번호가 안 들어감', !fs.readFileSync(await dl2.path(), 'utf8').includes('"pin"'));
   await page.click('[data-act=pinOff]');
@@ -379,8 +384,35 @@ function seed() {
   await page.click('[data-tab=insight]');
   const stateText = await page.textContent('.state');
   check('우울증만 골랐어도 들뜬 모습을 걸러 내지 않고, 진단명에 없는 모습이라고 짚어 줌', /hypomania|경조증/.test(stateText) && /not among the chosen diagnoses|고른 진단명에 조울증은 없지만/.test(stateText));
+  // 설정은 기능별 묶음으로 접혀 있고, 누른 묶음만 펼쳐진다
   await page.click('[data-tab=today]'); await page.click('[data-act=settings]');
+  check('설정을 열면 묶음 다섯 개가 접혀 있음', (await page.$$('#sheet .grp')).length === 5 && !(await page.$('#sheet [data-act=dx]')) && !(await page.$('#sheet [data-act=export]')));
+  await page.click('[data-g=rec]');
+  check('묶음을 누르면 그 안만 펼쳐짐', !!(await page.$('#sheet [data-act=dx]')) && !(await page.$('#sheet [data-act=export]')));
+  // 약은 종류를 먼저 고르고, 영어 성분 이름으로도 찾을 수 있다
+  await page.click('[data-act=addMed]');
+  check('약을 더할 때 종류 일곱 가지가 먼저 보임', (await page.$$('#med-sug .sug.cat')).length === 7);
+  await page.click('#med-sug [data-g=adhd]');
+  check('종류를 누르면 그 종류의 약 목록이 나옴', /Concerta|콘서타/.test(await page.textContent('#med-sug')));
+  await page.fill('#med-name', 'sertral');
+  check('영어 성분 이름으로도 약을 찾음', (await page.$$('#med-sug [data-act=pickSug]')).length >= 1);
   await page.click('[data-act=close]');
+  // 공황: 오늘 화면의 "+ 공황"은 바로 한 번을 적고, 그 뒤에는 줄을 눌러 횟수를 고친다
+  await put({ version: 3, entries: {}, meds: [], taken: {}, clinic: { notes: [] }, settings: {} });
+  await page.click('[data-act=panicAdd]');
+  const panicOf = async () => Object.values((await store()).entries)[0].panic;
+  check('"+ 공황"을 누르면 바로 한 번이 적힘', (await panicOf()) === 1 && !(await page.$('[data-act=panicAdd]')));
+  await page.click('.li[data-focus=panic]'); await page.click('[data-panic="1"]'); await page.click('#sheet [data-act=save]');
+  check('공황 줄을 눌러 횟수를 고침', (await panicOf()) === 2);
+  // 진료 요약: 요일 글자는 네모가 큰 1주에서만 네모 안에 적는다
+  await put(seed());
+  await page.click('[data-tab=clinic]');
+  const letters = async () => (await page.$$eval('#summary .sum-rows text', (els) => els.filter((x) => /^[SMTWF]$/.test(x.textContent)).length));
+  await page.click('[data-act=clinicWeeks][data-w="1"]');
+  const one = await letters();
+  await page.click('[data-act=clinicWeeks][data-w="2"]');
+  check('요일 글자는 1주 네모에만 있고 2주 네모에는 없음', one > 0 && (await letters()) === 0, one);
+  await page.click('[data-tab=today]');
 
   await page.click('.btn[data-act=record]');
   check('기록 화면의 저장 단추는 아래 하나뿐', (await page.$$('#sheet [data-act=save]')).length === 1);

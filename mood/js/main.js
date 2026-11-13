@@ -3,7 +3,7 @@ import { aiSummary } from './analysis.js';
 import { addDays, today } from './dates.js';
 import { $, app, closeSheet, copyText, enterApp, sheet, sheetOpen, toTop, toast } from './dom.js';
 import { exportData, giveFile, hasAlarms, importData, makeIcs, remind, snoozeBackup } from './files.js';
-import { T } from './i18n.js';
+import { F, T } from './i18n.js';
 import { lockNow, removePin, setPin } from './lock.js';
 import { addDose, medKey, medsFor, normDose, setMeds, sugHtml, toggleDoseTime } from './meds.js';
 import { render } from './render.js';
@@ -98,6 +98,15 @@ const actions = {
     ui.draft.psych[`c:${name}`] = true;
     $('#psych').innerHTML = psychHtml();
   },
+  // 오늘 화면의 "+ 공황": 기록 화면을 열지 않고 바로 한 번을 더한다 (그날 기록이 없으면 그 한 줄만 있는 기록을 만든다)
+  panicAdd: () => {
+    const d = ui.selected, e = db.entries[d] || (db.entries[d] = { date: d, meds: (db.taken[d] || []).slice(), signs: {}, note: '' });
+    delete db.taken[d];
+    e.panic = (e.panic || 0) + 1;
+    e.updatedAt = new Date().toISOString();
+    save(); render();
+    toast(F('공황 {0}번째를 적었어요', e.panic));
+  },
   insightDemo: () => { ui.insightDemo = !ui.insightDemo; render(); },
   // 설정: 기록 항목 켜고 끄기 (꺼진 항목의 열쇠를 settings.off에 모아 둔다)
   item: (el) => {
@@ -167,7 +176,12 @@ const actions = {
   sleepOn: () => { ui.draft.sleepSet = true; $('#sleep').innerHTML = sleepHtml(); syncForm(); },
   sleepOff: () => { ui.draft.sleepSet = false; ui.draft.tired = false; $('#sleep').innerHTML = sleepHtml(); },
   clearField: (el) => { ui.draft[el.dataset.k] = null; syncForm(); },
-  settings: openSettings,
+  settings: () => { ui.setOpen = []; openSettings(); },
+  setGroup: (el) => {
+    const g = el.dataset.g;
+    ui.setOpen = ui.setOpen.includes(g) ? ui.setOpen.filter((x) => x !== g) : ui.setOpen.concat(g);
+    redrawSettings();
+  },
   close: closeSheet,
   save: saveEntry,
   deleteEntry: () => {
@@ -177,11 +191,13 @@ const actions = {
   },
   addMed: () => {
     ui.addingMed = !ui.addingMed;
+    ui.medGroup = '';
     if (ui.draft) $('#meds').innerHTML = medsHtml(); else redrawSettings();
     if (ui.addingMed) $('#med-name').focus();
   },
+  medGroup: (el) => { ui.medGroup = el.dataset.g; $('#med-sug').innerHTML = sugHtml(''); },
   pickSug: (el) => { $('#med-name').value = el.dataset.name; $('#med-sug').innerHTML = ''; $('#med-dose').focus(); },
-  medSetup: () => { ui.addingMed = true; openSettings(); $('#sec-meds').scrollIntoView(); },
+  medSetup: () => { ui.addingMed = true; ui.setOpen = ['rec']; openSettings(); $('#sec-meds').scrollIntoView(); },
   saveMed: () => {
     const name = $('#med-name').value.trim(), dose = normDose($('#med-dose').value);
     if (!name) { toast(T('약 이름을 적어 주세요')); return; }
@@ -210,6 +226,9 @@ document.addEventListener('click', (ev) => {
     const f = segEl.dataset.field, v = Number(t.dataset.v);
     d[f] = d[f] === v ? null : v;
     segEl.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.v) === d[f])));
+  } else if (t.dataset.panic) {                 // 공황 횟수
+    d.panic = Math.max(0, Math.min(30, (d.panic || 0) + Number(t.dataset.panic)));
+    $('#c-panic').textContent = d.panic;
   } else if (t.dataset.drink) {                  // 카페인 음료 개수
     const k = t.dataset.drink, n = Math.max(0, Math.min(9, (d.drinks[k] || 0) + Number(t.dataset.d)));
     if (n) d.drinks[k] = n; else delete d.drinks[k];

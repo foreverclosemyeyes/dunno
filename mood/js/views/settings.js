@@ -7,11 +7,25 @@ import { EN, F, T } from '../i18n.js';
 import { IC } from '../icons.js';
 import { hasPin } from '../lock.js';
 import { medAddHtml, medKey } from '../meds.js';
-import { standalone } from '../state.js';
+import { standalone, ui } from '../state.js';
 import { customDefs, db, itemOn, usesOn } from '../store.js';
 import { ACCENTS, accentKey, isLight } from '../theme.js';
 
 // ---------- 설정·백업 ----------
+// 설정은 기능별 묶음으로 나눠 접어 둔다. 묶음 이름을 누르면 그 안이 펼쳐진다 (펼친 묶음은 ui.setOpen에 기억).
+const GROUPS = () => ({
+  rec: [T('기록할 것'), T('진단명 · 기록 항목 · 내 항목 · 약')],
+  look: [T('화면'), T('언어 · 화면 모드 · 색 · 글씨')],
+  remind: [T('알림'), T('기록 알림 · 캘린더')],
+  data: [T('백업 · 잠금'), daysSinceBackup() == null ? T('아직 백업한 적이 없어요.') : F('마지막 백업: {0}일 전.', daysSinceBackup())],
+  help: [T('도움말'), T('홈 화면에 추가하는 방법')],
+});
+function group(key, body) {
+  const [name, sub] = GROUPS()[key], open = ui.setOpen.includes(key);
+  return `<button type="button" class="card grp" data-act="setGroup" data-g="${key}" aria-expanded="${open}">
+      <span><b>${name}</b><small>${sub}</small></span><i class="chev"></i></button>${open ? `<div class="grp-in">${body}</div>` : ''}`;
+}
+
 export function openSettings() {
   const n = Object.keys(db.entries).length;
   const pick = (act, attr, on, label, style) => `<button class="li med" data-act="${act}" ${attr} aria-pressed="${on}"${style ? ` style="${style}"` : ''}>
@@ -31,18 +45,7 @@ export function openSettings() {
       <button class="txt strong" data-act="close">${T('완료')}</button>
     </div>
 
-    <div class="sec">${T('언어 · Language')}</div>
-    <section class="card list">${pick('lang', 'data-lang="ko"', !EN, '한국어')}${pick('lang', 'data-lang="en"', EN, 'English')}</section>
-
-    <div class="sec">${T('화면 모드')}</div>
-    <section class="card list">${[['auto', T('자동 (아이폰 설정 따라감)')], ['light', T('라이트')], ['dark', T('다크')]].map(([k, label]) =>
-      pick('theme', `data-theme-pick="${k}"`, (db.settings.theme || 'dark') === k, label)).join('')}</section>
-
-    <div class="sec">${T('색')}</div>
-    <section class="card list">${pick('color', 'data-color-pick="off"', !accentKey(), T('흑백'))}${Object.keys(ACCENTS).map((k) =>
-      pick('color', `data-color-pick="${k}"`, accentKey() === k, `<i class="sw-dot" style="background:rgb(${ACCENTS[k][isLight() ? 2 : 1]})"></i>${T(ACCENTS[k][0])}`)).join('')}</section>
-    <p class="secnote">${T('기분·에너지·자신감이 낮은 날은 회색, 높을수록 고른 색으로 물들어요.')}</p>
-
+    ${group('rec', `
     <div class="sec">${T('진단명')}</div>
     <section class="card list">${DIAGNOSES.map(([k, label]) => pick('dx', `data-p="${k}"`, usesOn().includes(k), label)).join('')}</section>
     <p class="secnote">${T('해당하는 것을 여러 개 골라도 돼요. 인사이트에서 무엇을 먼저 보여 줄지에만 참고해요. 진단명에 없는 모습이 기록에 보이면 그것도 그대로 알려 줘요. 기록 항목이나 적어 둔 기록은 바뀌지 않아요.')}</p>
@@ -64,12 +67,22 @@ export function openSettings() {
     </section>
     <p class="secnote">${T('내가 따로 적고 싶은 것을 만들 수 있어요. 했음 · 안 했음은 누르기만 하면 되고, 0~10 정도는 슬라이더로, 숫자는 단위와 함께 적어요.')}</p>
 
-    <div class="sec">${T('알림')}</div>
-    <section class="card list">
-      <label class="li"><span class="lk">${T('기록 알림')}</span><input type="time" id="r-log" value="${esc(remind().log || '')}"></label>
-      <button class="li add" data-act="ics">${T('캘린더에 알림 추가')}</button>
-    </section>
-    <p class="secnote">${T('아이폰 웹앱은 정해진 시간에 스스로 알림을 보낼 수 없어요. 대신 매일 반복되는 캘린더 알림 파일을 만들어 드려요. 약 알람은 아래 “자주 먹는 약”에서 약마다 정하고, 버튼을 누른 뒤 “캘린더에 추가”를 고르세요. 시간을 바꿨으면 캘린더에서 예전 Tidemark 알림을 지우고 다시 추가해 주세요.')}</p>
+    <div class="sec" id="sec-meds">${T('자주 먹는 약')}</div>
+    <section class="card list">${meds}${medAddHtml()}</section>
+    `)}
+
+    ${group('look', `
+    <div class="sec">${T('언어 · Language')}</div>
+    <section class="card list">${pick('lang', 'data-lang="ko"', !EN, '한국어')}${pick('lang', 'data-lang="en"', EN, 'English')}</section>
+
+    <div class="sec">${T('화면 모드')}</div>
+    <section class="card list">${[['auto', T('자동 (아이폰 설정 따라감)')], ['light', T('라이트')], ['dark', T('다크')]].map(([k, label]) =>
+      pick('theme', `data-theme-pick="${k}"`, (db.settings.theme || 'dark') === k, label)).join('')}</section>
+
+    <div class="sec">${T('색')}</div>
+    <section class="card list">${pick('color', 'data-color-pick="off"', !accentKey(), T('흑백'))}${Object.keys(ACCENTS).map((k) =>
+      pick('color', `data-color-pick="${k}"`, accentKey() === k, `<i class="sw-dot" style="background:rgb(${ACCENTS[k][isLight() ? 2 : 1]})"></i>${T(ACCENTS[k][0])}`)).join('')}</section>
+    <p class="secnote">${T('기분·에너지·자신감이 낮은 날은 회색, 높을수록 고른 색으로 물들어요.')}</p>
 
     <div class="sec">${T('글씨체')}</div>
     <section class="card list">${Object.keys(FONTS).map((k) => pick('font', `data-font="${k}"`, (db.settings.font || 'system') === k,
@@ -78,7 +91,18 @@ export function openSettings() {
     <div class="sec">${T('글씨 크기')}</div>
     <section class="card list">${Object.keys(SIZES).map((k) => pick('size', `data-size="${k}"`, (db.settings.size || 'm') === k,
       `<span style="font-size:${15 * SIZES[k][1]}px">${SIZES[k][0]}</span>`)).join('')}</section>
+    `)}
 
+    ${group('remind', `
+    <div class="sec">${T('알림')}</div>
+    <section class="card list">
+      <label class="li"><span class="lk">${T('기록 알림')}</span><input type="time" id="r-log" value="${esc(remind().log || '')}"></label>
+      <button class="li add" data-act="ics">${T('캘린더에 알림 추가')}</button>
+    </section>
+    <p class="secnote">${T('아이폰 웹앱은 정해진 시간에 스스로 알림을 보낼 수 없어요. 대신 매일 반복되는 캘린더 알림 파일을 만들어 드려요. 약 알람은 아래 “자주 먹는 약”에서 약마다 정하고, 버튼을 누른 뒤 “캘린더에 추가”를 고르세요. 시간을 바꿨으면 캘린더에서 예전 Tidemark 알림을 지우고 다시 추가해 주세요.')}</p>
+    `)}
+
+    ${group('data', `
     <div class="sec">${T('백업')}</div>
     <section class="card list">
       <button class="li add" data-act="export">${T('백업 파일 내보내기')}</button>
@@ -91,10 +115,9 @@ export function openSettings() {
     ? `<button class="li add" data-act="pinSet">${T('비밀번호 바꾸기')}</button><button class="li add" data-act="pinOff">${T('잠금 끄기')}</button>`
     : `<button class="li add" data-act="pinSet">${T('비밀번호로 잠그기')}</button>`}</section>
     <p class="secnote">${T('앱을 열 때 숫자 4자리를 물어요. 옆 사람이 바로 못 보게 하는 가림막이고, 기록이 암호로 바뀌는 것은 아니에요. 비밀번호를 잊으면 되찾을 수 없어요.')}</p>
+    `)}
 
-    <div class="sec" id="sec-meds">${T('자주 먹는 약')}</div>
-    <section class="card list">${meds}${medAddHtml()}</section>
-
+    ${group('help', `
     <div class="sec">${T('홈 화면에 추가하는 방법')}</div>
     <section class="card"><ol class="steps">
       <li>${T('사파리에서 이 페이지를 엽니다.')}</li>
@@ -102,6 +125,8 @@ export function openSettings() {
       <li>${T('“홈 화면에 추가”를 누릅니다.')}</li>
     </ol></section>
     <p class="secnote">${DISCLAIMER} ${T('걱정되는 변화가 있으면 진료 때 이 기록을 보여 주며 이야기해 보세요.')}</p>
+    `)}
+
     <p class="foot" id="about">Tidemark ${VERSION} · ${standalone() ? T('홈 화면 앱') : T('브라우저')} · ${screen.width}×${screen.height} / ${innerWidth}×${innerHeight}</p>
   </div>`;
   showSheet();

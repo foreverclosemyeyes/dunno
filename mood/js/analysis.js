@@ -135,6 +135,7 @@ export function recentState(entries = db.entries) {
   const also = [], add = (count, min, text) => { if (count >= min) also.push(F(text, count)); };
   const psyDays = n((e) => e.psy >= 1), anxDays = n((e) => e.anx >= 2);
   add(psyDays, 1, '정신병적 증상이 있던 날 {0}일');
+  add(n((e) => e.panic > 0), 1, '공황이 있던 날 {0}일');
   add(anxDays, 3, '불안이 보통 이상인 날 {0}일');
   add(n((e) => e.sleepMin != null && e.sleepMin < SHORT_SLEEP), 2, '5시간 미만으로 잔 밤 {0}일');
   // 하루 사이에 잠이 3시간 넘게 달라진 날: 큰 기분 변화에 하루쯤 앞서 나타나기도 한다 [근거 5]
@@ -238,7 +239,7 @@ export function aiSummary() {
     if (!e) { if (meds) lines.push(`${d} | (기록 없음) | 약: ${meds}`); continue; }
     const signs = SIGNS.filter(([k]) => e.signs && e.signs[k]).map(([, l]) => l).join(', ');
     const val = (label, v, unit) => (v == null ? '' : `${label} ${v}${unit || ''}`);   // 안 적은 항목은 줄에서 뺀다
-    lines.push([d, val('기분', e.mood), val('에너지', e.energy), val('자신감', e.conf), val('우울', e.dep, '/4'), val('불안', e.anx, '/4'), psyNames(e.psych).length ? `정신병적 증상: ${psyNames(e.psych).join(', ')}` : val('정신병적 증상', e.psy, '/4'), val('죽고 싶은 생각', e.si, '/4'),
+    lines.push([d, val('기분', e.mood), val('에너지', e.energy), val('자신감', e.conf), val('우울', e.dep, '/4'), val('불안', e.anx, '/4'), val('공황', e.panic, '번'), psyNames(e.psych).length ? `정신병적 증상: ${psyNames(e.psych).join(', ')}` : val('정신병적 증상', e.psy, '/4'), val('죽고 싶은 생각', e.si, '/4'),
       e.sleepMin != null ? `수면 ${Math.floor(e.sleepMin / 60)}시간 ${e.sleepMin % 60}분${aided(e) ? '(전날 안정제·수면제 복용)' : ''}` : '', e.tired ? '기상 시 피곤' : '', e.period ? '생리 중' : '',
       e.appetite != null ? `식욕 ${e.appetite}` : '', e.drinks ? `카페인 약 ${cafMg(e.drinks)}mg(${drinkText(e.drinks) || '없음'})` : e.caffeine != null ? `카페인 ${e.caffeine}/10` : '', `약: ${meds || '없음'}`, fxNames(e.fx).length ? `부작용: ${fxNames(e.fx).join(', ')}` : '', ...(e.custom ? customDefs().map((c) => (customText(c, e.custom[c.id]) ? `${c.name}: ${customText(c, e.custom[c.id])}` : '')) : []), signs ? `체크: ${signs}` : '', e.note ? `메모: ${e.note}` : '']
       .filter(Boolean).join(' | '));

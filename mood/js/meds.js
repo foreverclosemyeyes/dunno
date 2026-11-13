@@ -1,8 +1,8 @@
 // 약: 그날 먹은 약(먹을 때마다 한 줄, 시각 포함), 약 추가 입력
-import { CATALOG, SEDATIVES } from './constants.js';
+import { CATALOG, MED_GROUPS, SEDATIVE_GENERICS } from './constants.js';
 import { addDays, ampm, nowTime } from './dates.js';
 import { esc } from './dom.js';
-import { T } from './i18n.js';
+import { EN, T } from './i18n.js';
 import { IC } from './icons.js';
 import { ui } from './state.js';
 import { db, save } from './store.js';
@@ -28,8 +28,9 @@ export function addDose(list, key) {
 export const toggleDoseTime = (dose) => { dose.at = dose.at ? '' : nowTime(); };
 
 // 전날 안정제·수면제를 먹었거나, 당일 새벽(06시 전)에 먹었으면 그날 밤 잠은 '약 먹고 잔 밤'으로 본다
-export const aided = (e) => medsFor(addDays(e.date, -1)).some((m) => SEDATIVES.includes(m.name))
-  || medsFor(e.date).some((m) => SEDATIVES.includes(m.name) && m.at && m.at < '06:00');
+const sedative = (m) => SEDATIVE_GENERICS.includes((CATALOG.find(([ko, , en]) => ko === m.name || en === m.name) || [])[1]);
+export const aided = (e) => medsFor(addDays(e.date, -1)).some(sedative)
+  || medsFor(e.date).some((m) => sedative(m) && m.at && m.at < '06:00');
 
 // "콘서타 27mg (08:00, 13:00)" 같은 글
 export function medsText(list) {
@@ -57,16 +58,21 @@ export function doseRowsHtml(list) {
   }).join('');
 }
 
-// 약 추가: 이름을 치면 목록에서 골라 넣을 수 있다
+// 약 추가: 종류를 골라서 찾거나, 이름·성분을 치면 목록에서 골라 넣을 수 있다 (한국 이름·영어권 이름·성분 어느 것으로 쳐도 찾는다).
+// 아무것도 안 쳤으면 종류 단추들이 뜨고, 종류를 누르면(ui.medGroup) 그 종류의 약들이 뜬다. 영어 화면에서는 영어권 이름으로 보인다.
 export function sugHtml(q) {
-  const have = new Set(db.meds.map((m) => m.name));
-  const hit = CATALOG.filter(([b, g]) => !have.has(b) && (!q || b.includes(q) || g.includes(q))).slice(0, q ? 12 : 10);
-  return hit.map(([b, g]) => `<button type="button" class="sug" data-act="pickSug" data-name="${esc(b)}">${esc(b)}<small>${esc(g)}</small></button>`).join('');
+  const have = new Set(db.meds.map((m) => m.name)), word = q.toLowerCase();
+  const chip = ([ko, generic, en, genericEn]) => `<button type="button" class="sug" data-act="pickSug" data-name="${esc(EN ? en : ko)}">${esc(EN ? en : ko)}<small>${esc(EN ? genericEn : generic)}</small></button>`;
+  const fresh = (list) => list.filter(([ko, , en]) => !have.has(ko) && !have.has(en));
+  if (q) return fresh(CATALOG).filter((m) => m.some((x) => x.toLowerCase().includes(word))).slice(0, 14).map(chip).join('');
+  const group = MED_GROUPS.find(([key]) => key === ui.medGroup);
+  if (group) return `<button type="button" class="sug cat" data-act="medGroup" data-g="">‹ ${T('종류')}</button>${fresh(group[2]).map(chip).join('')}`;
+  return MED_GROUPS.map(([key, name]) => `<button type="button" class="sug cat" data-act="medGroup" data-g="${key}">${name}</button>`).join('');
 }
 export function medAddHtml() {
   return ui.addingMed
     ? `<div class="li med-new">
-         <input type="text" id="med-name" placeholder="${T('약 이름')}" autocomplete="off" maxlength="30">
+         <input type="text" id="med-name" placeholder="${T('약 이름이나 성분')}" autocomplete="off" maxlength="30">
          <label class="unit"><input type="text" id="med-dose" inputmode="decimal" placeholder="${T('용량')}" autocomplete="off" maxlength="20"><span>mg</span></label>
          <div class="sugs" id="med-sug">${sugHtml('')}</div>
          <button type="button" class="btn gray" data-act="saveMed">${T('약 저장')}</button>

@@ -110,6 +110,7 @@ export function detailHtml(e) {
   // [누르면 열릴 항목, 켜져 있는지, 왼쪽 이름(아이콘 포함), 딱지에 쓸 이름, 값(안 적었으면 '')]
   const items = [
     ...SYMPTOMS.map(([k, label]) => [k, itemOn(k), label, label, e[k] == null ? '' : `${LEVELS[e[k]]}${bars(e[k])}`]),
+    ['panic', itemOn('panic'), T('공황'), T('공황'), e.panic ? F('{0}번', e.panic) : ''],
     ['psy', itemOn('psy'), T('정신병적 증상'), T('정신병적 증상'), esc(psyNames(e.psych).join(' · ')) || (e.psy ? LEVELS[e.psy] : '')],
     ['period', itemOn('period'), `${IC.drop}${T('생리')}`, T('생리'), e.period ? T('생리 중') : ''],
     ['appetite', itemOn('appetite'), `${IC.fork}${T('식욕')}`, T('식욕'), e.appetite == null ? '' : ten('appetite', e.appetite)],
@@ -124,6 +125,6 @@ export function detailHtml(e) {
     e.note && itemOn('note') ? `<button class="li say note" data-act="record" data-focus="note">${esc(e.note)}</button>` : '',
   ].join('');
   const more = [...items.filter(([, , , , value]) => !value).map(([key, , , name]) => [key, name]), ...(!e.note && itemOn('note') ? [['note', T('메모')]] : [])]
-    .map(([key, name]) => `<button class="chip sm" data-act="record" data-focus="${key}">+ ${name}</button>`).join('');
+    .map(([key, name]) => (key === 'panic' ? `<button class="chip sm" data-act="panicAdd">+ ${name}</button>` : `<button class="chip sm" data-act="record" data-focus="${key}">+ ${name}</button>`)).join('');
   return rows || more ? `<section class="card list">${rows}${more ? `<div class="li chips more">${more}</div>` : ''}</section>` : '';
 }

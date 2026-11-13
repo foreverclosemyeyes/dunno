@@ -22,7 +22,7 @@ export function newDraft(date) {
   // 잠든·깬 시각은 가장 최근 기록을 기본값으로 보여 준다 (대부분 비슷하니까 덜 만져도 되게). 수면을 적겠다고 해야 저장된다.
   const last = Object.keys(db.entries).sort().reverse().map((k) => db.entries[k]).find((x) => x.bed && x.wake);
   const blank = {
-    date, mood: null, energy: null, conf: null, appetite: null, dep: null, anx: null, si: null,
+    date, mood: null, energy: null, conf: null, appetite: null, dep: null, anx: null, si: null, panic: null,
     sleepSet: false, bed: last ? last.bed : '23:30', wake: last ? last.wake : '07:00', tired: false,
     period: false, drinks: {}, meds: (db.taken[date] || []).slice(), note: '', signs: {}, fx: {}, psych: {}, custom: {},
   };
@@ -120,6 +120,7 @@ const FOCUS = {
   anx: () => [T('불안'), ['anx']],
   psy: () => [T('정신병적 증상'), ['psy']],
   si: () => [T('죽고 싶은 생각'), ['si']],
+  panic: () => [T('공황'), ['panic']],
   period: () => [T('생리'), ['period']],
   appetite: () => [T('식욕'), ['appetite']],
   caffeine: () => [T('카페인'), ['caffeine']],
@@ -156,10 +157,15 @@ export function openRecord(date, focus) {
     appetite: () => slider('appetite', IC.fork, T('식욕'), d.appetite, T('없음'), T('많음')),
     caffeine: () => drinksHtml(d),
   };
+  // 공황은 그날 몇 번이었는지 센다 (entry.panic, 없으면 null). 오늘 화면의 "+ 공황"을 누르면 바로 한 번이 더해진다.
+  const panicRow = `<div class="li col"><div class="steps"><div class="step"><span>${T('공황 (오늘 몇 번)')}</span>
+    <button type="button" data-panic="-1" aria-label="${T('공황')} −">−</button><b id="c-panic">${d.panic || 0}</b>
+    <button type="button" data-panic="1" aria-label="${T('공황')} +">+</button></div></div></div>`;
   const one = (row) => `<section class="card list">${row}</section>`;
   const parts = {
     signs: !itemOn('signs') ? '' : `<div id="signs" hidden><div class="sec">${T('오늘 이런 점이 있었나요?')}</div><section class="card list">${signsHtml()}</section></div>`,
-    symptoms: group(T('증상'), SYMPTOMS.filter(([k]) => itemOn(k)).map(symRow).join('')),
+    symptoms: group(T('증상'), SYMPTOMS.filter(([k]) => itemOn(k)).map(symRow).join('') + (itemOn('panic') ? panicRow : '')),
+    panic: one(panicRow),
     sleep: group(T('지난밤 수면'), itemOn('sleep') ? sleepHtml() : '', 'sleep'),
     body: group(T('몸'), Object.keys(bodyRow).filter(itemOn).map((k) => bodyRow[k]()).join('')),
     ...Object.fromEntries(SYMPTOMS.map((s) => [s[0], one(symRow(s))])),
@@ -212,7 +218,7 @@ export function syncForm() {
 
 // 적은 것이 하나라도 있는지
 const hasContent = (d) => SLIDERS.some((k) => d[k] != null) || SYMPTOMS.some(([k]) => d[k] != null) || d.sleepSet || d.period
-  || cafMg(d.drinks) > 0 || d.meds.length > 0 || !!onlyOn(d.fx) || !!onlyOn(d.psych) || !!customValues(d.custom) || !!(d.note || '').trim();
+  || cafMg(d.drinks) > 0 || d.meds.length > 0 || !!onlyOn(d.fx) || !!onlyOn(d.psych) || d.panic > 0 || !!customValues(d.custom) || !!(d.note || '').trim();
 
 export function saveEntry() {
   const d = ui.draft, prev = db.entries[d.date];
@@ -226,7 +232,7 @@ export function saveEntry() {
   const keepOldSleep = !d.sleepSet && !!prev && !prev.bed && prev.sleepMin != null;
   db.entries[d.date] = {
     date: d.date, mood: d.mood, energy: d.energy, conf: d.conf, dep: d.dep, anx: d.anx, si: d.si,
-    psych: onlyOn(d.psych), psy: onlyOn(d.psych) ? Math.min(4, Object.keys(onlyOn(d.psych)).length) : null,
+    panic: d.panic || null, psych: onlyOn(d.psych), psy: onlyOn(d.psych) ? Math.min(4, Object.keys(onlyOn(d.psych)).length) : null,
     bed: d.sleepSet ? d.bed || null : null, wake: d.sleepSet ? d.wake || null : null,
     sleepMin: d.sleepSet ? sleepMinutes(d.bed, d.wake) : keepOldSleep ? prev.sleepMin : null,
     tired: d.sleepSet && !!d.tired, period: !!d.period, appetite: d.appetite,

@@ -169,6 +169,7 @@ export function viewTrend() {
   const marks = () => {
     const rows = [
       itemOn('si') ? squaresRow(T('죽고 싶은 생각'), (e) => e.si || 0, (e) => (e.si != null ? LEVELS[e.si] : '–')) : '',
+      itemOn('panic') ? squaresRow(T('공황'), (e) => Math.min(4, e.panic || 0), (e) => (e.panic ? F('{0}번', e.panic) : '–')) : '',
       itemOn('psy') ? squaresRow(T('정신병적 증상'), (e) => e.psy || 0, (e) => (e.psy ? F('{0}가지', e.psy) : '–')) : '',
       itemOn('period') ? squaresRow(T('생리'), (e) => (e.period ? 3 : 0), (e) => (e.period ? T('생리 중') : '–')) : '',
     ].join('');

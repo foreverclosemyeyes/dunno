@@ -146,8 +146,8 @@ function figures(s, width, SH, show) {
 
   // 3. 증상: 날마다 요일(영어 한 글자, 사용자가 고름)이 적힌 네모 한 칸, 그런 날은 색칠 (단계가 높을수록 진하게). 위 그래프와 같은 날짜 자리에 놓인다.
   // 칸 크기는 하루 너비를 따라간다 (옆 칸과 살짝만 떨어지게). 1주는 30, 2주는 15쯤, 4주는 7쯤.
-  // 요일 글자는 칸이 넉넉하면 크게, 2주처럼 좁으면 작게 넣고, 4주처럼 더 좁으면 빼서 색으로만 보이게 한다.
-  const sq = Math.max(4, Math.min(col - Math.max(2, col * 0.18), 30)), letter = sq >= 24 ? 13 : sq >= 14 ? 9.5 : 0;
+  // 요일 글자는 1주 보기처럼 칸이 넉넉할 때만 넣는다. 2주·4주는 색으로만 보이게 한다 (작은 글자가 지저분하다고 함).
+  const sq = Math.max(4, Math.min(col - Math.max(2, col * 0.18), 30)), letter = sq >= 24 ? 13 : 0;
   // vals: 날마다의 정도(0~4), right: 오른쪽에 적을 글 (안 주면 며칠인지)
   const squaresOf = (name, vals, right) => {
     const count = vals.filter(Boolean).length;
@@ -161,6 +161,7 @@ function figures(s, width, SH, show) {
   };
   const squares = (name, levelOf) => squaresOf(name, s.days.map((e) => (e ? levelOf(e) : 0)));
   SYMPTOMS.filter(([k]) => itemOn(k)).forEach(([k, name]) => squares(name, (e) => e[k] || 0));
+  if (itemOn('panic') && s.got.some((e) => e.panic)) squares(T('공황'), (e) => Math.min(4, e.panic || 0));   // 횟수가 많을수록 진하다
   if (itemOn('psy')) squares(T('정신병적 증상'), (e) => e.psy || 0);   // 그날 몇 가지였는지에 따라 진해진다
   // 부작용(하나라도 있던 날)과 내 항목도 같은 네모 줄로
   if (itemOn('fx') && show.fx) squares(T('부작용'), (e) => (onlyOn(e.fx) ? 3 : 0));

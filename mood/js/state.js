@@ -2,8 +2,8 @@
 import { today } from './dates.js';
 
 // ---------- 화면 상태 ----------
-// insightDemo: 인사이트 화면에서 예시 기록을 보고 있는지
-export const ui = { tab: 'today', selected: today(), draft: null, addingMed: false, insightDemo: false };
+// medGroup: 약을 더할 때 고른 종류 (없으면 ''), insightDemo: 인사이트 화면에서 예시 기록을 보고 있는지, setOpen: 설정에서 펼쳐 둔 묶음
+export const ui = { tab: 'today', selected: today(), draft: null, addingMed: false, medGroup: '', insightDemo: false, setOpen: [] };
 export const standalone = () => window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
 
 // ---------- 흐름 화면 (주 / 월) ----------

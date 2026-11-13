@@ -14,7 +14,7 @@ export const PSYCH = [
 // 기록 항목: 설정에서 하나씩 끌 수 있다 (끄면 기록·오늘·흐름·진료 화면에서 안 보인다. 적어 둔 값은 지우지 않는다).
 export const ITEMS = [
   ['mood', T('기분')], ['energy', T('에너지')], ['conf', T('자신감')], ['sleep', T('수면')],
-  ['dep', T('우울')], ['anx', T('불안')], ['psy', T('정신병적 증상')], ['si', T('죽고 싶은 생각')],
+  ['dep', T('우울')], ['anx', T('불안')], ['panic', T('공황')], ['psy', T('정신병적 증상')], ['si', T('죽고 싶은 생각')],
   ['period', T('생리')], ['appetite', T('식욕')], ['caffeine', T('카페인')], ['meds', T('약')],
   ['fx', T('부작용')], ['signs', T('들뜸 체크리스트')], ['note', T('메모')],
 ];
@@ -72,28 +72,53 @@ export const NAMES = EN ? {
   conf: ['완전 쭈그러듦', '많이 위축', '주눅 듦', '소심해짐', '살짝 자신 없음', '보통', '할 만함', '자신 있음', '자신만만', '뭐든 될 듯', '무적'],
 };
 export const nameOf = (key, v) => (v == null || !NAMES[key] ? '' : NAMES[key][Math.round(v)] || '');
-// 정신건강의학과에서 자주 쓰는 약 (상품명, 성분명). 약 추가할 때 고르는 목록일 뿐, 복용 안내가 아니다.
-export const CATALOG = [
-  ['알프람', '알프라졸람'], ['자낙스', '알프라졸람'], ['아티반', '로라제팜'], ['리보트릴', '클로나제팜'], ['바리움', '디아제팜'],
-  ['스틸녹스', '졸피뎀'], ['부스파', '부스피론'], ['인데놀', '프로프라놀롤'], ['서카딘', '멜라토닌'],
-  ['브린텔릭스', '보티옥세틴'], ['렉사프로', '에스시탈로프람'], ['졸로푸트', '설트랄린'], ['프로작', '플루옥세틴'], ['팍실', '파록세틴'],
-  ['이팩사', '벤라팍신'], ['프리스틱', '데스벤라팍신'], ['심발타', '둘록세틴'], ['웰부트린', '부프로피온'], ['레메론', '미르타자핀'],
-  ['트리티코', '트라조돈'], ['발독산', '아고멜라틴'],
-  ['콘서타', '메틸페니데이트'], ['메디키넷', '메틸페니데이트'], ['페니드', '메틸페니데이트'], ['스트라테라', '아토목세틴'],
-  ['리단', '리튬'], ['데파코트', '발프로산'], ['라믹탈', '라모트리진'], ['테그레톨', '카르바마제핀'],
-  ['아빌리파이', '아리피프라졸'], ['쎄로켈', '쿠에티아핀'], ['자이프렉사', '올란자핀'], ['리스페달', '리스페리돈'], ['인베가', '팔리페리돈'],
-  ['라투다', '루라시돈'], ['렉설티', '브렉스피프라졸'], ['클로자릴', '클로자핀'], ['젤독스', '지프라시돈'], ['솔리안', '아미설프리드'], ['로도핀', '조테핀'],
-  ['쿠에타핀', '쿠에티아핀'], ['할로페리돌', '할로페리돌'], ['아빌리파이 메인테나', '아리피프라졸 주사'], ['인베가 서스티나', '팔리페리돈 주사'],
-  ['데파스', '에티졸람'], ['그란닥신', '토피소팜'], ['유시락스', '히드록시진'],
-  ['졸피드', '졸피뎀'], ['할시온', '트리아졸람'], ['조피스타', '에스조피클론'], ['사일레노', '독세핀'],
-  ['세로자트', '파록세틴'], ['듀미록스', '플루복사민'], ['씨프람', '시탈로프람'], ['에나폰', '아미트립틸린'], ['센시발', '노르트립틸린'], ['그로민', '클로미프라민'],
-  ['익셀', '밀나시프란'], ['스타브론', '티아넵틴'],
-  ['비스펜틴', '메틸페니데이트'], ['켑베이', '클로니딘'], ['인튜니브', '구안파신'], ['프로비질', '모다피닐'], ['누비질', '아모다피닐'],
-  ['데파킨', '발프로산'], ['오르필', '발프로산'], ['트리렙탈', '옥스카르바제핀'], ['토파맥스', '토피라메이트'],
-  ['뉴론틴', '가바펜틴'], ['리리카', '프레가발린'], ['레비아', '날트렉손'], ['아캄프롤', '아캄프로세이트'],
+// 정신건강의학과에서 자주 쓰는 약을 종류별로 묶은 것. 약 추가할 때 고르는 목록일 뿐, 복용 안내가 아니다.
+// [열쇠, 종류 이름, [[한국에서 부르는 이름, 성분, 영어권 이름, 영어 성분], …]]
+// 한국에 없는 약(애더럴, 바이반스 등)은 영어 이름을 소리 나는 대로 적었다. 영어 화면에서는 영어권 이름으로 보인다.
+export const MED_GROUPS = [
+  ['ad', T('항우울제'), [
+    ['브린텔릭스', '보티옥세틴', 'Trintellix', 'vortioxetine'], ['렉사프로', '에스시탈로프람', 'Lexapro', 'escitalopram'], ['졸로푸트', '설트랄린', 'Zoloft', 'sertraline'],
+    ['프로작', '플루옥세틴', 'Prozac', 'fluoxetine'], ['팍실', '파록세틴', 'Paxil', 'paroxetine'], ['세로자트', '파록세틴', 'Seroxat', 'paroxetine'], ['씨프람', '시탈로프람', 'Celexa', 'citalopram'],
+    ['듀미록스', '플루복사민', 'Luvox', 'fluvoxamine'], ['이팩사', '벤라팍신', 'Effexor', 'venlafaxine'], ['프리스틱', '데스벤라팍신', 'Pristiq', 'desvenlafaxine'], ['심발타', '둘록세틴', 'Cymbalta', 'duloxetine'],
+    ['익셀', '밀나시프란', 'Savella', 'milnacipran'], ['웰부트린', '부프로피온', 'Wellbutrin', 'bupropion'], ['레메론', '미르타자핀', 'Remeron', 'mirtazapine'], ['트리티코', '트라조돈', 'Desyrel', 'trazodone'],
+    ['발독산', '아고멜라틴', 'Valdoxan', 'agomelatine'], ['스타브론', '티아넵틴', 'Stablon', 'tianeptine'], ['에나폰', '아미트립틸린', 'Elavil', 'amitriptyline'], ['센시발', '노르트립틸린', 'Pamelor', 'nortriptyline'],
+    ['그로민', '클로미프라민', 'Anafranil', 'clomipramine'], ['비브리드', '빌라조돈', 'Viibryd', 'vilazodone'], ['스프라바토', '에스케타민', 'Spravato', 'esketamine'], ['오벨리티', '덱스트로메토르판·부프로피온', 'Auvelity', 'dextromethorphan-bupropion'],
+  ]],
+  ['anx', T('항불안제'), [
+    ['알프람', '알프라졸람', 'Alpram', 'alprazolam'], ['자낙스', '알프라졸람', 'Xanax', 'alprazolam'], ['아티반', '로라제팜', 'Ativan', 'lorazepam'], ['리보트릴', '클로나제팜', 'Rivotril', 'clonazepam'],
+    ['클로노핀', '클로나제팜', 'Klonopin', 'clonazepam'], ['바리움', '디아제팜', 'Valium', 'diazepam'], ['데파스', '에티졸람', 'Depas', 'etizolam'], ['그란닥신', '토피소팜', 'Grandaxin', 'tofisopam'],
+    ['부스파', '부스피론', 'Buspar', 'buspirone'], ['인데놀', '프로프라놀롤', 'Inderal', 'propranolol'], ['유시락스', '히드록시진', 'Vistaril', 'hydroxyzine'],
+  ]],
+  ['sleep', T('수면제'), [
+    ['스틸녹스', '졸피뎀', 'Stilnox', 'zolpidem'], ['앰비엔', '졸피뎀', 'Ambien', 'zolpidem'], ['졸피드', '졸피뎀', 'Zolpid', 'zolpidem'], ['할시온', '트리아졸람', 'Halcion', 'triazolam'],
+    ['조피스타', '에스조피클론', 'Lunesta', 'eszopiclone'], ['사일레노', '독세핀', 'Silenor', 'doxepin'], ['서카딘', '멜라토닌', 'Circadin', 'melatonin'], ['벨솜라', '수보렉산트', 'Belsomra', 'suvorexant'],
+    ['데이비고', '렘보렉산트', 'Dayvigo', 'lemborexant'], ['쿠비빅', '다리도렉산트', 'Quviviq', 'daridorexant'],
+  ]],
+  ['mood', T('기분조절제'), [
+    ['리단', '리튬', 'Lithium', 'lithium'], ['데파코트', '발프로산', 'Depakote', 'valproate'], ['데파킨', '발프로산', 'Depakine', 'valproate'], ['오르필', '발프로산', 'Orfiril', 'valproate'],
+    ['라믹탈', '라모트리진', 'Lamictal', 'lamotrigine'], ['테그레톨', '카르바마제핀', 'Tegretol', 'carbamazepine'], ['트리렙탈', '옥스카르바제핀', 'Trileptal', 'oxcarbazepine'], ['토파맥스', '토피라메이트', 'Topamax', 'topiramate'],
+  ]],
+  ['ap', T('항정신병약'), [
+    ['아빌리파이', '아리피프라졸', 'Abilify', 'aripiprazole'], ['쎄로켈', '쿠에티아핀', 'Seroquel', 'quetiapine'], ['쿠에타핀', '쿠에티아핀', 'Quetapin', 'quetiapine'], ['자이프렉사', '올란자핀', 'Zyprexa', 'olanzapine'],
+    ['리스페달', '리스페리돈', 'Risperdal', 'risperidone'], ['인베가', '팔리페리돈', 'Invega', 'paliperidone'], ['라투다', '루라시돈', 'Latuda', 'lurasidone'], ['렉설티', '브렉스피프라졸', 'Rexulti', 'brexpiprazole'],
+    ['브레일라', '카리프라진', 'Vraylar', 'cariprazine'], ['캐플리타', '루마테페론', 'Caplyta', 'lumateperone'], ['클로자릴', '클로자핀', 'Clozaril', 'clozapine'], ['젤독스', '지프라시돈', 'Geodon', 'ziprasidone'],
+    ['솔리안', '아미설프리드', 'Solian', 'amisulpride'], ['로도핀', '조테핀', 'Lodopin', 'zotepine'], ['할로페리돌', '할로페리돌', 'Haldol', 'haloperidol'],
+    ['아빌리파이 메인테나', '아리피프라졸 주사', 'Abilify Maintena', 'aripiprazole injection'], ['인베가 서스티나', '팔리페리돈 주사', 'Invega Sustenna', 'paliperidone injection'],
+  ]],
+  ['adhd', T('ADHD 약'), [
+    ['콘서타', '메틸페니데이트', 'Concerta', 'methylphenidate'], ['메디키넷', '메틸페니데이트', 'Medikinet', 'methylphenidate'], ['페니드', '메틸페니데이트', 'Penid', 'methylphenidate'],
+    ['비스펜틴', '메틸페니데이트', 'Bisphentin', 'methylphenidate'], ['리탈린', '메틸페니데이트', 'Ritalin', 'methylphenidate'], ['포칼린', '덱스메틸페니데이트', 'Focalin', 'dexmethylphenidate'],
+    ['애더럴', '암페타민', 'Adderall', 'amphetamine'], ['바이반스', '리스덱스암페타민', 'Vyvanse', 'lisdexamfetamine'], ['스트라테라', '아토목세틴', 'Strattera', 'atomoxetine'], ['큐엘브리', '빌록사진', 'Qelbree', 'viloxazine'],
+    ['인튜니브', '구안파신', 'Intuniv', 'guanfacine'], ['켑베이', '클로니딘', 'Kapvay', 'clonidine'], ['프로비질', '모다피닐', 'Provigil', 'modafinil'], ['누비질', '아모다피닐', 'Nuvigil', 'armodafinil'],
+  ]],
+  ['etc', T('그 밖에'), [
+    ['뉴론틴', '가바펜틴', 'Neurontin', 'gabapentin'], ['리리카', '프레가발린', 'Lyrica', 'pregabalin'], ['레비아', '날트렉손', 'Revia', 'naltrexone'], ['아캄프롤', '아캄프로세이트', 'Campral', 'acamprosate'],
+  ]],
 ];
-// 잠에 영향을 주는 약 (안정제·수면제). 전날 이 약을 체크했으면 그날 밤 잠은 '약 먹고 잔 밤'으로 본다.
-export const SEDATIVES = ['알프람', '자낙스', '아티반', '리보트릴', '바리움', '데파스', '스틸녹스', '졸피드', '할시온', '조피스타', '사일레노', '서카딘'];
+export const CATALOG = MED_GROUPS.flatMap(([, , list]) => list);
+// 잠에 영향을 주는 약의 성분 (안정제·수면제). 전날 이런 약을 체크했으면 그날 밤 잠은 '약 먹고 잔 밤'으로 본다.
+// 이름이 한국 이름이든 영어권 이름이든 성분으로 찾는다.
+export const SEDATIVE_GENERICS = ['알프라졸람', '로라제팜', '클로나제팜', '디아제팜', '에티졸람', '졸피뎀', '트리아졸람', '에스조피클론', '독세핀', '멜라토닌', '수보렉산트', '렘보렉산트', '다리도렉산트'];
 // 카페인은 마신 것을 개수로 적는다. mg는 대략적인 값 (제품·크기에 따라 다름).
 export const DRINKS = [['monster', T('몬스터'), 100], ['coffee', T('커피'), 150], ['cola', T('콜라'), 35]];
 export const cafMg = (dr) => DRINKS.reduce((sum, [k, , mg]) => sum + ((dr && dr[k]) || 0) * mg, 0);
