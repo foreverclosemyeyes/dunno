@@ -498,7 +498,7 @@
     const r3 = h('div', 'ctl'); r3.append(h('label', 'ctl-label', '참고 문서'), dl, h('span'));
     const docNote = note(`<b>인수인계 파일처럼 분량이 큰 자료</b>는 여기에 파일로 넣으세요. ${asstName}가 답할 때마다 이 문서를 같이 읽어요. 글만 있는 파일(<b>.md, .txt</b>)이 돼요. 노션 페이지는 "내보내기 → Markdown"으로 받으면 되고, PDF·워드·한글 파일은 내용을 복사해 .txt 로 저장해 넣으세요.${total > D.DOCS_MAX ? `<br><b style="color:#ff6b57">지금 ${total.toLocaleString()}자예요. 앞에서부터 ${D.DOCS_MAX.toLocaleString()}자까지만 읽어요.</b>` : docs.length ? `<br>지금 ${total.toLocaleString()}자 / 한 번에 ${D.DOCS_MAX.toLocaleString()}자까지 읽어요. 문서가 길수록 대답이 조금 느려지고 사용량이 늘어요.` : ''}`);
     cl.body.append(r1, r3, h('div', 'row-inline'));
-    cl.body.lastChild.append(addDoc);
+    cl.body.lastChild.append(addDoc, btn('인수인계 파일 만드는 프롬프트 복사', '', async () => { await window.diary.copyText(D.HANDOVER_PROMPT); D.toast('복사했어요. 그 채팅방에 붙여 넣고, 받은 .md 파일을 "참고 문서 넣기"로 넣으세요.', 6000); }));
     cl.body.append(docNote, r2, h('div', 'row-inline'));
     cl.body.lastChild.append(
       btn('저장', 'primary', async () => {
