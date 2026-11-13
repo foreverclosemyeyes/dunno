@@ -36,24 +36,11 @@
   --safe-b: env(safe-area-inset-bottom, 0px);
   --round: ui-rounded, "SF Pro Rounded", var(--font, -apple-system, BlinkMacSystemFont, sans-serif);
   --blur: blur(26px) saturate(150%);
-  /* 진료용 요약의 큰 그래프에서만 쓰는 선 색 (여러 선을 겹쳐도 구분되도록) */
-  --l-energy: #ffd60a;
-  --l-conf: #64d2ff;
-  --l-dep: #7d7aff;
-  --l-elev: #ff9f0a;
-  --l-anx: #da8fff;
-  --l-si: #ff5c7a;
 }
 :root[data-theme=light] {
   color-scheme: light;
   /* 라이트는 대비를 낮춘다: 새까만 색 대신 짙은 회색, 바탕은 아이폰 설정 화면의 옅은 회색 */
   --bg: #f2f2f7;
-  --l-energy: #d19a00;
-  --l-conf: #1e96d1;
-  --l-dep: #5856d6;
-  --l-elev: #f07800;
-  --l-anx: #af52de;
-  --l-si: #e6294f;
   --ink: #3a3a3c;
   --ink-inv: #fff;
   --text: #1d1d1f;
@@ -346,8 +333,7 @@ input[type=date] { border: 0; outline: none; background: var(--card2); color: va
 
 /* 인쇄·PDF: 요약 부분만, 흰 바탕에 검은 글씨로 (누르는 것들은 뺀다) */
 @media print {
-  :root, :root[data-theme=light] { --bg: #fff; --text: #000; --ink: #000; --muted: #444; --faint: #777; --line: #ccc; --card: transparent; --card2: transparent; --shadow: none;
-    --l-energy: #d19a00; --l-conf: #1e96d1; --l-dep: #5856d6; --l-elev: #f07800; --l-anx: #af52de; --l-si: #e6294f; }
+  :root, :root[data-theme=light] { --bg: #fff; --text: #000; --ink: #000; --muted: #444; --faint: #777; --line: #ccc; --card: transparent; --card2: transparent; --shadow: none; }
   body::before, .tabbar, .toast, .sheet { display: none !important; }
   body * { visibility: hidden; }
   #summary, #summary * { visibility: visible; }
@@ -379,8 +365,8 @@ input[type=date] { border: 0; outline: none; background: var(--card2); color: va
 .sum-togs { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 16px; }
 .sum-tog { background: var(--card2); border-radius: 999px; padding: 6px 12px; font-size: calc(12.5px * var(--fs, 1.12)); color: var(--faint); }
 .sum-tog b { font-family: var(--round); font-weight: 600; }
-.sum-tog i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; opacity: .35; }
-.sum-tog[aria-pressed=true] i { opacity: 1; }
+#summary .sum-tog svg { display: inline-block; vertical-align: middle; margin: -2px 6px 0 0; opacity: .4; }
+.sum-tog[aria-pressed=true] svg { opacity: 1; }
 .sum-tog[aria-pressed=true] { background: var(--sel); color: var(--text); font-weight: 600; }
 #summary svg { display: block; overflow: visible; font-family: inherit; }
 .sum-key { color: var(--faint); font-size: calc(10.5px * var(--fs, 1.12)); margin: 8px 0 0; line-height: 1.45; }

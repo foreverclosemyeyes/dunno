@@ -33,8 +33,15 @@ const lineDefs = () => [
   ['dep', T('우울'), 4], ['anx', T('불안'), 4], ['si', T('죽고 싶은 생각'), 4],
 ].filter(([key]) => itemOn(key));
 
-// 선마다 색이 다르다 (한 그래프에 여러 선을 겹쳐도 구분되도록, 이 그래프에서만). 기분은 설정에서 고른 색.
-const lineColor = (key) => (key === 'mood' ? tone('mood', 10) || 'var(--ink)' : `var(--l-${key})`);
+// 선은 색이 아니라 모양으로 구분한다: [굵기, 끊김 무늬]. 기분만 설정에서 고른 색의 굵은 실선이고, 나머지는 같은 색(--ink)이다.
+const LINE_STYLE = {
+  mood: [3, ''], energy: [1.6, ''], conf: [1.8, '7 5'],
+  dep: [2.4, '0.1 5.5'], anx: [1.8, '10 4 1.5 4'], si: [1.8, '3 4'],
+};
+const lineColor = (key) => (key === 'mood' ? tone('mood', 10) || 'var(--ink)' : 'var(--ink)');
+const lineAttrs = (key) => `fill="none" stroke-linejoin="round" stroke-linecap="round" style="stroke:${lineColor(key)}" stroke-width="${LINE_STYLE[key][0]}"${LINE_STYLE[key][1] ? ` stroke-dasharray="${LINE_STYLE[key][1]}"` : ''}`;
+// 단추에 붙는 선 견본
+const lineSample = (key) => `<svg width="22" height="8" aria-hidden="true"><path d="M1.5,4H20.5" ${lineAttrs(key)}/></svg>`;
 
 // 이어진 날짜는 묶어서 적는다: 11/9–11/13, 11/20
 function dateRanges(list) {
@@ -76,11 +83,11 @@ function figures(s, width) {
   });
   const points = (key, yOf) => s.days.map((e, i) => (e && e[key] != null ? [cx(i), yOf(e[key])] : null)).filter(Boolean);
   // 값이 있는 날들을 부드러운 곡선으로 잇는다 (하루뿐이면 점 하나). area가 있으면 곡선 아래를 옅게 채운다.
-  const curve = (pts, color, w, areaTo) => {
+  const curve = (pts, color, attrs, areaTo) => {
     if (pts.length < 2) { pts.forEach((p) => { out += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" style="fill:${color}"/>`; }); return; }
     const d = smoothPath(pts);
     if (areaTo) out += `<path d="${d}L${pts[pts.length - 1][0].toFixed(1)},${areaTo}L${pts[0][0].toFixed(1)},${areaTo}Z" style="fill:var(--fill)" stroke="none"/>`;
-    out += `<path d="${d}" fill="none" stroke-linejoin="round" stroke-linecap="round" style="stroke:${color}" stroke-width="${w}"/>`;
+    out += `<path d="${d}" ${attrs}/>`;
   };
   const floor = (at) => { out += `<line x1="${L}" x2="${L + pw}" y1="${at}" y2="${at}" style="stroke:var(--line)"/>`; };
 
@@ -92,7 +99,7 @@ function figures(s, width) {
   lineDefs().filter(([key]) => clinicView.lines.includes(key)).reverse().forEach(([key, name, max]) => {
     const pts = points(key, (v) => sy(v / max * 10));
     if (!pts.length) return;
-    curve(pts, lineColor(key), key === 'mood' ? 3 : 2);
+    curve(pts, lineColor(key), lineAttrs(key));
     ends.push({ name, color: lineColor(key), x: pts[pts.length - 1][0] + 7, y: pts[pts.length - 1][1] + 3.5, bold: key === 'mood' });
   });
   ends.sort((a, b) => a.y - b.y).forEach((e, i) => {
@@ -107,7 +114,7 @@ function figures(s, width) {
   const BH = 64, sTop = y + 12, base = sTop + BH, slY = (m) => base - Math.min(m, 720) / 720 * BH;
   [0, 6, 12].forEach((h) => { floor(slY(h * 60)); out += `<text x="${L - 6}" y="${slY(h * 60) + 3.5}" font-size="10" text-anchor="end" ${mutedText}>${h}</text>`; });
   weekLines(sTop, base);
-  curve(points('sleepMin', slY), 'var(--ink)', 2, base);
+  curve(points('sleepMin', slY), 'var(--ink)', 'fill="none" stroke-linejoin="round" stroke-linecap="round" style="stroke:var(--ink)" stroke-width="2"', base);
   out += `<line x1="${L}" x2="${L + pw}" y1="${slY(SHORT_SLEEP)}" y2="${slY(SHORT_SLEEP)}" style="stroke:var(--muted)"/><text x="${L + pw + 7}" y="${slY(SHORT_SLEEP) + 3.5}" font-size="10.5" ${mutedText}>${T('5시간')}</text>`;
   y = base + 6;
   if (s.shortSleep.length) {
@@ -125,8 +132,8 @@ function figures(s, width) {
     head(name, count ? F('{0}일', count) : T('없음'));
     s.dates.forEach((d, i) => {
       const v = (s.days[i] && s.days[i][k]) || 0, x = cx(i) - sq / 2, top = y + 8;
-      out += `<rect x="${x.toFixed(1)}" y="${top}" width="${sq.toFixed(1)}" height="${sq.toFixed(1)}" rx="${(sq * 0.28).toFixed(1)}" ${v ? `style="fill:var(--l-${k})" fill-opacity="${[0, 0.4, 0.6, 0.8, 1][v]}"` : 'class="c0"'}/>`;
-      if (sq >= 13) out += `<text x="${cx(i).toFixed(1)}" y="${(top + sq / 2 + 3.2).toFixed(1)}" text-anchor="middle" font-size="9" style="fill:${v >= 3 ? '#fff' : v ? 'var(--text)' : 'var(--faint)'}">${wd[parse(d).getDay()][0]}</text>`;
+      out += `<rect x="${x.toFixed(1)}" y="${top}" width="${sq.toFixed(1)}" height="${sq.toFixed(1)}" rx="${(sq * 0.28).toFixed(1)}" ${v ? `style="fill:var(--ink)" fill-opacity="${[0, 0.3, 0.5, 0.75, 1][v]}"` : 'class="c0"'}/>`;
+      if (sq >= 13) out += `<text x="${cx(i).toFixed(1)}" y="${(top + sq / 2 + 3.2).toFixed(1)}" text-anchor="middle" font-size="9" style="fill:${v >= 3 ? 'var(--ink-inv)' : v ? 'var(--text)' : 'var(--faint)'}">${wd[parse(d).getDay()][0]}</text>`;
     });
     y += 8 + sq + 22;
   });
@@ -181,7 +188,7 @@ function summaryHtml(weeks) {
   const width = Math.max(240, Math.min(app.clientWidth, 480) - 32 - 32);
   const fig = figures(s, width);
   // 큰 그래프의 선을 켜고 끄는 단추: 기분·에너지·자신감은 평균을 옆에 적는다
-  const toggles = lineDefs().map(([key, name, max]) => `<button class="sum-tog" data-act="clinicLine" data-k="${key}" aria-pressed="${clinicView.lines.includes(key)}"><i style="background:${lineColor(key)}"></i>${name}${max === 10 && s[key] ? ` <b>${one(s[key].avg)}</b>` : ''}</button>`).join('');
+  const toggles = lineDefs().map(([key, name, max]) => `<button class="sum-tog" data-act="clinicLine" data-k="${key}" aria-pressed="${clinicView.lines.includes(key)}">${lineSample(key)}${name}${max === 10 && s[key] ? ` <b>${one(s[key].avg)}</b>` : ''}</button>`).join('');
   const signs = s.signs.map(([name, c]) => li(esc(name), F('{0}일', c)));
   const says = (title, rows) => (rows.length ? `<div class="sec">${title}</div><section class="card list">${rows.join('')}</section>` : '');
   return `
@@ -190,7 +197,7 @@ function summaryHtml(weeks) {
       ${toggles ? `<div class="sum-togs">${toggles}</div>${fig.chart}` : ''}
       ${itemOn('sleep') ? fig.sleep : ''}
       ${fig.rows}
-      <p class="sum-key">${T('위아래로 같은 자리가 같은 날이에요 · 네모는 색이 진할수록 심한 날 · 약은 먹은 날 ○, 안 먹은 날 ×')}</p>
+      <p class="sum-key">${T('위아래로 같은 자리가 같은 날이에요 · 네모는 진할수록 심한 날 · 약은 먹은 날 ○, 안 먹은 날 ×')}</p>
     </section>
     ${says(T('기분이 높았던 날 체크한 항목'), signs)}
     ${says(T('지금 떠 있는 신호'), s.signals.map((x) => `<div class="li say">${esc(x)}</div>`))}
