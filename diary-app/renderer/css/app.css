@@ -324,6 +324,7 @@ body.layout-bigcal .bc-d { padding: 0 1px 12px; color: color-mix(in srgb, var(--
 .empty { padding: 28px 0; text-align: center; opacity: .55; font-weight: 600; line-height: 1.7; }
 #record-stamp { display: none; position: absolute; right: 8px; top: -18px; pointer-events: none; z-index: 3; }
 #record-stamp:not([hidden]) { display: block; animation: stamp .35s cubic-bezier(.2, 1.6, .4, 1); }
+#record-stamp.still { animation: none; }
 @keyframes stamp { from { transform: scale(2.2); opacity: 0; } to { transform: none; opacity: 1; } }
 #record-events:empty { display: none; }
 body.layout-bigcal .nb-pane { display: none; flex-direction: column; min-height: 0; flex: 1; position: relative; z-index: 1; }
@@ -409,7 +410,8 @@ body.fx-intro #record { animation: fxIn .5s .22s cubic-bezier(.2,.9,.25,1.15) bo
    - 탭(기록/파라미터) = 뒷장 뒤에서 화면 끝까지 뻗은 검은 띠 */
 body.layout-bigcal .nb-sheet { display: block; position: absolute; pointer-events: none; inset: -10px; border: solid #0b0b0b; border-width: 10px 11px 12px 15px; }
 body.layout-bigcal .nb-sheet-front { z-index: -1; background: var(--card); clip-path: polygon(0 1.4%, 99% 0, 100% 99.2%, 1.2% 100%); }
-body.layout-bigcal #record .card-head { border-bottom: 3px solid #111; padding-bottom: 8px; margin-bottom: 4px; padding-right: 4px; min-height: 54px; position: relative; align-items: flex-end; gap: 6px; }
+/* flex: none — 할 일이 많아 목록이 넘쳐도 제목 줄은 줄어들지 않음 (줄어들면 제목이 위로 밀려 잘림) */
+body.layout-bigcal #record .card-head { border-bottom: 3px solid #111; padding-bottom: 8px; margin-bottom: 4px; padding-right: 4px; min-height: 54px; position: relative; align-items: flex-end; gap: 6px; flex: none; }
 body.layout-bigcal #record-count .prog { display: inline-block; background: #0b0b0b; color: #fff; clip-path: polygon(6% 0, 100% 0, 94% 100%, 0 100%); font-family: "Nanum Gothic", "Noto Sans KR Variable", sans-serif !important; font-weight: 800 !important; letter-spacing: 0; font-size: 13px !important; padding: 2px 9px 1px !important; }
 body.layout-bigcal #record-title .el-section { transform-origin: left center; -webkit-text-stroke: 1.3px var(--card); paint-order: normal; white-space: nowrap; font-size: clamp(22px, 2.5vw, 44px) !important; transform: rotate(-2deg) !important; }
 /* ===== 스킨 조각: 딱지 · EMPTY · CHANGE · 가면 · X표 · 단검 ===== */

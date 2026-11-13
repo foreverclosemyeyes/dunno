@@ -354,6 +354,7 @@
     return wrap;
   }
 
+  let stampDay = null; // 도장을 마지막으로 그린 날짜
   function renderRecord() {
     const sel = parse(state.selected);
     const isToday = state.selected === state.today;
@@ -397,11 +398,18 @@
         box.append(row);
       }
     }
+    // 도장: 보고 있던 날의 마지막 할 일을 방금 끝냈을 때만 '쾅' 찍힘.
+    // 다른 날로 넘어가서 이미 다 끝난 날을 볼 때는 넘어오는 움직임 하나만 나오게 도장은 조용히 보여 줌
     const stamp = $('#record-stamp');
     const allDone = c.total > 0 && c.done === c.total;
-    if (allDone && stamp.hidden) { stamp.replaceChildren(S('stamp', state.theme.layout.stampText || 'DONE!!')); stamp.hidden = false; D.fx && D.fx.thud('#record'); }
-    else if (allDone) stamp.replaceChildren(S('stamp', state.theme.layout.stampText || 'DONE!!'));
-    else stamp.hidden = true;
+    const sameDay = stampDay === state.selected; stampDay = state.selected;
+    if (allDone) {
+      const slam = stamp.hidden && sameDay;
+      stamp.replaceChildren(S('stamp', state.theme.layout.stampText || 'DONE!!'));
+      stamp.classList.toggle('still', !slam);
+      stamp.hidden = false;
+      if (slam && D.fx) D.fx.thud('#record');
+    } else stamp.hidden = true;
     const list = $('#record-list'); list.innerHTML = '';
     if (info && info.items.length) info.items.forEach((i) => list.append(todoNode(i)));
     else {
