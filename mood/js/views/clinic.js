@@ -90,7 +90,8 @@ function figures(s, width, SH, show) {
     if (right) out += `<text x="${width}" y="${y}" font-size="11.5" text-anchor="end" ${mutedText}>${right}</text>`;
   };
   // 주마다(월요일) 세로줄: 그림이 있는 칸 안에만 긋는다
-  const weekLines = (y1, y2) => marks.filter(Boolean).forEach((i) => {
+  // (한 주만 그릴 때는 긋지 않는다: 주 한가운데에 뜬금없는 세로줄로 보인다)
+  const weekLines = (y1, y2) => (n > 7 ? marks.filter(Boolean) : []).forEach((i) => {
     out += `<line x1="${(L + col * i).toFixed(1)}" x2="${(L + col * i).toFixed(1)}" y1="${y1}" y2="${y2}" style="stroke:var(--line)"/>`;
   });
   const dateLabels = (at) => marks.forEach((i) => {
@@ -212,23 +213,26 @@ function summaryRows(s) {
 function summaryHtml(weeks) {
   const s = summary(weeks);
   const width = Math.max(240, Math.min(app.clientWidth, 480) - 32 - 32);
-  // 그림은 한 주에 한 장씩 그린다 (하루 칸이 넓어야 읽힌다). 2주·4주는 같은 모양의 카드가 오래된 주부터 차례로 쌓인다.
-  const stack = (b) => {
-    const fig = figures(b, width, weeks > 1 ? 104 : 150, show);
-    return `<section class="card sum-stack">
-      ${weeks > 1 ? `<div class="sum-week">${md(parse(b.dates[0]))} – ${md(parse(b.dates[6]))}</div>` : ''}
-      ${toggles ? fig.chart : ''}${itemOn('sleep') ? fig.sleep : ''}${fig.rows}</section>`;
-  };
   // 큰 그래프의 선을 켜고 끄는 단추: 기분·에너지·자신감은 평균을 옆에 적는다
   const toggles = lineDefs().map(([key, name, max]) => `<button class="sum-tog" data-act="clinicLine" data-k="${key}" aria-pressed="${clinicView.lines.includes(key)}">${lineSample(key)}${name}${max === 10 && s[key] ? ` <b>${one(s[key].avg)}</b>` : ''}</button>`).join('');
   const show = { fx: s.fx.length > 0, custom: customDefs().filter((c) => s.got.some((e) => customLevel(c, (e.custom || {})[c.id]))) };
   const count = ([name, c]) => li(esc(name), F('{0}일', c));
+  // 그래프(선들과 수면)는 고른 기간 전체를 한 장에 그려서 한눈에 보이게 한다 (2주·4주를 주마다 쪼갰더니 흐름이 안 보인다고 함, 2026-11-13).
+  // 네모·○× 줄은 하루 칸이 넓어야 읽히니, 2주·4주에서는 그래프 아래에 한 주씩 카드로 쌓는다 (오래된 주부터).
+  const whole = figures(s, width, 150, show);
+  const graphs = `${toggles ? whole.chart : ''}${itemOn('sleep') ? whole.sleep : ''}`;
+  const weekRows = (b) => {
+    const { rows } = figures(b, width, 150, show);
+    return rows ? `<section class="card sum-stack"><div class="sum-week">${md(parse(b.dates[0]))} – ${md(parse(b.dates[6]))}</div>${rows}</section>` : '';
+  };
+  const cards = weeks === 1 ? `<section class="card sum-stack">${graphs}${whole.rows}</section>`
+    : `${graphs ? `<section class="card sum-stack">${graphs}</section>` : ''}${Array.from({ length: weeks }, (_, i) => weekRows(summary(1, (weeks - 1 - i) * 7))).join('')}`;
   const signs = s.signs.map(([name, c]) => li(esc(name), F('{0}일', c)));
   const says = (title, rows) => (rows.length ? `<div class="sec">${title}</div><section class="card list">${rows.join('')}</section>` : '');
   return `
     <div class="sec">${md(parse(s.dates[0]))} – ${md(parse(s.dates[s.dates.length - 1]))} · ${F('기록 {0}일 / {1}일', s.got.length, s.dates.length)}</div>
     ${toggles ? `<div class="sum-togs">${toggles}</div>` : ''}
-    ${Array.from({ length: weeks }, (_, i) => stack(summary(1, (weeks - 1 - i) * 7))).join('')}
+    ${cards}
     <p class="secnote">${T('위아래로 같은 자리가 같은 날이에요 · 네모는 진할수록 심한 날 · 약은 먹은 날 ○, 안 먹은 날 ×')}</p>
     ${says(T('기분이 높았던 날 체크한 항목'), signs)}
     ${itemOn('psy') ? says(T('정신병적 증상'), s.psych.map(count)) : ''}

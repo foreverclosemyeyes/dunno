@@ -227,6 +227,7 @@ function seed() {
   check('다음 진료일까지 남은 날', (await text('.top .over')) === '진료까지 3일' && (await store()).clinic.next === dayAgo(-3));
   await page.click('[data-act=clinicWeeks][data-w="4"]');
   check('4주 요약', (await text('#summary')).includes('/ 28일'));
+  check('4주 요약: 그래프는 기간 전체를 한 장에, 네모 줄은 한 주씩 네 장', (await page.$$('.sum-fig')).length === 1 && (await page.$$('.sum-sleep')).length === 1 && (await page.$$('.sum-rows')).length === 4);
   await page.click('[data-act=clinicWeeks][data-w="1"]');
   check('1주 요약: 요일이 적힌 네모가 날마다 한 칸', (await text('#summary')).includes('/ 7일') && (await page.$$('.sum-rows rect')).length % 7 === 0 && (await page.$$('.sum-rows rect + text')).length > 0);
   await page.click('[data-act=clinicWeeks][data-w="4"]');
