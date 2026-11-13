@@ -8,9 +8,9 @@ import { sampleEntries } from '../sample.js';
 import { ui } from '../state.js';
 import { db } from '../store.js';
 
-// 비교 한 줄: 위에 무엇을 견준 것인지, 아래에 두 숫자를 나란히 (앞쪽이 눈에 띄게)
-const compareRow = ({ title, a, b }) => `<div class="li cmp"><div class="cmp-t">${title}</div>
-  <div class="cmp-v"><div><b>${a[1]}</b><span>${a[0]}</span></div><div class="other"><b>${b[1]}</b><span>${b[0]}</span></div></div></div>`;
+// 관찰 한 줄: 위에 결론 문장, 아래에 그 근거인 두 평균과 며칠을 견준 것인지
+const side = ([name, value, n]) => `<div><b>${value}</b><span>${name} · ${F('{0}일', n)}</span></div>`;
+const compareRow = ({ text, a, b }) => `<div class="li cmp"><div class="cmp-t">${text}</div><div class="cmp-v">${side(a)}${side(b)}</div></div>`;
 
 export function viewInsight() {
   const n = Object.keys(db.entries).length, mine = insights(), sig = signals();
@@ -24,7 +24,7 @@ export function viewInsight() {
     <section class="card list">${list.length ? list.map(compareRow).join('') : empty}
       ${demo ? `<button class="li add dim" data-act="insightDemo">${T('예시 닫기')}</button>` : ''}</section>
     ${demo ? `<p class="secnote">${T('만들어 낸 예시 기록이에요. 내 기록이 아니고 저장되지 않아요. 내 기록이 쌓이면 이 자리에 내 숫자가 나와요.')}</p>`
-    : list.length ? `<p class="secnote">${T('내 기록의 평균을 견준 숫자예요. 원인이나 진단을 뜻하지 않아요.')}</p>` : ''}
+    : list.length ? `<p class="secnote">${T('차이가 큰 것부터 나와요. 내 기록의 평균을 견준 것이고, 원인이나 진단을 뜻하지 않아요.')}</p>` : ''}
     <div class="sec">${T('더 보기')}</div>
     <section class="card list">
       <button class="li add" data-act="notes">${IC.note}&nbsp; ${T('메모 모아 보기')}</button>

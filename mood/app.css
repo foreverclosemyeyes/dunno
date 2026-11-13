@@ -384,10 +384,9 @@ input[type=date] { border: 0; outline: none; background: var(--card2); color: va
 .chip { background: var(--card2); border-radius: 999px; padding: 8px 15px; font-size: calc(14px * var(--fs, 1.12)); color: var(--muted); }
 .chip[aria-pressed=true] { background: var(--ink); color: var(--ink-inv); font-weight: 600; }
 
-/* 인사이트: 두 숫자를 나란히 놓은 비교 줄 */
+/* 인사이트: 결론 한 줄과 그 근거인 두 평균 */
 .li.cmp { display: block; padding: 13px 16px 14px; }
-.cmp-t { color: var(--muted); font-size: calc(12.5px * var(--fs, 1.12)); }
-.cmp-v { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 7px; }
-.cmp-v b { display: block; font-family: var(--round); font-size: calc(19px * var(--fs, 1.12)); font-weight: 600; letter-spacing: -0.02em; }
+.cmp-t { font-size: calc(15px * var(--fs, 1.12)); font-weight: 500; line-height: 1.4; }
+.cmp-v { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 9px; }
+.cmp-v b { display: block; font-family: var(--round); font-size: calc(14.5px * var(--fs, 1.12)); font-weight: 600; color: var(--muted); }
 .cmp-v span { display: block; color: var(--faint); font-size: calc(11.5px * var(--fs, 1.12)); margin-top: 1px; }
-.cmp-v .other b { color: var(--muted); font-weight: 500; }
