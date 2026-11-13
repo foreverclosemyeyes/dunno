@@ -353,6 +353,16 @@ function seed() {
   check('백업 파일에는 비밀번호가 안 들어감', !fs.readFileSync(await dl2.path(), 'utf8').includes('"pin"'));
   await page.click('[data-act=pinOff]');
   check('잠금 끄기', !(await store()).settings.pin);
+
+  // 9. 쓰임새: 고르면 기록 항목이 거기에 맞게 바뀌고, 딸린 내 항목이 생긴다 (기록은 그대로)
+  const entriesKept = JSON.stringify((await store()).entries);
+  await page.click('[data-act=preset][data-p=adhd]');
+  let st = (await store()).settings;
+  check('쓰임새를 ADHD로: 정신병적 증상·들뜸 체크리스트가 꺼지고 내 항목이 생김', st.use === 'adhd' && st.off.includes('psy') && st.off.includes('signs') && st.custom.some((c) => c.type === 'scale')
+    && (await page.getAttribute('[data-act=item][data-k=psy]', 'aria-pressed')) === 'false' && JSON.stringify((await store()).entries) === entriesKept);
+  await page.click('[data-act=preset][data-p=bipolar]');
+  st = (await store()).settings;
+  check('쓰임새를 조울증으로 되돌리면 항목이 다시 다 켜짐', st.use === 'bipolar' && st.off.length === 0);
   await page.click('[data-act=close]');
 
   check('화면 오류 없음', errors.length === 0, errors.join(' | '));

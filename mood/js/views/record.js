@@ -158,7 +158,7 @@ export function openRecord(date, focus) {
   };
   const one = (row) => `<section class="card list">${row}</section>`;
   const parts = {
-    signs: `<div id="signs" hidden><div class="sec">${T('오늘 이런 점이 있었나요?')}</div><section class="card list">${signsHtml()}</section></div>`,
+    signs: !itemOn('signs') ? '' : `<div id="signs" hidden><div class="sec">${T('오늘 이런 점이 있었나요?')}</div><section class="card list">${signsHtml()}</section></div>`,
     symptoms: group(T('증상'), SYMPTOMS.filter(([k]) => itemOn(k)).map(symRow).join('')),
     sleep: group(T('지난밤 수면'), itemOn('sleep') ? sleepHtml() : '', 'sleep'),
     body: group(T('몸'), Object.keys(bodyRow).filter(itemOn).map((k) => bodyRow[k]()).join('')),

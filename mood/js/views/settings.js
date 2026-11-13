@@ -1,6 +1,6 @@
 // 설정 화면
 import { VERSION } from '../config.js';
-import { CUSTOM_TYPES, DISCLAIMER, FONTS, ITEMS, SIZES } from '../constants.js';
+import { CUSTOM_TYPES, DISCLAIMER, FONTS, ITEMS, PRESETS, SIZES } from '../constants.js';
 import { esc, sheet, showSheet } from '../dom.js';
 import { daysSinceBackup, remind } from '../files.js';
 import { EN, F, T } from '../i18n.js';
@@ -42,6 +42,10 @@ export function openSettings() {
     <section class="card list">${pick('color', 'data-color-pick="off"', !accentKey(), T('흑백'))}${Object.keys(ACCENTS).map((k) =>
       pick('color', `data-color-pick="${k}"`, accentKey() === k, `<i class="sw-dot" style="background:rgb(${ACCENTS[k][isLight() ? 2 : 1]})"></i>${T(ACCENTS[k][0])}`)).join('')}</section>
     <p class="secnote">${T('기분·에너지·자신감이 낮은 날은 회색, 높을수록 고른 색으로 물들어요.')}</p>
+
+    <div class="sec">${T('쓰임새')}</div>
+    <section class="card list">${PRESETS.map(([k, label]) => pick('preset', `data-p="${k}"`, (db.settings.use || 'bipolar') === k, label)).join('')}</section>
+    <p class="secnote">${T('고르면 거기에 맞게 아래 “기록 항목”이 켜지고 꺼지고, 자주 적는 “내 항목”이 만들어져요. 그 뒤에 하나씩 바꿔도 돼요. 적어 둔 기록은 지워지지 않아요.')}</p>
 
     <div class="sec">${T('기록 항목')}</div>
     <section class="card list">${ITEMS.map(([k, label]) => `<button type="button" class="li sw" data-act="item" data-k="${k}" aria-pressed="${itemOn(k)}"><span class="lk">${label}</span><i></i></button>`).join('')}</section>

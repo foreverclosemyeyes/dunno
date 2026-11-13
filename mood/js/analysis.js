@@ -100,7 +100,8 @@ export function recentState(entries = db.entries) {
   // 어느 쪽이든 함께 봐야 하는 것
   const psyDays = daysWith((e) => e.psy >= 1);
   add(also, psyDays, 1, '정신병적 증상이 있던 날 {0}일');
-  add(also, daysWith((e) => e.anx >= 2), 3, '불안이 보통 이상인 날 {0}일');
+  const anxDays = daysWith((e) => e.anx >= 2);
+  add(also, anxDays, 3, '불안이 보통 이상인 날 {0}일');
   add(also, daysWith((e) => e.sleepMin != null && e.sleepMin < SHORT_SLEEP), 2, '5시간 미만으로 잔 밤 {0}일');
   if (mine && db.meds.length) add(also, daysWith((e) => !medsFor(e.date).length), 2, '약을 안 먹은 날 {0}일');
 
@@ -109,7 +110,8 @@ export function recentState(entries = db.entries) {
     mixed: T('최근 7일은 들뜬 모습과 가라앉은 모습이 함께 보여요.'),
     high: psyDays ? T('최근 7일은 경조증·조증 때 흔히 보이는 모습과 겹치는 점이 많고, 정신병적 증상도 함께 적혀 있어요.') : T('최근 7일은 경조증 때 흔히 보이는 모습과 겹치는 점이 많아요.'),
     low: psyDays ? T('최근 7일은 우울 삽화 때 흔히 보이는 모습과 겹치는 점이 많고, 정신병적 증상도 함께 적혀 있어요.') : T('최근 7일은 우울 삽화 때 흔히 보이는 모습과 겹치는 점이 많아요.'),
-    even: psyDays ? T('최근 7일은 기분이 한쪽으로 뚜렷하게 기울지는 않았지만, 정신병적 증상이 적혀 있어요.') : T('최근 7일은 한쪽으로 뚜렷하게 기운 모습이 보이지 않아요.'),
+    even: psyDays ? T('최근 7일은 기분이 한쪽으로 뚜렷하게 기울지는 않았지만, 정신병적 증상이 적혀 있어요.')
+      : anxDays >= 4 ? T('최근 7일은 기분이 한쪽으로 뚜렷하게 기울지는 않았지만, 불안이 높은 날이 많아요.') : T('최근 7일은 한쪽으로 뚜렷하게 기운 모습이 보이지 않아요.'),
   }[kind];
   const groups = [[T('들뜬 쪽'), high], [T('가라앉은 쪽'), low], [T('함께 보이는 것'), also]].filter(([, list]) => list.length);
 

@@ -16,7 +16,16 @@ export const ITEMS = [
   ['mood', T('기분')], ['energy', T('에너지')], ['conf', T('자신감')], ['sleep', T('수면')],
   ['dep', T('우울')], ['anx', T('불안')], ['psy', T('정신병적 증상')], ['si', T('죽고 싶은 생각')],
   ['period', T('생리')], ['appetite', T('식욕')], ['caffeine', T('카페인')], ['meds', T('약')],
-  ['fx', T('부작용')], ['note', T('메모')],
+  ['fx', T('부작용')], ['signs', T('들뜸 체크리스트')], ['note', T('메모')],
+];
+// 쓰임새: 고르면 거기에 맞게 기록 항목을 켜고 끄고, 자주 적는 "내 항목"을 만들어 준다. 그 뒤에는 하나씩 바꿀 수 있다.
+// [열쇠, 이름, 꺼 둘 항목들, 만들어 줄 내 항목들 [이름, 종류, 단위]]
+export const PRESETS = [
+  ['bipolar', T('조울증'), [], []],
+  ['depression', T('우울증'), ['conf', 'signs', 'psy'], [[T('밖에 나감'), 'check'], [T('즐거웠던 일이 있음'), 'check']]],
+  ['anxiety', T('불안장애'), ['conf', 'signs', 'psy'], [[T('공황'), 'number', T('회')], [T('피한 일이 있음'), 'check']]],
+  ['psychosis', T('조현병'), ['conf', 'signs'], [[T('의욕'), 'scale'], [T('사람을 만남'), 'check']]],
+  ['adhd', 'ADHD', ['conf', 'signs', 'psy'], [[T('집중'), 'scale'], [T('할 일을 끝냄'), 'check'], [T('충동적으로 한 일'), 'check']]],
 ];
 // 부작용: 그날 겪은 것을 눌러서 적는다 (entry.fx = { 열쇠: true })
 // 목록에 없는 것은 직접 적어 넣을 수 있다: 열쇠가 'c:이름'이고, 적어 넣은 이름들은 settings.fxCustom에 남아 다음에도 딱지로 뜬다.

@@ -1,9 +1,10 @@
 // 시작점: 누르기·입력 처리와 앱 시작
 import { aiSummary } from './analysis.js';
+import { PRESETS } from './constants.js';
 import { addDays, today } from './dates.js';
 import { $, app, closeSheet, copyText, enterApp, sheet, sheetOpen, toTop, toast } from './dom.js';
 import { exportData, giveFile, hasAlarms, importData, makeIcs, remind, snoozeBackup } from './files.js';
-import { T } from './i18n.js';
+import { F, T } from './i18n.js';
 import { lockNow, removePin, setPin } from './lock.js';
 import { addDose, medKey, medsFor, normDose, setMeds, sugHtml, toggleDoseTime } from './meds.js';
 import { render } from './render.js';
@@ -60,6 +61,18 @@ const actions = {
     if (!mine.includes(name)) { mine.push(name); save(); }
     ui.draft.fx[`c:${name}`] = true;
     $('#fx').innerHTML = fxHtml();
+  },
+  // 설정: 쓰임새 고르기. 기록 항목을 그 쓰임새의 기본으로 맞추고, 딸린 내 항목 가운데 없는 것만 만든다.
+  preset: (el) => {
+    const [key, name, off, items] = PRESETS.find(([k]) => k === el.dataset.p);
+    db.settings.use = key;
+    db.settings.off = off.slice();
+    const list = db.settings.custom || (db.settings.custom = []);
+    items.forEach(([label, type, unit], i) => {
+      if (!list.some((c) => c.name === label)) list.push({ id: `u${Date.now().toString(36)}${i}`, name: label, type, unit: unit || '' });
+    });
+    save(); render(); redrawSettings();
+    toast(F('{0}에 맞춰 기록 항목을 바꿨어요', name));
   },
   // 내 항목: 0~10 값을 다시 비우기 (기록 화면), 새 항목 종류 고르기 · 더하기 · 지우기 (설정)
   customClear: (el) => {
