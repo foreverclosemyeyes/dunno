@@ -53,7 +53,7 @@ export function viewToday() {
     </div>
     ${tilesHtml(e || {})}
     ${itemOn('meds') ? medCard(sel) : ''}
-    ${e ? detailHtml(e) : ''}
+    ${detailHtml(e || {})}
     <button class="btn${e ? ' gray' : ''}" data-act="record">${e ? T('이어서 적기') : T('기록하기')}</button>
     ${sel !== t ? `<button class="btn plain" data-act="goToday">${T('오늘로 돌아가기')}</button>` : ''}
     <p class="foot">${DISCLAIMER}</p>`;
@@ -95,25 +95,29 @@ export function tilesHtml(e) {
   return tiles ? `<div class="tiles">${tiles}</div>` : '';
 }
 
+// 오늘의 나머지 항목들. 안 적은 항목도 줄은 그대로 있고 '기록 없음'으로 보인다.
+// 줄을 누르면 그 항목 하나만 고치는 화면이 열린다. 설정에서 꺼 둔 항목은 줄을 만들지 않는다.
 export function detailHtml(e) {
   const signs = SIGNS.filter(([k]) => e.signs && e.signs[k]).map(([, label]) => label);
   // 저장된 약 목록에 없는 약(목록에서 지운 약)만 여기 글로 보여 준다. 나머지는 위 약 카드에 있다.
   const extra = db.meds.length ? '' : esc(medsText(e.meds || []));
+  const none = `<span class="none">${T('기록 없음')}</span>`;
   const ten = (key, v) => `${nameOf(key, v)}<span class="of"> ${v}</span>`;
-  const named = (list, on) => list.filter(([k]) => on[k]).map(([, label]) => label).join(' · ');
-  // 줄을 누르면 그 항목만 고치는 화면이 열린다. 설정에서 꺼 둔 항목은 줄을 만들지 않는다.
+  const named = (list, on) => list.filter(([k]) => on && on[k]).map(([, label]) => label).join(' · ');
+  const caffeine = e.drinks ? (cafMg(e.drinks) ? `${drinkText(e.drinks)}<span class="of"> · ${F('약 {0}mg', cafMg(e.drinks))}</span>` : nameOf('caffeine', 0))
+    : e.caffeine != null ? ten('caffeine', e.caffeine) : none;
+  const row = (key, left, right) => (itemOn(key) ? li(left, right, key) : '');
   const rows = [
-    ...SYMPTOMS.map(([k, label]) => (e[k] && itemOn(k) ? li(label, `${LEVELS[e[k]]}${bars(e[k])}`, 'symptoms') : '')),
+    ...SYMPTOMS.map(([k, label]) => row(k, label, e[k] == null ? none : `${LEVELS[e[k]]}${bars(e[k])}`)),
     e.tired && itemOn('sleep') ? li(`${IC.moon}${T('일어났을 때')}`, T('피곤'), 'sleep') : '',
-    e.period && itemOn('period') ? li(`${IC.drop}${T('생리')}`, T('생리 중'), 'body') : '',
-    e.appetite != null && itemOn('appetite') ? li(`${IC.fork}${T('식욕')}`, ten('appetite', e.appetite), 'body') : '',
-    !itemOn('caffeine') ? '' : e.drinks ? li(`${IC.coffee}${T('카페인')}`, cafMg(e.drinks) ? `${drinkText(e.drinks)}<span class="of"> · ${F('약 {0}mg', cafMg(e.drinks))}</span>` : nameOf('caffeine', 0), 'body')
-      : e.caffeine != null ? li(`${IC.coffee}${T('카페인')}`, ten('caffeine', e.caffeine), 'body') : '',
+    row('period', `${IC.drop}${T('생리')}`, e.period ? T('생리 중') : none),
+    row('appetite', `${IC.fork}${T('식욕')}`, e.appetite == null ? none : ten('appetite', e.appetite)),
+    row('caffeine', `${IC.coffee}${T('카페인')}`, caffeine),
     extra && itemOn('meds') ? li(`${IC.pill}${T('약')}`, extra) : '',
-    e.fx && itemOn('fx') ? li(T('부작용'), named(SIDE_EFFECTS, e.fx), 'fx') : '',
-    e.tags && itemOn('tags') ? li(T('오늘 한 것'), named(TAGS, e.tags), 'tags') : '',
+    row('fx', T('부작용'), named(SIDE_EFFECTS, e.fx) || none),
+    row('tags', T('오늘 한 것'), named(TAGS, e.tags) || none),
     signs.length ? li(T('체크'), signs.map(esc).join('<br>')) : '',
-    e.note && itemOn('note') ? `<button class="li say note" data-act="record" data-focus="note">${esc(e.note)}</button>` : '',
+    !itemOn('note') ? '' : e.note ? `<button class="li say note" data-act="record" data-focus="note">${esc(e.note)}</button>` : li(T('메모'), none, 'note'),
   ].join('');
   return rows ? `<section class="card list">${rows}</section>` : '';
 }

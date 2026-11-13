@@ -78,8 +78,12 @@ const FOCUS = {
   energy: () => [T('에너지'), ['energy', 'signs']],
   conf: () => [T('자신감'), ['conf', 'signs']],
   sleep: () => [T('지난밤 수면'), ['sleep']],
-  symptoms: () => [T('증상'), ['symptoms']],
-  body: () => [T('몸'), ['body']],
+  dep: () => [T('우울'), ['dep']],
+  anx: () => [T('불안'), ['anx']],
+  si: () => [T('죽고 싶은 생각'), ['si']],
+  period: () => [T('생리'), ['period']],
+  appetite: () => [T('식욕'), ['appetite']],
+  caffeine: () => [T('카페인'), ['caffeine']],
   fx: () => [T('부작용'), ['fx']],
   tags: () => [T('오늘 한 것'), ['tags']],
   note: () => [T('메모'), ['note']],
@@ -104,15 +108,21 @@ export function openRecord(date, focus) {
   const scores = show.filter((k) => sliders[k] && itemOn(k));
   const sec = (name) => (only ? '' : `<div class="sec">${name}</div>`);   // 한 항목만 뜰 때는 화면 제목이 이름을 대신한다
   const group = (name, rows, id) => (rows ? `${sec(name)}<section class="card list"${id ? ` id="${id}"` : ''}>${rows}</section>` : '');
+  // 증상과 몸 항목은 전체 화면에서는 묶음으로, 오늘 화면에서 한 줄을 눌렀을 때는 그 한 줄만 뜬다
+  const symRow = ([k, label]) => `<div class="li col"><span class="lk">${label}</span>${seg(k, LEVELS, d[k])}</div>`;
+  const bodyRow = {
+    period: () => sw('data-flag="period"', d.period, T('생리 중'), IC.drop),
+    appetite: () => slider('appetite', IC.fork, T('식욕'), d.appetite, T('없음'), T('많음')),
+    caffeine: () => drinksHtml(d),
+  };
+  const one = (row) => `<section class="card list">${row}</section>`;
   const parts = {
     signs: `<div id="signs" hidden><div class="sec">${T('오늘 이런 점이 있었나요?')}</div><section class="card list">${signsHtml()}</section></div>`,
-    symptoms: group(T('증상'), SYMPTOMS.filter(([k]) => itemOn(k)).map(([k, label]) => `<div class="li col"><span class="lk">${label}</span>${seg(k, LEVELS, d[k])}</div>`).join('')),
+    symptoms: group(T('증상'), SYMPTOMS.filter(([k]) => itemOn(k)).map(symRow).join('')),
     sleep: group(T('지난밤 수면'), itemOn('sleep') ? sleepHtml() : '', 'sleep'),
-    body: group(T('몸'), [
-      itemOn('period') ? sw('data-flag="period"', d.period, T('생리 중'), IC.drop) : '',
-      itemOn('appetite') ? slider('appetite', IC.fork, T('식욕'), d.appetite, T('없음'), T('많음')) : '',
-      itemOn('caffeine') ? drinksHtml(d) : '',
-    ].join('')),
+    body: group(T('몸'), Object.keys(bodyRow).filter(itemOn).map((k) => bodyRow[k]()).join('')),
+    ...Object.fromEntries(SYMPTOMS.map((s) => [s[0], one(symRow(s))])),
+    ...Object.fromEntries(Object.keys(bodyRow).map((k) => [k, one(bodyRow[k]())])),
     meds: group(T('오늘 먹은 약'), itemOn('meds') ? medsHtml() : '', 'meds'),
     fx: group(T('부작용'), itemOn('fx') ? chips('fx', SIDE_EFFECTS, d.fx) : ''),
     tags: group(T('오늘 한 것'), itemOn('tags') ? chips('tag', TAGS, d.tags) : ''),

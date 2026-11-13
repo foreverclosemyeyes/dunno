@@ -56,6 +56,10 @@ function seed() {
   await page.goto(url);
   check('처음 열면 오늘 화면', (await text('h1')) === '오늘');
   check('빈 날에 기록하기 버튼', await page.isVisible('[data-act=record]'));
+  check('빈 날에도 항목마다 "기록 없음" 줄이 있음', (await page.$$('#app button.li[data-focus]')).length >= 8 && (await text('#app button.li[data-focus=appetite]')).includes('기록 없음'));
+  await page.click('#app button.li[data-focus=appetite]');
+  check('줄을 누르면 그 항목만 뜸 (식욕)', (await text('.st b')) === '식욕' && (await page.$$('#f-appetite')).length === 1 && (await page.$$('#f-mood, [data-flag=period], [data-drink]')).length === 0);
+  await page.click('.sheet-top [data-act=close]');
   check('배경 빛이 바탕색에 안 덮임 (body는 투명)', await page.evaluate(() => getComputedStyle(document.body).backgroundColor === 'rgba(0, 0, 0, 0)' && getComputedStyle(document.body, '::before').backgroundImage.includes('gradient')));
 
   // 2. 기록하기: 만진 항목만 저장된다
@@ -125,14 +129,14 @@ function seed() {
   await page.click('.tile[data-focus=sleep]');
   check('수면 타일을 누르면 시각 칸이 바로 열림', await page.isVisible('#f-bed'));
   await page.click('.sheet-top [data-act=close]');
-  await page.click('#app button.li[data-focus=symptoms]');
-  check('목록 줄을 누르면 그 항목만 뜸', (await text('.st b')) === '증상' && (await page.$$('[data-field=dep]')).length === 1 && (await page.$$('#f-mood, #sleep')).length === 0);
+  await page.click('#app button.li[data-focus=anx]');
+  check('목록 줄을 누르면 그 항목만 뜸', (await text('.st b')) === '불안' && (await page.$$('[data-field=anx]')).length === 1 && (await page.$$('[data-field=dep]')).length === 0 && (await page.$$('#f-mood, #sleep')).length === 0);
   await page.click('[data-field=anx] [data-v="2"]');
   await page.click('.savebar [data-act=save]');
   e = (await store()).entries[today];
   check('한 항목만 고쳐도 나머지는 그대로', e.anx === 2 && e.dep === 3 && e.mood === 3 && e.energy === 6, JSON.stringify(e));
   check('죽고 싶은 생각을 안 적었으면 상담전화는 안 보임', (await page.$$('#app a[href="tel:109"]')).length === 0);
-  await page.click('#app button.li[data-focus=symptoms]'); await page.click('[data-field=si] [data-v="3"]'); await page.click('.savebar [data-act=save]');
+  await page.click('#app button.li[data-focus=si]'); await page.click('[data-field=si] [data-v="3"]'); await page.click('.savebar [data-act=save]');
   check('죽고 싶은 생각이 높으면 오늘 화면에 상담전화가 보임', (await store()).entries[today].si === 3 && (await page.$$('#app a[href="tel:109"]')).length === 1);
 
   // 4-1-2. 약마다 알람 시각을 정하면 캘린더 알림 파일에 들어간다
