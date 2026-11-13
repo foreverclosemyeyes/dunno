@@ -1,5 +1,4 @@
 // 오늘 화면
-import { signals } from '../analysis.js';
 import { DISCLAIMER, HELPLINE, LEVELS, SIGNS, SI_CARE_FROM, SYMPTOMS, TAGS, cafMg, drinkText, fxNames, nameOf } from '../constants.js';
 import { WD, addDays, durText, longDate, parse, today, weekStart } from '../dates.js';
 import { app, esc } from '../dom.js';
@@ -45,7 +44,6 @@ export function viewToday() {
     ${hint}${sel === t ? backup : ''}
     ${sel === t && e && e.si >= SI_CARE_FROM ? `<div class="card signal"><i></i><span>${F('죽고 싶은 생각이 강한 날이에요. 혼자 버티지 않아도 돼요. {0}에 전화하거나 다니는 병원에 연락해 보세요.',
     `<a href="tel:${HELPLINE}">${T('109 (자살예방상담전화, 24시간)')}</a>`)}</span></div>` : ''}
-    ${sel === t ? signals().map((m) => `<div class="card signal"><i></i><span>${m}</span></div>`).join('') : ''}
     <div class="weekbar">
       <button class="nav" data-act="week" data-step="-1" aria-label="${T('이전 주')}">‹</button>
       <div class="days">${days}</div>

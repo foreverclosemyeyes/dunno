@@ -1,6 +1,6 @@
 // 초기 신호 · 인사이트 · 진료용 요약 계산 (전부 이 폰 안에서)
 import { SIGNS, TAGS, cafMg, drinkText, fxName, fxNames } from './constants.js';
-import { WD, addDays, durText, parse, today } from './dates.js';
+import { WD, addDays, durText, md, parse, today } from './dates.js';
 import { F, T } from './i18n.js';
 import { aided, medsFor, medsText } from './meds.js';
 import { db } from './store.js';
@@ -27,41 +27,105 @@ export function signals() {
   return out;
 }
 
-// 최근 7일이 어느 쪽으로 기울어 보이는지 읽는다 (사용자가 요청: "경조증 같은 게 보인다" 같은 인사이트).
+// ---------- 종합 읽기: 최근 7일의 모습, 언제부터인지, 그 전에 무엇이 달랐는지 ----------
+// 사용자가 요청했다: "경조증 같은 게 보인다" 같은, 증상들을 다 합쳐서 본 인사이트.
 // 진단이 아니라, 그런 때 흔히 보이는 모습과 기록이 겹치는 점을 세어서 보여 주는 것이다. 문장도 "겹친다"까지만 말한다.
-//   { kind: 'high'(들뜬 쪽) | 'low'(가라앉은 쪽) | 'mixed'(둘 다) | 'even'(뚜렷하지 않음), title, points: [근거 문장, …] }
+
+// 들뜬 날 / 가라앉은 날로 보는 기준
+const upDay = (e) => e.mood >= 7 || e.energy >= 8;
+const downDay = (e) => (e.mood != null && e.mood <= 3) || e.dep >= 3;
+const dayGap = (a, b) => Math.round((parse(b) - parse(a)) / 86400000);
+
+// 기준에 맞는 날이 이어진 "시기"들을 찾는다. 하루쯤 빠지거나 안 맞아도 이어진 것으로 보고, 맞는 날이 3일 이상이어야 시기로 친다.
+// [{ start, end, n: 맞는 날 수 }] (오래된 것부터)
+function runs(entries, test) {
+  const hits = Object.keys(entries).sort().filter((k) => test(entries[k])), out = [];
+  hits.forEach((d) => {
+    const last = out[out.length - 1];
+    if (last && dayGap(last.end, d) <= 2) { last.end = d; last.n++; } else out.push({ start: d, end: d, n: 1 });
+  });
+  return out.filter((r) => r.n >= 3);
+}
+
+// 어떤 시기가 시작되기 전 사흘이 평소(그 앞 4주)와 어떻게 달랐는지. mine이면 약 기록도 본다.
+function before(entries, start, mine) {
+  const pick = (from, to) => Object.keys(entries).filter((k) => k >= addDays(start, -from) && k <= addDays(start, -to)).map((k) => entries[k]);
+  const win = pick(3, 1), base = pick(31, 4), vals = (list, key) => list.map((e) => e[key]).filter((x) => x != null);
+  if (win.length < 2) return { points: [], lessSleep: false };
+  const points = [], sw = vals(win, 'sleepMin'), sb = vals(base, 'sleepMin');
+  const sleepDiff = sw.length && sb.length >= 3 ? Math.round(avg(sw) - avg(sb)) : 0;
+  if (Math.abs(sleepDiff) >= 45) points.push(F(sleepDiff < 0 ? '잠이 평소보다 {0} 적었어요' : '잠이 평소보다 {0} 많았어요', durText(Math.abs(sleepDiff))));
+  const missed = mine && db.meds.length ? win.filter((e) => !medsFor(e.date).length).length : 0;
+  if (missed) points.push(F('약을 안 먹은 날이 {0}일 있었어요', missed));
+  const cw = vals(win, 'caffeine'), cb = vals(base, 'caffeine');
+  if (cw.length && cb.length >= 3 && avg(cw) >= avg(cb) + 2) points.push(T('카페인이 평소보다 많았어요'));
+  const drank = win.filter((e) => e.tags && e.tags.alcohol).length;
+  if (drank) points.push(F('술을 마신 날이 {0}일 있었어요', drank));
+  const anxious = win.filter((e) => e.anx >= 2).length;
+  if (anxious >= 2) points.push(F('불안이 보통 이상인 날이 {0}일 있었어요', anxious));
+  if (win.some((e) => e.period)) points.push(T('생리 중이었어요'));
+  return { points, lessSleep: sleepDiff <= -45 };
+}
+
+// 최근 7일 읽기.
+//   { kind: 'high'(들뜬 쪽) | 'low'(가라앉은 쪽) | 'mixed'(둘 다) | 'even'(뚜렷하지 않음), title,
+//     flow: 언제부터 며칠째인지와 방향(없으면 ''), groups: [[묶음 이름, [근거 문장, …]], …],
+//     lead: 이번 흐름이 시작되기 전 사흘 { title, points, past: 예전 시기들과 견준 문장 } 또는 null }
 // 최근 7일 중 4일 이상 적었을 때만 나온다 (모자라면 null). 수면은 그 전 4주의 내 평균과 견준다.
 export function recentState(entries = db.entries) {
-  const t = today();
+  const t = today(), mine = entries === db.entries;
   const span = (from, to) => Object.keys(entries).filter((k) => k > addDays(t, -from) && k <= addDays(t, -to)).map((k) => entries[k]);
-  const now = span(7, 0), before = span(35, 7);
+  const now = span(7, 0), prior = span(35, 7);
   if (now.length < 4) return null;
   const vals = (list, key) => list.map((e) => e[key]).filter((x) => x != null);
   // 평균이 아니라 "그런 날이 며칠이었는지"로 센다 (7일 중 4~5일만 들떠도 평균은 묻히기 때문에). 4일 이상이면 근거로 넣는다.
   const daysWith = (test) => now.filter(test).length, sleep = avg(vals(now, 'sleepMin'));
-  const moodUp = daysWith((e) => e.mood >= 7), energyUp = daysWith((e) => e.energy >= 7), confUp = daysWith((e) => e.conf >= 8);
-  const moodDown = daysWith((e) => e.mood != null && e.mood <= 3), energyDown = daysWith((e) => e.energy != null && e.energy <= 3);
-  const base = vals(before, 'sleepMin'), sleepDiff = sleep != null && base.length >= 3 ? Math.round(sleep - avg(base)) : null;
-  const high = [], low = [];
-  if (moodUp >= 4) high.push(F('기분이 7 이상인 날 {0}일', moodUp));
-  if (energyUp >= 4) high.push(F('에너지가 7 이상인 날 {0}일', energyUp));
+  const base = vals(prior, 'sleepMin'), sleepDiff = sleep != null && base.length >= 3 ? Math.round(sleep - avg(base)) : null;
+  const high = [], low = [], also = [];
+  const add = (list, n, min, text) => { if (n >= min) list.push(F(text, n)); };
+  const energyUp = daysWith((e) => e.energy >= 7);
+  add(high, daysWith((e) => e.mood >= 7), 4, '기분이 7 이상인 날 {0}일');
+  add(high, energyUp, 4, '에너지가 7 이상인 날 {0}일');
   if (sleepDiff != null && sleepDiff <= -60 && energyUp >= 3) high.push(F('잠이 평소보다 {0} 줄었는데 에너지는 높음', durText(-sleepDiff)));
-  if (confUp >= 4) high.push(F('자신감이 8 이상인 날 {0}일', confUp));
-  const signDays = daysWith((e) => !!e.signs && Object.keys(e.signs).some((k) => e.signs[k]));
-  if (signDays >= 2) high.push(F('말·생각이 빨라지거나 일을 벌인 날 {0}일', signDays));
-  if (moodDown >= 4) low.push(F('기분이 3 이하인 날 {0}일', moodDown));
-  if (energyDown >= 4) low.push(F('에너지가 3 이하인 날 {0}일', energyDown));
-  const depDays = daysWith((e) => e.dep >= 2);
-  if (depDays >= 4) low.push(F('우울이 보통 이상인 날 {0}일', depDays));
+  add(high, daysWith((e) => e.conf >= 8), 4, '자신감이 8 이상인 날 {0}일');
+  add(high, daysWith((e) => !!e.signs && Object.keys(e.signs).some((k) => e.signs[k])), 2, '말·생각이 빨라지거나 일을 벌인 날 {0}일');
+  add(low, daysWith((e) => e.mood != null && e.mood <= 3), 4, '기분이 3 이하인 날 {0}일');
+  add(low, daysWith((e) => e.energy != null && e.energy <= 3), 4, '에너지가 3 이하인 날 {0}일');
+  add(low, daysWith((e) => e.dep >= 2), 4, '우울이 보통 이상인 날 {0}일');
   if (sleepDiff != null && Math.abs(sleepDiff) >= 60 && high.length < 3) low.push(F(sleepDiff > 0 ? '잠이 평소보다 {0} 늘어남' : '잠이 평소보다 {0} 줄어듦', durText(Math.abs(sleepDiff))));
-  const siDays = daysWith((e) => e.si >= 1), psyDays = daysWith((e) => e.psy >= 1);
-  if (siDays) low.push(F('죽고 싶은 생각이 있던 날 {0}일', siDays));
-  const extra = psyDays ? [F('정신병적 증상이 있던 날 {0}일', psyDays)] : [];
-  const isHigh = high.length >= 3, isLow = low.length >= 3;
-  if (isHigh && isLow) return { kind: 'mixed', title: T('최근 7일은 들뜬 모습과 가라앉은 모습이 함께 보여요.'), points: [...high, ...low, ...extra] };
-  if (isHigh) return { kind: 'high', title: T('최근 7일은 경조증 때 흔히 보이는 모습과 겹치는 점이 많아요.'), points: [...high, ...extra] };
-  if (isLow) return { kind: 'low', title: T('최근 7일은 우울 삽화 때 흔히 보이는 모습과 겹치는 점이 많아요.'), points: [...low, ...extra] };
-  return { kind: 'even', title: T('최근 7일은 한쪽으로 뚜렷하게 기운 모습이 보이지 않아요.'), points: extra };
+  add(low, daysWith((e) => e.si >= 1), 1, '죽고 싶은 생각이 있던 날 {0}일');
+  // 어느 쪽이든 함께 봐야 하는 것
+  const psyDays = daysWith((e) => e.psy >= 1);
+  add(also, psyDays, 1, '정신병적 증상이 있던 날 {0}일');
+  add(also, daysWith((e) => e.anx >= 2), 3, '불안이 보통 이상인 날 {0}일');
+  add(also, daysWith((e) => e.sleepMin != null && e.sleepMin < SHORT_SLEEP), 2, '5시간 미만으로 잔 밤 {0}일');
+  if (mine && db.meds.length) add(also, daysWith((e) => !medsFor(e.date).length), 2, '약을 안 먹은 날 {0}일');
+
+  const isHigh = high.length >= 3, isLow = low.length >= 3, kind = isHigh && isLow ? 'mixed' : isHigh ? 'high' : isLow ? 'low' : 'even';
+  const title = {
+    mixed: T('최근 7일은 들뜬 모습과 가라앉은 모습이 함께 보여요.'),
+    high: psyDays ? T('최근 7일은 경조증·조증 때 흔히 보이는 모습과 겹치는 점이 많고, 정신병적 증상도 함께 적혀 있어요.') : T('최근 7일은 경조증 때 흔히 보이는 모습과 겹치는 점이 많아요.'),
+    low: psyDays ? T('최근 7일은 우울 삽화 때 흔히 보이는 모습과 겹치는 점이 많고, 정신병적 증상도 함께 적혀 있어요.') : T('최근 7일은 우울 삽화 때 흔히 보이는 모습과 겹치는 점이 많아요.'),
+    even: psyDays ? T('최근 7일은 기분이 한쪽으로 뚜렷하게 기울지는 않았지만, 정신병적 증상이 적혀 있어요.') : T('최근 7일은 한쪽으로 뚜렷하게 기운 모습이 보이지 않아요.'),
+  }[kind];
+  const groups = [[T('들뜬 쪽'), high], [T('가라앉은 쪽'), low], [T('함께 보이는 것'), also]].filter(([, list]) => list.length);
+
+  // 언제부터인지, 요 사흘 방향은 어떤지, 그리고 시작되기 전 사흘
+  let flow = '', lead = null;
+  if (kind === 'high' || kind === 'low') {
+    const all = runs(entries, kind === 'high' ? upDay : downDay), cur = all[all.length - 1];
+    if (cur && dayGap(cur.end, t) <= 2) {
+      const moods = vals(now, 'mood'), late = moods.slice(-3), early = moods.slice(0, -3);
+      const turn = late.length === 3 && early.length >= 2 ? avg(late) - avg(early) : 0;
+      const dir = turn >= 1 ? T(' 요 사흘은 기분이 더 올라가는 중이에요.') : turn <= -1 ? T(' 요 사흘은 기분이 더 내려가는 중이에요.') : '';
+      flow = F('{0}쯤부터 {1}일째 이어지고 있어요.', md(parse(cur.start)), dayGap(cur.start, t) + 1) + dir;
+      const b = before(entries, cur.start, mine), past = all.slice(0, -1);
+      const pastLess = past.filter((r) => before(entries, r.start, mine).lessSleep).length;
+      const pastText = past.length >= 2 ? F(kind === 'high' ? '지금까지 들뜬 시기 {0}번 중 {1}번은 시작 전에 잠이 줄었어요.' : '지금까지 가라앉은 시기 {0}번 중 {1}번은 시작 전에 잠이 줄었어요.', past.length, pastLess) : '';
+      if (b.points.length || pastText) lead = { title: kind === 'high' ? T('들뜬 흐름이 시작되기 전 사흘') : T('가라앉은 흐름이 시작되기 전 사흘'), points: b.points, past: pastText };
+    }
+  }
+  return { kind, title, flow, groups, lead };
 }
 
 // 인사이트: 두 묶음의 평균을 견준 관찰들. 차이가 큰 것부터 나온다.
@@ -126,14 +190,22 @@ export function insights(entries = db.entries) {
     const rest = withMood.filter((e) => !low.includes(e)), d = mean(rest, 'mood') - mean(low, 'mood'), day = F('{0}요일', name);
     if (d >= 1) out.push({ text: F('기분이 가장 낮은 요일은 {0}이에요.', day), a: [day, num(mean(low, 'mood')), low.length], b: [T('다른 요일'), num(mean(rest, 'mood')), rest.length], weight: d });
   }
-  // 최근 7일과 그 전 7일
-  const t = today(), span = (from, to) => all.filter((e) => e.date > addDays(t, -from) && e.date <= addDays(t, -to));
-  const now = span(7, 0), was = span(14, 7), weeks = [T('최근 7일'), T('그 전 7일')];
-  compare('mood', now.filter(has('mood')), was.filter(has('mood')), weeks, { ...score, gap: 1 },
-    ['최근 7일은 그 전 7일보다 기분이 {0} 낮아요.', '최근 7일은 그 전 7일보다 기분이 {0} 높아요.']);
-  compare('sleepMin', now.filter(has('sleepMin')), was.filter(has('sleepMin')), weeks, { ...sleep, gap: 30 },
-    ['최근 7일은 그 전 7일보다 하루에 {0} 덜 잤어요.', '최근 7일은 그 전 7일보다 하루에 {0} 더 잤어요.']);
-  return out.sort((p, q) => q.weight - p.weight);
+  // 증상이 있던 날과 없던 날: 전날 밤 잠, 그리고 증상끼리 같이 움직이는지
+  const level = { gap: 0.8, fmt: num, unit: 1 };
+  const split = (list, test) => [list.filter(test), list.filter((e) => !test(e))];
+  const isDep = (e) => e.dep >= 2, isAnx = (e) => e.anx >= 2, isPsy = (e) => e.psy >= 1, isSi = (e) => e.si >= 1;
+  compare('sleepMin', ...split(sl.filter(has('dep')), isDep), days, sleep, ['우울이 보통 이상인 날은 전날 밤에 {0} 덜 잤어요.', '우울이 보통 이상인 날은 전날 밤에 {0} 더 잤어요.']);
+  compare('sleepMin', ...split(sl.filter(has('anx')), isAnx), days, sleep, ['불안이 보통 이상인 날은 전날 밤에 {0} 덜 잤어요.', '불안이 보통 이상인 날은 전날 밤에 {0} 더 잤어요.']);
+  compare('sleepMin', ...split(sl.filter(has('psy')), isPsy), days, sleep, ['정신병적 증상이 있던 날은 전날 밤에 {0} 덜 잤어요.', '정신병적 증상이 있던 날은 전날 밤에 {0} 더 잤어요.']);
+  compare('sleepMin', ...split(sl.filter(has('si')), isSi), days, sleep, ['죽고 싶은 생각이 있던 날은 전날 밤에 {0} 덜 잤어요.', '죽고 싶은 생각이 있던 날은 전날 밤에 {0} 더 잤어요.']);
+  const both = (a, b) => all.filter((e) => e[a] != null && e[b] != null);
+  compare('energy', ...split(both('psy', 'energy'), isPsy), days, score, ['정신병적 증상이 있던 날은 에너지가 {0} 낮았어요.', '정신병적 증상이 있던 날은 에너지가 {0} 높았어요.']);
+  compare('mood', ...split(both('psy', 'mood'), isPsy), days, score, ['정신병적 증상이 있던 날은 기분이 {0} 낮았어요.', '정신병적 증상이 있던 날은 기분이 {0} 높았어요.']);
+  compare('dep', ...split(both('anx', 'dep'), isAnx), days, level, ['불안이 보통 이상인 날은 우울이 {0}단계 낮았어요.', '불안이 보통 이상인 날은 우울이 {0}단계 높았어요.']);
+  compare('anx', ...split(both('psy', 'anx'), isPsy), days, level, ['정신병적 증상이 있던 날은 불안이 {0}단계 낮았어요.', '정신병적 증상이 있던 날은 불안이 {0}단계 높았어요.']);
+  compare('caffeine', ...split(both('anx', 'caffeine'), isAnx), days, { ...score, gap: 1 }, ['불안이 보통 이상인 날은 카페인이 {0} 적었어요.', '불안이 보통 이상인 날은 카페인이 {0} 많았어요.']);
+  // 차이가 큰 것부터 여덟 개까지만 (많으면 다 비슷해 보인다)
+  return out.sort((p, q) => q.weight - p.weight).slice(0, 8);
 }
 
 // AI 앱에 붙여 넣을 수 있는 최근 4주 요약 글

@@ -1,6 +1,6 @@
-// 인사이트 화면: 지금 떠 있는 신호, 기록에서 보이는 비교(숫자 두 개씩), 메모·AI로 가는 줄
+// 인사이트 화면: 최근 7일을 종합해서 읽은 것, 그 흐름이 시작되기 전 사흘, 기록에서 보이는 비교, 메모·AI로 가는 줄
 // 기록이 아직 적으면 예시 기록으로 어떤 것이 나오는지 미리 볼 수 있다 (ui.insightDemo).
-import { INSIGHT_MIN_DAYS, insights, recentState, signals } from '../analysis.js';
+import { INSIGHT_MIN_DAYS, insights, recentState } from '../analysis.js';
 import { app } from '../dom.js';
 import { F, T } from '../i18n.js';
 import { IC } from '../icons.js';
@@ -12,19 +12,24 @@ import { db } from '../store.js';
 const side = ([name, value, n]) => `<div><b>${value}</b><span>${name} · ${F('{0}일', n)}</span></div>`;
 const compareRow = ({ text, a, b }) => `<div class="li cmp"><div class="cmp-t">${text}</div><div class="cmp-v">${side(a)}${side(b)}</div></div>`;
 
+const bullets = (list) => (list.length ? `<ul>${list.map((x) => `<li>${x}</li>`).join('')}</ul>` : '');
+
 export function viewInsight() {
-  const n = Object.keys(db.entries).length, mine = insights(), sig = signals();
+  const n = Object.keys(db.entries).length, mine = insights();
   const demo = ui.insightDemo && !mine.length, list = demo ? insights(sampleEntries()) : mine;
   const state = demo ? recentState(sampleEntries()) : recentState();
   const empty = `<div class="li say mut">${n < INSIGHT_MIN_DAYS ? F('기록이 {0}일 이상 쌓이면 패턴을 찾아 보여 드려요. 지금은 {1}일이에요.', INSIGHT_MIN_DAYS, n) : T('아직 뚜렷한 패턴이 보이지 않아요. 기록이 더 쌓이면 다시 살펴볼게요.')}</div>
     <button class="li add" data-act="insightDemo">${IC.spark}&nbsp; ${T('예시로 미리 보기')}</button>`;
   app.innerHTML = `
     <header class="top"><div><div class="over">${F('기록 {0}일', n)}</div><h1>${T('인사이트')}</h1></div></header>
-    ${sig.map((m) => `<div class="card signal"><i></i><span>${m}</span></div>`).join('')}
     ${state ? `<div class="sec">${demo ? T('예시 기록의 최근 7일') : T('최근 7일')}</div>
     <section class="card state"><b>${state.title}</b>
-      ${state.points.length ? `<ul>${state.points.map((x) => `<li>${x}</li>`).join('')}</ul>` : ''}
-      <p>${T('진단이 아니에요. 기록에서 겹쳐 보이는 점을 모은 것이니, 진료 때 보여 주며 이야기해 보세요.')}</p></section>` : ''}
+      ${state.flow ? `<div class="flow">${state.flow}</div>` : ''}
+      ${state.groups.map(([name, list]) => `<h3>${name}</h3>${bullets(list)}`).join('')}
+      <p>${T('진단이 아니에요. 기록에서 겹쳐 보이는 점을 모은 것이니, 진료 때 보여 주며 이야기해 보세요.')}</p></section>
+    ${state.lead ? `<div class="sec">${state.lead.title}</div>
+    <section class="card state">${bullets(state.lead.points)}${state.lead.past ? `<div class="flow">${state.lead.past}</div>` : ''}
+      <p>${T('그 전 4주의 내 평소와 견준 것이에요. 원인이라는 뜻은 아니에요.')}</p></section>` : ''}` : ''}
     <div class="sec">${demo ? T('예시 기록에서 보이는 것') : T('기록에서 보이는 것')}</div>
     <section class="card list">${list.length ? list.map(compareRow).join('') : empty}
       ${demo ? `<button class="li add dim" data-act="insightDemo">${T('예시 닫기')}</button>` : ''}</section>
