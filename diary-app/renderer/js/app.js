@@ -281,9 +281,12 @@
     const opt = (text, date) => { const b = h('button', null, text); b.onclick = (e) => { e.stopPropagation(); go(date); }; return b; };
     menu.append(h('b', null, '언제로 넘길까요?'), opt(`다음 날  ${label(next)}`, iso(next)));
     if (iso(mon) !== iso(next)) menu.append(opt(`다음 주 월요일  ${label(mon)}`, iso(mon)));
-    const pick = h('input'); pick.type = 'date'; pick.min = iso(new Date(base.getFullYear(), base.getMonth(), base.getDate() + 1));
+    const pick = h('input'); pick.type = 'date';
+    pick.min = iso(new Date(base.getFullYear(), base.getMonth(), base.getDate() + 1));
+    pick.max = iso(new Date(base.getFullYear() + 2, base.getMonth(), base.getDate()));
     pick.onclick = (e) => e.stopPropagation();
-    pick.onchange = () => pick.value && go(pick.value);
+    // 연도를 한 자씩 치는 동안에도 change 가 오므로(0002년 …) 범위 안의 날짜일 때만 넘김
+    pick.onchange = () => { if (pick.value >= pick.min && pick.value <= pick.max) go(pick.value); };
     const pr = h('label', 'mv-pick'); pr.append(h('span', null, '날짜 고르기'), pick); menu.append(pr);
     document.body.append(menu);
     const r = anchor.getBoundingClientRect();
@@ -318,6 +321,7 @@
         if (done) return; done = true;
         const v = inp.value.replace(/\s+/g, ' ').trim();
         inp.replaceWith(txt);
+        if (renderRecord.stale) renderRecord(); // 고치는 동안 미뤄 둔 화면 갱신
         if (!save || !v || v === item.text) return;
         row.classList.add('busy');
         const r = await window.diary.editTodo(item.id, v);
@@ -410,9 +414,13 @@
       stamp.hidden = false;
       if (slam && D.fx) D.fx.thud('#record');
     } else stamp.hidden = true;
-    const list = $('#record-list'); list.innerHTML = '';
-    if (info && info.items.length) info.items.forEach((i) => list.append(todoNode(i)));
+    const list = $('#record-list');
+    // 글을 고치는 중이면 목록은 그대로 둠 (동기화가 와서 치던 글이 사라지지 않게). 고치기가 끝나면 다시 그림
+    renderRecord.stale = !!list.querySelector('.todo-edit');
+    if (renderRecord.stale) { /* 아래 버튼만 갱신 */ }
+    else if (info && info.items.length) list.replaceChildren(...info.items.map(todoNode));
     else {
+      list.innerHTML = '';
       const msg = state.data.local ? '아래 칸에 할 일을 적어 보세요.'
         : (sel.getDay() === 0 || sel.getDay() === 6) ? '주말이에요. 푹 쉬어요!' : '이 날짜의 체크리스트가 없어요.';
       const e = h('div', 'empty'); e.append(S('body', msg)); e.style.whiteSpace = 'pre-line';
@@ -452,7 +460,7 @@
       if (r.ok) { renderQuests.adding = false; toast(r.notion ? '노션 업무 DB에 추가했어요.' : '추가했어요.'); renderQuests(); }
       else { name.disabled = due.disabled = false; toast(r.message, 5000); }
     };
-    setTimeout(() => name.focus(), 0);
+    f.focusName = () => name.focus();
     return f;
   }
 
@@ -461,10 +469,13 @@
     const head = $('#quest-title'); head.innerHTML = '';
     const add = h('button', 'q-add', renderQuests.adding ? '×' : '+');
     add.title = renderQuests.adding ? '닫기' : '업무 추가';
-    add.onclick = () => { renderQuests.adding = !renderQuests.adding; renderQuests(); };
+    add.onclick = () => { renderQuests.adding = !renderQuests.adding; renderQuests(); if (renderQuests.form) renderQuests.form.focusName(); };
     head.append(S('section', '진행 중 업무'), add);
-    const list = $('#quest-list'); list.innerHTML = '';
-    if (renderQuests.adding) list.append(questForm());
+    const list = $('#quest-list');
+    // 추가 칸은 한 번 만든 것을 그대로 둠: 동기화로 다시 그려져도 치던 글과 커서가 남음
+    const form = renderQuests.form = renderQuests.adding ? (renderQuests.form || questForm()) : null;
+    [...list.children].forEach((c) => { if (c !== form) c.remove(); });
+    if (form && form.parentNode !== list) list.prepend(form);
     if (!quests.length && !renderQuests.adding) {
       const e = h('div', 'empty'); e.append(S('body', '진행 중인 업무가 없어요.'));
       list.append(e);
@@ -511,6 +522,7 @@
       const ids = D.castIds(state.theme), cur = state.theme.castActive || 'ren';
       D.castSwitch(state.theme, ids[(ids.indexOf(cur) + 1) % ids.length]);
       window.diary.saveTheme(state.theme); renderAll();
+      if (D.settings && D.settings.redraw) D.settings.redraw(); // 열려 있는 설정창도 새 비서 것으로
       toast(`비서: ${state.theme.assistant.name}`);
     };
     const msg = state.lastAssistant;
@@ -837,7 +849,8 @@
     }
     const before = monthTotals(state.today);
     document.querySelectorAll('.pup, .pu').forEach((e) => e.remove());
-    const rankUps = ups.filter((c) => lvOf(before[c.stat]) > lvOf(before[c.stat] - 1) && LV.includes(before[c.stat]));
+    const gained = {}; for (const c of ups) gained[c.stat] = (gained[c.stat] || 0) + (c.delta || 1);
+    const rankUps = ups.filter((c, k) => ups.findIndex((x) => x.stat === c.stat) === k && lvOf(before[c.stat]) > lvOf(before[c.stat] - gained[c.stat]));
     if (!rankUps.length) return pointUpShow(ups, before);
     const box = h('div', 'pup' + (rankUps.length ? ' rank' : ''));
     box.append(h('div', 'pup-burst'));
@@ -915,8 +928,8 @@
       const ctl = h('div', 'ps2-ctl');
       const minus = h('button', null, '−'), plus = h('button', 'plus', '+');
       minus.title = `${st} 하나 빼기`; plus.title = `${st} +1`;
-      minus.onclick = (e) => { e.stopPropagation(); bump(st, -1); openParams(); };
-      plus.onclick = (e) => { e.stopPropagation(); bump(st, 1); openParams(); };
+      minus.onclick = (e) => { e.stopPropagation(); bump(st, -1, state.today); openParams(); };
+      plus.onclick = (e) => { e.stopPropagation(); bump(st, 1, state.today); openParams(); };
       ctl.append(minus, h('span', null, `${totals[st]}${today[st] ? ` (+${today[st]})` : ''}`), plus);
       box.append(ctl);
       stage.append(box);
@@ -935,12 +948,12 @@
   }
   D.openParams = openParams;
 
-  function bump(stat, delta) {
-    const d = (state.stats[state.selected] = state.stats[state.selected] || {});
+  function bump(stat, delta, date = state.selected) {
+    const d = (state.stats[date] = state.stats[date] || {});
     d[stat] = Math.max(0, (d[stat] || 0) + delta);
     window.diary.saveStats(state.stats);
     renderStats();
-    if (delta > 0 && state.selected.slice(0, 7) === state.today.slice(0, 7)) pointUp([{ stat, delta: 1, text: '' }]);
+    if (delta > 0 && date <= state.today) pointUp([{ stat, delta: 1, text: '' }]); // 누적은 오늘까지만 세므로, 앞날에 적은 건 그날이 돼야 오름
   }
 
   function renderSync() {
@@ -1062,7 +1075,7 @@
     window.diary.onData((d) => { state.data = d; if (d.today && d.today !== state.today) dayChanged(d.today); renderAll(); });
     window.diary.onDayChanged(({ today }) => dayChanged(today));
     window.diary.onAssistant((m) => { state.lastAssistant = m; renderAssistant(); });
-    window.diary.onSettings((s) => { state.settings = s; renderAssistant(); renderSync(); D.settings && D.settings.refresh && D.settings.refresh(); });
+    window.diary.onSettings((s) => { state.settings = s; renderAssistant(); renderSync(); renderQuests(); D.settings && D.settings.refresh && D.settings.refresh(); });
 
     $('#btn-refresh').onclick = () => { window.diary.sync(true); };
     $('#btn-today').onclick = goToday;

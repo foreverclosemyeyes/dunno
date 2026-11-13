@@ -68,5 +68,22 @@ console.log('✓ 체크리스트 파싱 테스트 통과');
   assert.strictEqual(ch.length, 0, '같은 항목은 한 번만');
   ch = await st.award({ doneItems: [items[0]], awards, stats, apiKey: '', loadedDates: new Set(['2026-11-09', '2026-11-10']) });
   assert.strictEqual(stats['2026-11-10']['매력'], 0, '체크 풀면 되돌림');
+  // 번호가 밀린 경우(노션 로그인 쪽: 위 항목을 지우거나 넘김): 같은 날짜·같은 글이면 점수를 뺐다 다시 주지 않음
+  {
+    const st2 = {}, aw2 = {}, dates = new Set(['2026-11-09']);
+    const A = { id: 'P:2026-11-09:2', text: '보고서 작성', date: '2026-11-09' }, B = { id: 'P:2026-11-09:3', text: '회의 준비', date: '2026-11-09' };
+    await st.award({ doneItems: [A, B], awards: aw2, stats: st2, apiKey: '', loadedDates: dates });
+    const snap = JSON.stringify(st2);
+    const moved = await st.award({ doneItems: [{ ...A, id: 'P:2026-11-09:1' }, { ...B, id: 'P:2026-11-09:2' }], awards: aw2, stats: st2, apiKey: '', loadedDates: dates });
+    assert.deepStrictEqual(moved, [], '번호만 밀렸으면 바뀐 게 없어야 함');
+    assert.strictEqual(JSON.stringify(st2), snap);
+    assert.deepStrictEqual(Object.keys(aw2).sort(), ['P:2026-11-09:1', 'P:2026-11-09:2']);
+    // 끝낸 항목 자체가 지워지면 그 점수만 빠짐
+    const gone = await st.award({ doneItems: [{ ...B, id: 'P:2026-11-09:1' }], awards: aw2, stats: st2, apiKey: '', loadedDates: dates });
+    assert.deepStrictEqual(gone.map((c) => [c.text, c.delta]), [['보고서 작성', -1]]);
+    // 글만 고친 경우: 점수 그대로
+    const edited = await st.award({ doneItems: [{ ...B, id: 'P:2026-11-09:1', text: '회의 준비 (수정)' }], awards: aw2, stats: st2, apiKey: '', loadedDates: dates });
+    assert.deepStrictEqual(edited, []);
+  }
   console.log('✓ 능력치 자동 올리기 테스트 통과');
 })().catch((e) => { console.error(e); process.exit(1); });

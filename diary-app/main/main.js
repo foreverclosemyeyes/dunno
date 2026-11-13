@@ -19,7 +19,7 @@ const weekly = require('./weekly');
 const docsLib = require('./docs');
 const packLib = require('./pack');
 const updater = require('./updater');
-const { NotionMcp, parseMarkdown, cleanText, escapeText } = require('./notionMcp');
+const { NotionMcp, parseMarkdown, cleanText, escapeText, lastLine, markOf, locateMark } = require('./notionMcp');
 
 // ---------- 오류 기록 (문제가 생기면 원인을 알 수 있게) ----------
 let logFile = null;
@@ -135,11 +135,15 @@ function monthRange(ym) {
   return [isoOf(first), isoOf(last)];
 }
 
-let syncPromise = null;
+let syncPromise = null, syncAgain = false;
 let lastSyncAt = 0;
+// 동기화가 도는 중에 '지금 다시'(force)가 들어오면 버리지 않고 끝난 뒤 한 번 더 돈다.
+// (돌고 있던 동기화는 방금 쓴 내용보다 먼저 읽어 간 것일 수 있어서, 그 결과로 화면이 되돌아가지 않게)
 function sync(force = false) {
-  if (syncPromise) return syncPromise;
-  syncPromise = doSync(force).finally(() => { syncPromise = null; });
+  if (syncPromise) { if (force) syncAgain = true; return syncPromise; }
+  syncPromise = (async () => {
+    do { syncAgain = false; await doSync(force); force = true; } while (syncAgain);
+  })().finally(() => { syncPromise = null; });
   return syncPromise;
 }
 
@@ -230,7 +234,54 @@ function rowToPage(r) {
   };
 }
 
-async function syncViaMcp() {
+// 노션 로그인 쪽의 읽기(동기화)와 쓰기는 한 번에 하나씩 차례로 한다.
+// 쓰기는 '이 글을 저 글로 바꿔라'(앞 줄들까지 포함한 글 덩어리) 방식이라, 겹치면 서로의 바꿀 글이 어긋난다.
+let mcpQueue = Promise.resolve();
+function mcpSerial(fn) {
+  const job = mcpQueue.then(fn);
+  mcpQueue = job.catch(() => {});
+  return job;
+}
+// 쓰기 한 번: 줄을 선 뒤 pick() 으로 바꿀 글을 정하고, 쓰고 나면 그 페이지를 다시 풀어 목록·바꿀 글을 새로 맞춤
+function mcpWrite(pageId, pick) {
+  return mcpSerial(async () => {
+    const r = pick();
+    if (!r) return;
+    const [old, neu] = r;
+    await mcp.replaceText(pageId, old, neu);
+    const cur = mcpPages.get(pageId);
+    if (!cur) return;
+    cur.md = cur.md.replace(old, () => neu);
+    mcpReparse(pageId);
+  });
+}
+// 들고 있는 페이지 글을 다시 풀어서 그 주의 목록·바꿀 글을 새로 맞춤
+function mcpReparse(pageId) {
+  const cur = mcpPages.get(pageId);
+  if (!cur) return;
+  const parsed = parseMarkdown(cur.md, pageId, cur.start);
+  for (const [id, a] of [...mcpAnchors]) if (a.pageId === pageId) mcpAnchors.delete(id);
+  parsed.anchors.forEach((v, k) => mcpAnchors.set(k, v));
+  const w = state.weeks.find((x) => x.id === pageId);
+  if (!w) return;
+  w.days = parsed.days; w.adders = parsed.adders;
+  applyPending();
+}
+// 체크가 가는 중인 항목의 번호가 밀렸으면(위 항목이 지워짐) 대기 목록도 새 번호로 옮김. 그 줄을 못 찾으면 대기에서 뺌
+const pendingMarks = new Map(); // id → markOf() 로 기억해 둔 줄 (노션 로그인 쪽만)
+function rekeyPending() {
+  for (const [id, mark] of [...pendingMarks]) {
+    let now = null;
+    try { now = locateMark(mcpAnchors, mark).id; } catch { /* 이미 바뀌었거나 없어짐 */ }
+    if (now === id) continue;
+    const checked = pendingTodos.get(id);
+    pendingTodos.delete(id); pendingMarks.delete(id);
+    if (now && checked !== undefined) { mark.id = now; pendingTodos.set(now, checked); pendingMarks.set(now, mark); }
+  }
+}
+
+const syncViaMcp = () => mcpSerial(readViaMcp);
+async function readViaMcp() {
   state.needsSetup = false;
   state.syncing = true;
   pushData();
@@ -283,20 +334,6 @@ async function syncViaMcp() {
   } finally {
     state.syncing = false;
     pushData();
-  }
-}
-
-async function toggleViaMcp(id, checked) {
-  const a = mcpAnchors.get(id);
-  if (!a) throw Object.assign(new Error('no anchor'), { friendly: '잠시 후 다시 눌러 주세요. (노션 내용을 다시 불러오는 중)' });
-  const cur = mcpPages.get(a.pageId);
-  const wantChecked = /- \[x\]/i.test(a.newStr.split('\n').pop());
-  if (wantChecked !== checked) return; // 이미 원하는 상태
-  await mcp.replaceText(a.pageId, a.oldStr, a.newStr);
-  if (cur) {
-    cur.md = cur.md.replace(a.oldStr, a.newStr);
-    const parsed = parseMarkdown(cur.md, a.pageId, cur.start);
-    parsed.anchors.forEach((v, k) => mcpAnchors.set(k, v));
   }
 }
 
@@ -452,7 +489,7 @@ function setLocalTodo(blockId, checked) {
   for (const w of state.weeks) for (const items of Object.values(w.days || {})) if (walk(items)) return true;
   return false;
 }
-function applyPending() { for (const [id, c] of pendingTodos) setLocalTodo(id, c); }
+function applyPending() { rekeyPending(); for (const [id, c] of pendingTodos) setLocalTodo(id, c); }
 
 // ---------- 체크박스 지우기 ----------
 async function deleteTodo(id) {
@@ -465,10 +502,10 @@ async function deleteTodo(id) {
     const token = secrets.get('notion');
     if (token) await new notion.NotionClient(token).deleteBlock(id);
     else if (mcp && mcp.loggedIn()) {
-      const a = mcpAnchors.get(id);
-      if (!a) throw Object.assign(new Error('no anchor'), { friendly: '잠시 후 다시 해 주세요.' });
-      await mcp.replaceText(a.pageId, a.delOld, a.delNew);
-      const cur = mcpPages.get(a.pageId); if (cur) cur.md = cur.md.replace(a.delOld, a.delNew);
+      const mark = markOf(mcpAnchors, id);
+      await mcpWrite(mark.pageId, () => { const a = locateMark(mcpAnchors, mark); return [a.delOld, a.delNew]; });
+      pushData(); // 쓰고 나서 그 페이지를 다시 풀어 둔 상태
+      return { ok: true };
     } else throw Object.assign(new Error('no notion'), { friendly: '노션이 연결되지 않았어요.' });
     removeLocal(); pushData();
     sync(true);
@@ -493,16 +530,15 @@ async function editTodo(id, text) {
     const token = secrets.get('notion');
     if (token) await new notion.NotionClient(token).setTodoText(id, text);
     else if (mcp && mcp.loggedIn()) {
-      const a = mcpAnchors.get(id);
-      if (!a) throw Object.assign(new Error('no anchor'), { friendly: '잠시 후 다시 해 주세요.' });
-      const lines = a.oldStr.split('\n');
-      const last = lines[lines.length - 1];
-      const md = escapeText(text);
-      const m = last.match(/^(\s*- \[(?: |x|X)\]\s*)/);
-      if (!m) throw Object.assign(new Error('bad line'), { friendly: '이 항목은 앱에서 고칠 수 없어요. 노션에서 고쳐 주세요.' });
-      const neu = [...lines.slice(0, -1), m[1] + md].join('\n');
-      await mcp.replaceText(a.pageId, a.oldStr, neu);
-      const cur = mcpPages.get(a.pageId); if (cur) cur.md = cur.md.replace(a.oldStr, neu);
+      const mark = markOf(mcpAnchors, id);
+      await mcpWrite(mark.pageId, () => {
+        const a = locateMark(mcpAnchors, mark);
+        const m = lastLine(a.oldStr).match(/^(\s*- \[(?: |x|X)\]\s*)/);
+        if (!m) throw Object.assign(new Error('bad line'), { friendly: '이 항목은 앱에서 고칠 수 없어요. 노션에서 고쳐 주세요.' });
+        return [a.oldStr, a.oldStr.slice(0, a.oldStr.length - lastLine(a.oldStr).length) + m[1] + escapeText(text)];
+      });
+      pushData();
+      return { ok: true };
     } else throw Object.assign(new Error('no notion'), { friendly: '노션이 연결되지 않았어요.' });
     setLocal(); pushData();
     sync(true);
@@ -521,7 +557,8 @@ async function moveTodo(id, toDate) {
   for (const w of state.weeks) { for (const [date, items] of Object.entries(w.days || {})) if (walk(items, date)) break; if (found) break; }
   if (!found) return { ok: false, message: '항목을 못 찾았어요. 새로고침 후 다시 해 주세요.' };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(toDate) || toDate === fromDate) return { ok: false, message: '넘길 날짜를 다시 골라 주세요.' };
-  const texts = [found.text, ...(found.children || []).filter((c) => !c.checked).map((c) => c.text)];
+  const under = (x) => (x.children || []).filter((c) => !c.checked).flatMap((c) => [c.text, ...under(c)]); // 하위의 하위까지
+  const texts = [found.text, ...under(found)];
   let created;
   for (const t of texts) {
     const r = await addTodo(toDate, t);
@@ -629,16 +666,18 @@ async function addTodo(date, text) {
     if (token && w.meta && w.meta[date]) {
       await new notion.NotionClient(token).addTodo(w.meta[date].parentId, w.meta[date].afterId, text);
     } else if (!token && mcp && mcp.loggedIn() && w.adders && w.adders[date]) {
-      const old = w.adders[date];
-      const lines = old.split('\n');
-      const last = lines[lines.length - 1];
-      const md = escapeText(text);
-      const neu = /^\s*- \[ \]\s*$/.test(last)
-        ? [...lines.slice(0, -1), last.replace(/- \[ \]\s*$/, `- [ ] ${md}`)].join('\n') // 비어 있는 체크박스 채우기
-        : `${old}${/^\s*#/.test(last) ? '\n' : ''}\n- [ ] ${md}`;
-      await mcp.replaceText(w.id, old, neu);
-      const cur = mcpPages.get(w.id);
-      if (cur) cur.md = cur.md.replace(old, neu);
+      const pageId = w.id;
+      await mcpWrite(pageId, () => {
+        const wk = state.weeks.find((x) => x.id === pageId); // 줄을 서 있는 동안 바뀌었을 수 있으니 지금 것으로
+        const old = wk && wk.adders && wk.adders[date];
+        if (!old) throw Object.assign(new Error('no section'), { friendly: '그 사이 내용이 바뀌었어요. 다시 해 주세요.' });
+        const last = lastLine(old), md = escapeText(text);
+        return [old, /^\s*- \[ \]\s*$/.test(last)
+          ? old.slice(0, old.length - last.length) + last.replace(/- \[ \]\s*$/, () => `- [ ] ${md}`) // 비어 있는 체크박스 채우기
+          : `${old}${/^\s*#/.test(last) ? '\n' : ''}\n- [ ] ${md}`];
+      });
+      pushData();
+      return { ok: true, created };
     } else {
       return { ok: false, message: '노션이 연결되지 않았어요.' };
     }
@@ -655,19 +694,27 @@ async function toggleTodo(blockId, checked) {
   pendingTodos.set(blockId, checked);
   pushData();
   if (offline()) { pendingTodos.delete(blockId); saveLocal(); updateStats(); return { ok: true }; }
+  let mark = null; // 노션 로그인 쪽: 누른 줄을 기억 (차례를 기다리는 동안 번호가 밀려도 그 줄을 따라감)
+  const settle = () => { const id = mark ? mark.id : blockId; for (const k of [id, blockId]) { pendingTodos.delete(k); pendingMarks.delete(k); } return id; };
   try {
     const token = secrets.get('notion');
-    if (!token && mcp && mcp.loggedIn()) await toggleViaMcp(blockId, checked);
-    else if (!token) throw Object.assign(new Error('no key'), { friendly: '노션이 연결되지 않았어요.' });
-    else await new notion.NotionClient(token).setTodo(blockId, checked);
-    pendingTodos.delete(blockId);
+    if (!token && mcp && mcp.loggedIn()) {
+      mark = markOf(mcpAnchors, blockId);
+      pendingMarks.set(blockId, mark);
+      await mcpWrite(mark.pageId, () => {
+        const a = locateMark(mcpAnchors, mark);
+        return /- \[x\]/i.test(lastLine(a.newStr)) === checked ? [a.oldStr, a.newStr] : null; // 이미 원하는 상태면 그대로
+      });
+      settle(); mcpReparse(mark.pageId); pushData(); // 대기를 걷어 낸 실제 내용으로
+    } else if (!token) throw Object.assign(new Error('no key'), { friendly: '노션이 연결되지 않았어요.' });
+    else { await new notion.NotionClient(token).setTodo(blockId, checked); settle(); }
     updateStats();
     cache.set('snapshot', { quests: state.quests, events: state.events, weeks: state.weeks, lastSync: state.lastSync });
     return { ok: true };
   } catch (e) {
     console.error('[todo]', e);
-    pendingTodos.delete(blockId);
-    setLocalTodo(blockId, !checked); // 되돌리기
+    setLocalTodo(settle(), !checked); // 되돌리기
+    if (mark) mcpReparse(mark.pageId);
     pushData();
     const msg = e.status === 403 || e.status === 404
       ? '노션에 체크하지 못했어요. 노션 통합 설정 > 기능에서 "콘텐츠 업데이트"를 켜 주세요.'
@@ -816,6 +863,7 @@ function setSettings(partial) {
   if ('eventMode' in partial) sync(true);
   if ('bossKey' in partial) applyBossKey(partial.bossKey);
   if ('autoZoom' in partial) fitZoom();
+  if ('hiddenQuests' in partial) pushData(); // 숨긴 업무는 보낼 때 걸러지므로, 되돌리면 다시 보내야 보임
   if (tray && tray.refreshMenu) tray.refreshMenu();
   push('settings', s);
   return s;
@@ -1071,13 +1119,15 @@ app.whenReady().then(() => {
   const ud = app.getPath('userData');
   store = new JsonStore(path.join(ud, 'diary-data.json'));
   cache = new JsonStore(path.join(ud, 'notion-cache.json'));
-  if (!store.get('notionCfg', null) && (cache.get('snapshot', null) || store.get('chat', []).length)) store.set('notionCfg', LEGACY_CFG);
+  if (!store.get('notionCfg', null) && ((cache.get('snapshot', null) || {}).weeks || []).some((w) => w && w.url)) store.set('notionCfg', LEGACY_CFG);
   secrets = new Secrets(path.join(ud, 'secrets.json'));
   mcp = new NotionMcp({
     load: () => { try { return JSON.parse(secrets.get('notionMcp') || '{}'); } catch { return {}; } },
     save: (o) => secrets.set('notionMcp', JSON.stringify(o || {})),
     open: (url) => shell.openExternal(url),
   });
+  // 개발 실행에서만: 가짜 노션을 붙여 쓰기 흐름(연달아 누르기 등)을 시험할 때 씀
+  if (!app.isPackaged && process.env.DIARY_FAKE_MCP) mcp = require(process.env.DIARY_FAKE_MCP);
   assetsDir = path.join(ud, 'assets');
   fs.mkdirSync(assetsDir, { recursive: true });
   applyAppIcon();

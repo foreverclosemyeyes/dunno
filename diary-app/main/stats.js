@@ -51,19 +51,23 @@ async function claudeClassify(apiKey, texts) {
 
 // 완료된 항목 목록 [{id, text, date}] 를 보고 stats/awards 를 갱신. 바뀐 내용을 돌려줌.
 async function award({ doneItems, awards, stats, apiKey, loadedDates }) {
-  const doneIds = new Set(doneItems.map((i) => i.id));
   const changes = [];
-  // 체크가 풀린 항목은 되돌리기 (지금 불러온 주에 있는 날짜만 판단)
-  for (const [id, a] of Object.entries(awards)) {
-    if (!doneIds.has(id) && loadedDates.has(a.date)) {
-      const d = stats[a.date] || {};
-      d[a.stat] = Math.max(0, (d[a.stat] || 0) - 1);
-      stats[a.date] = d;
-      delete awards[id];
-      changes.push({ ...a, delta: -1 });
-    }
+  // 지금 불러온 날짜의 점수 기록을 지금 목록에 다시 짝지음. 노션 로그인 쪽은 항목 id 가 '그 날짜의 몇 번째'라서
+  // 위 항목을 지우거나 넘기면 번호가 밀린다 → id 만 보면 점수를 뺐다가 다시 주게 됨(포인트업이 또 뜸).
+  // ① id 와 글이 모두 같은 것 ② 같은 날짜·같은 글 ③ id 만 같은 것(글을 고친 경우) 순서로 찾는다.
+  const left = new Map(Object.entries(awards).filter(([, a]) => loadedDates.has(a.date)));
+  for (const id of left.keys()) delete awards[id];
+  const take = (item, id, a) => { awards[item.id] = { ...a, text: item.text }; left.delete(id); };
+  let rest = doneItems.filter((i) => { const a = left.get(i.id); return a && a.text === i.text ? (take(i, i.id, a), false) : true; });
+  rest = rest.filter((i) => { const hit = [...left].find(([, a]) => a.date === i.date && a.text === i.text); return hit ? (take(i, hit[0], hit[1]), false) : true; });
+  const fresh = rest.filter((i) => { const a = left.get(i.id); return a && a.date === i.date ? (take(i, i.id, a), false) : true; });
+  // 짝을 못 찾은 기록 = 체크가 풀렸거나 없어진 항목 → 되돌리기
+  for (const a of left.values()) {
+    const d = stats[a.date] || {};
+    d[a.stat] = Math.max(0, (d[a.stat] || 0) - 1);
+    stats[a.date] = d;
+    changes.push({ ...a, delta: -1 });
   }
-  const fresh = doneItems.filter((i) => !awards[i.id]);
   if (fresh.length) {
     let picks = null;
     if (apiKey) {

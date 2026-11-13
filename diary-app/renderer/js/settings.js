@@ -5,6 +5,7 @@
   const panel = document.getElementById('settings');
   const state = D.state;
   let tab = 'connect';
+  let gmailCheck = null; // Gmail 연결 확인 결과 ({pending} 또는 {ok, message, detail})
 
   // ---------- 저장 / 실행 취소 ----------
   const history = { list: [], idx: -1 };
@@ -121,6 +122,7 @@
   }
 
   const note = (text) => { const n = h('div', 'note'); n.innerHTML = text; return n; };
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); // note() 안에 끼워 넣는 값용
   const btn = (label, cls, fn) => { const b = h('button', 'btn ' + (cls || ''), label); b.onclick = fn; return b; };
   const linkBtn = (label, url) => btn(label, 'link', () => window.diary.open(url));
 
@@ -204,19 +206,22 @@
     const gmDetail = h('div', 'test-detail'); // 안 될 때: Claude Code 가 실제로 본 커넥터 목록 (원인 찾기용)
     const gmBtns = h('div', 'row-inline');
     gmBtns.append(
-      btn('Gmail 연결 확인', '', async (ev) => {
-        ev.target.disabled = true; gmTest.className = 'test-result'; gmTest.textContent = '확인 중… (최근 메일 한 통을 읽어 봐요. 1분쯤 걸릴 수 있어요)';
-        const r = await window.diary.checkGmail();
-        ev.target.disabled = false; gmTest.textContent = r.message; gmTest.className = 'test-result ' + (r.ok ? 'ok' : 'err');
-        gmDetail.textContent = r.ok ? '' : (r.detail || '');
+      btn('Gmail 연결 확인', '', async () => {
+        if (gmailCheck && gmailCheck.pending) return;
+        gmailCheck = { pending: true }; render();
+        gmailCheck = await window.diary.checkGmail().catch((e) => ({ ok: false, message: 'Gmail 연결을 확인하지 못했어요.', detail: String((e && e.message) || e) }));
+        render();
       }),
       linkBtn('claude.ai 커넥터 설정 ↗', 'https://claude.ai/customize/connectors'),
     );
+    // 확인 결과는 창이 다시 그려져도(확인이 되면 설정이 저장되면서 다시 그려짐) 남아 있게 함
+    if (gmailCheck && gmailCheck.pending) { gmBtns.firstChild.disabled = true; gmTest.textContent = '확인 중… (최근 메일 한 통을 읽어 봐요. 1분쯤 걸릴 수 있어요)'; }
+    else if (gmailCheck) { gmTest.textContent = gmailCheck.message; gmTest.className = 'test-result ' + (gmailCheck.ok ? 'ok' : 'err'); gmDetail.textContent = gmailCheck.ok ? '' : (gmailCheck.detail || ''); }
     gm.body.append(gmRow, gmBtns, gmTest, gmDetail, note('켜 두면 비서에게 <b>"○○에게 온 메일 찾아 줘"</b>, <b>"답장 초안 써 줘"</b>처럼 말할 수 있어요. 비서는 메일을 <b>읽고 임시보관함에 초안만</b> 넣어요. <b>보내기·지우기는 못 하게 막아 뒀고</b>, 보내는 건 Gmail에서 직접 하세요. claude.ai 에 Gmail 커넥터가 연결돼 있고, 이 맥의 Claude Code가 같은 계정으로 로그인돼 있어야 해요.'));
 
     const up = C.section('업데이트', true);
     const u = state.update || {};
-    up.body.append(note(`지금 버전: <b>v${state.version || '?'}</b>${u.latest ? ` · 최신: <b>v${u.latest}</b>` : ''}${u.available ? ' · <b style="color:#c62d0d">새 버전 있음</b>' : u.latest ? ' · 최신이에요' : ''}${u.error ? `<br>⚠ ${u.error}` : ''}`));
+    up.body.append(note(`지금 버전: <b>v${state.version || '?'}</b>${u.latest ? ` · 최신: <b>v${u.latest}</b>` : ''}${u.available ? ' · <b style="color:#c62d0d">새 버전 있음</b>' : u.latest ? ' · 최신이에요' : ''}${u.error ? `<br>⚠ ${esc(u.error)}` : ''}`));
     up.body.append(keyField('github', 'GitHub 열쇠 (저장소가 비공개일 때만)', 'github_pat_ 로 시작하는 토큰 붙여넣기'));
     up.body.append(h('div', 'row-inline'));
     up.body.lastChild.append(
@@ -514,7 +519,7 @@
       render();
     });
     const r3 = h('div', 'ctl'); r3.append(h('label', 'ctl-label', '참고 문서'), dl, h('span'));
-    const docNote = note(`<b>인수인계 파일처럼 분량이 큰 자료</b>는 여기에 파일로 넣으세요. ${asstName}가 답할 때마다 이 문서를 같이 읽어요. 글만 있는 파일(<b>.md, .txt</b>)이 돼요. 노션 페이지는 "내보내기 → Markdown"으로 받으면 되고, PDF·워드·한글 파일은 내용을 복사해 .txt 로 저장해 넣으세요.${total > D.DOCS_MAX ? `<br><b style="color:#ff6b57">지금 ${total.toLocaleString()}자예요. 앞에서부터 ${D.DOCS_MAX.toLocaleString()}자까지만 읽어요.</b>` : docs.length ? `<br>지금 ${total.toLocaleString()}자 / 한 번에 ${D.DOCS_MAX.toLocaleString()}자까지 읽어요. 문서가 길수록 대답이 조금 느려지고 사용량이 늘어요.` : ''}`);
+    const docNote = note(`<b>인수인계 파일처럼 분량이 큰 자료</b>는 여기에 파일로 넣으세요. ${esc(asstName)}가 답할 때마다 이 문서를 같이 읽어요. 글만 있는 파일(<b>.md, .txt</b>)이 돼요. 노션 페이지는 "내보내기 → Markdown"으로 받으면 되고, PDF·워드·한글 파일은 내용을 복사해 .txt 로 저장해 넣으세요.${total > D.DOCS_MAX ? `<br><b style="color:#ff6b57">지금 ${total.toLocaleString()}자예요. 앞에서부터 ${D.DOCS_MAX.toLocaleString()}자까지만 읽어요.</b>` : docs.length ? `<br>지금 ${total.toLocaleString()}자 / 한 번에 ${D.DOCS_MAX.toLocaleString()}자까지 읽어요. 문서가 길수록 대답이 조금 느려지고 사용량이 늘어요.` : ''}`);
     cl.body.append(r1, r3, h('div', 'row-inline'));
     cl.body.lastChild.append(addDoc, btn('인수인계 파일 만드는 프롬프트 복사', '', async () => { await window.diary.copyText(D.HANDOVER_PROMPT); D.toast('복사했어요. 그 채팅방에 붙여 넣고, 받은 .md 파일을 "참고 문서 넣기"로 넣으세요.', 6000); }));
     cl.body.append(docNote, r2, h('div', 'row-inline'));
@@ -559,5 +564,5 @@
     window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.body.classList.contains('settings-open')) close(); });
   }
 
-  D.settings = { init, open, close, refresh: () => { if (document.body.classList.contains('settings-open') && tab === 'connect' && !document.activeElement.matches('input')) render(); } };
+  D.settings = { init, open, close, redraw: () => { if (document.body.classList.contains('settings-open')) render(); }, refresh: () => { if (document.body.classList.contains('settings-open') && tab === 'connect' && !document.activeElement.matches('input')) render(); } };
 })();

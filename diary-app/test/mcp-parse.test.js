@@ -111,3 +111,26 @@ console.log('✓ 노션 로그인(MCP) 마크다운 파싱 테스트 통과');
   assert.strictEqual(r.days['2026-11-16'][0].text, '유연근무 7~9월분');
   console.log('✓ 역슬래시 오가기 테스트 통과');
 }
+
+// 번호가 밀려도 같은 줄을 다시 찾음: 3번째 항목을 누른 직후, 먼저 줄 서 있던 '1번째 지우기'가 끝난 경우
+{
+  const { markOf, locateMark, lastLine } = require('../main/notionMcp');
+  const page = ['#### 11/16 (월)', '- [ ] 가', '- [ ] 나', '- [ ] 다 $& 100$', '- [ ] 나'].join('\n');
+  const p1 = parseMarkdown(page, 'P', '2026-11-16');
+  const ids = p1.days['2026-11-16'].map((x) => x.id);
+  const mark = markOf(p1.anchors, ids[2]);                       // '다' 를 누름
+  const del = p1.anchors.get(ids[0]);                             // 그 전에 '가' 지우기가 먼저 실행됨
+  const after = page.replace(del.delOld, () => del.delNew);
+  const p2 = parseMarkdown(after, 'P', '2026-11-16');
+  assert.strictEqual(p2.days['2026-11-16'][2].text, '나', '같은 번호는 이제 다른 항목');
+  const a = locateMark(p2.anchors, mark);
+  assert.strictEqual(lastLine(a.oldStr), '- [ ] 다 $& 100$', '번호가 아니라 그 줄을 찾음');
+  // 바꾼 결과를 캐시에 반영할 때 글 속의 $ 가 특수문자로 먹히지 않아야 함
+  const toggled = after.replace(a.oldStr, () => a.newStr);
+  assert.ok(toggled.includes('- [x] 다 $& 100$'));
+  // 같은 줄이 둘('나')이고 번호도 어긋나면 엉뚱한 줄을 건드리지 않고 그만둠
+  const dup = markOf(p1.anchors, ids[3]);
+  assert.throws(() => locateMark(parseMarkdown(after.replace('- [ ] 다 $& 100$\n', ''), 'P', '2026-11-16').anchors, { ...dup, id: 'P:2026-11-16:9' }), /anchor moved/);
+  assert.throws(() => markOf(p1.anchors, 'P:2026-11-16:99'), /no anchor/);
+  console.log('✓ 번호가 밀려도 같은 줄 찾기 테스트 통과');
+}

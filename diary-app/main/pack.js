@@ -34,6 +34,10 @@ function apply(pack, current, writeAsset) {
   const mine = { ...(cur.cast || {}), [cur.castActive || 'ren']: cur.assistant || {} }; // 지금 내 비서들 (id → 설정)
   t.assistant = { ...strip(t.assistant), ...keep(mine[t.castActive || 'ren']) };
   for (const id of Object.keys(t.cast || {})) t.cast[id] = { ...strip(t.cast[id]), ...keep(mine[id]) };
+  // 묶음에 없는 내 비서는 그대로 남김 (그 비서에 넣어 둔 지침·참고 문서가 사라지지 않게)
+  for (const [id, a] of Object.entries(mine)) {
+    if (id !== (t.castActive || 'ren') && !(t.cast && t.cast[id])) (t.cast = t.cast || {})[id] = a;
+  }
   return t;
 }
 

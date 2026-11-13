@@ -32,6 +32,14 @@ assert.strictEqual(t.cast.morgana.instructions, '친구의 지침');
 assert.deepStrictEqual(t.cast.morgana.docs, [{ id: 'f1' }]);
 assert.strictEqual(t.colors.accent, '#d00');
 
+// 묶음에 없는 비서(받는 사람이 따로 만든 비서)는 지침·문서와 함께 그대로 남음
+{
+  const own = { ...friend, cast: { ...friend.cast, mine1: { name: '내 비서', instructions: '나만의 지침', docs: [{ id: 'm1' }] } } };
+  const t2 = pack.apply(JSON.parse(dumped), own, (id) => `diary-asset://local/new-${id}`);
+  assert.strictEqual(t2.cast.mine1.instructions, '나만의 지침');
+  assert.deepStrictEqual(t2.cast.mine1.docs, [{ id: 'm1' }]);
+}
+
 // 다른 파일은 거절
 assert.throws(() => pack.apply({ format: 'x' }, friend, () => ''), /꾸밈 파일이 아니에요/);
 

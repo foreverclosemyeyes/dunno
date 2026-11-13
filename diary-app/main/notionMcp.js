@@ -220,7 +220,7 @@ function parseMarkdown(md, pageId, startISO) {
       if (m2 && m2[1].replace(/\t/g, '  ').length > indent) endL = k; else break;
     }
     const delBlock = lines.slice(secStart, endL + 1);
-    anchors.set(id, { pageId, line: i, oldStr: block.join('\n'), newStr: [...block.slice(0, -1), toggled].join('\n'),
+    anchors.set(id, { id, pageId, line: i, oldStr: block.join('\n'), newStr: [...block.slice(0, -1), toggled].join('\n'),
       delOld: delBlock.join('\n'), delNew: lines.slice(secStart, i).join('\n') });
     if (stack.length) stack[stack.length - 1].item.children.push(item);
     else (days[d] = days[d] || []).push(item);
@@ -232,4 +232,21 @@ function parseMarkdown(md, pageId, startISO) {
   return { days, anchors, adders };
 }
 
-module.exports = { NotionMcp, parseMarkdown, cleanText, escapeText, REDIRECT };
+// ---------- 바꿀 줄 다시 찾기 ----------
+// 항목 id 는 '그 날짜의 몇 번째'라서, 위 항목이 지워지면 번호가 밀린다. 누른 순간의 그 줄을 기억해 두었다가(markOf)
+// 실제로 쓸 차례가 왔을 때 같은 줄을 다시 찾는다(locateMark). 못 찾거나 같은 줄이 여럿이면 엉뚱한 줄을 건드리지 않고 그만둔다.
+const lastLine = (str) => str.slice(str.lastIndexOf('\n') + 1);
+function markOf(anchors, id) {
+  const a = anchors.get(id);
+  if (!a) throw Object.assign(new Error('no anchor'), { friendly: '잠시 후 다시 해 주세요. (노션 내용을 다시 불러오는 중)' });
+  return { id, pageId: a.pageId, line: lastLine(a.oldStr), day: id.slice(0, id.lastIndexOf(':') + 1) };
+}
+function locateMark(anchors, mark) {
+  const a = anchors.get(mark.id);
+  if (a && lastLine(a.oldStr) === mark.line) return a;
+  const same = [...anchors].filter(([id, x]) => id.startsWith(mark.day) && lastLine(x.oldStr) === mark.line);
+  if (same.length === 1) return same[0][1];
+  throw Object.assign(new Error('anchor moved'), { friendly: '그 사이 내용이 바뀌었어요. 다시 해 주세요.' });
+}
+
+module.exports = { NotionMcp, parseMarkdown, cleanText, escapeText, lastLine, markOf, locateMark, REDIRECT };
