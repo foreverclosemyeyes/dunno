@@ -11,7 +11,10 @@ import { db } from '../store.js';
 import { moodFill, tone } from '../theme.js';
 
 // ---------- 오늘 화면 ----------
-export const li = (left, right) => `<div class="li"><span class="lk">${left}</span><span class="lv">${right}</span></div>`;
+// 목록 한 줄. focus를 주면 누를 수 있는 줄이 되고, 기록 화면이 그 항목만 띄운 채 열린다.
+export const li = (left, right, focus) => (focus
+  ? `<button class="li" data-act="record" data-focus="${focus}"><span class="lk">${left}</span><span class="lv">${right}</span></button>`
+  : `<div class="li"><span class="lk">${left}</span><span class="lv">${right}</span></div>`);
 
 export function viewToday() {
   const t = today(), sel = ui.selected, ws = weekStart(sel), e = db.entries[sel];
@@ -86,16 +89,18 @@ export function detailHtml(e) {
   // 저장된 약 목록에 없는 약(목록에서 지운 약)만 여기 글로 보여 준다. 나머지는 위 약 카드에 있다.
   const extra = db.meds.length ? '' : esc(medsText(e.meds || []));
   const ten = (key, v) => `${nameOf(key, v)}<span class="of"> ${v}</span>`;
-  const sym = (label, v) => (v ? li(label, `${LEVELS[v]}${bars(v)}`) : '');
-  return `<section class="card list">
-      ${sym(T('우울'), e.dep)}${sym(T('고조'), e.elev)}${sym(T('불안'), e.anx)}
-      ${e.tired ? li(`${IC.moon}${T('일어났을 때')}`, T('피곤')) : ''}
-      ${e.period ? li(`${IC.drop}${T('생리')}`, T('생리 중')) : ''}
-      ${e.appetite != null ? li(`${IC.fork}${T('식욕')}`, ten('appetite', e.appetite)) : ''}
-      ${e.drinks ? li(`${IC.coffee}${T('카페인')}`, cafMg(e.drinks) ? `${drinkText(e.drinks)}<span class="of"> · ${F('약 {0}mg', cafMg(e.drinks))}</span>` : nameOf('caffeine', 0))
-        : e.caffeine != null ? li(`${IC.coffee}${T('카페인')}`, ten('caffeine', e.caffeine)) : ''}
-      ${extra ? li(`${IC.pill}${T('약')}`, extra) : ''}
-      ${signs.length ? li(T('체크'), signs.map(esc).join('<br>')) : ''}
-      ${e.note ? `<div class="li say note">${esc(e.note)}</div>` : ''}
-    </section>`;
+  const sym = (label, v) => (v ? li(label, `${LEVELS[v]}${bars(v)}`, 'symptoms') : '');
+  // 줄을 누르면 그 항목만 고치는 화면이 열린다
+  const rows = [
+    sym(T('우울'), e.dep), sym(T('고조'), e.elev), sym(T('불안'), e.anx),
+    e.tired ? li(`${IC.moon}${T('일어났을 때')}`, T('피곤'), 'sleep') : '',
+    e.period ? li(`${IC.drop}${T('생리')}`, T('생리 중'), 'body') : '',
+    e.appetite != null ? li(`${IC.fork}${T('식욕')}`, ten('appetite', e.appetite), 'body') : '',
+    e.drinks ? li(`${IC.coffee}${T('카페인')}`, cafMg(e.drinks) ? `${drinkText(e.drinks)}<span class="of"> · ${F('약 {0}mg', cafMg(e.drinks))}</span>` : nameOf('caffeine', 0), 'body')
+      : e.caffeine != null ? li(`${IC.coffee}${T('카페인')}`, ten('caffeine', e.caffeine), 'body') : '',
+    extra ? li(`${IC.pill}${T('약')}`, extra) : '',
+    signs.length ? li(T('체크'), signs.map(esc).join('<br>')) : '',
+    e.note ? `<button class="li say note" data-act="record" data-focus="note">${esc(e.note)}</button>` : '',
+  ].join('');
+  return rows ? `<section class="card list">${rows}</section>` : '';
 }

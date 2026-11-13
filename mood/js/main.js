@@ -2,7 +2,7 @@
 import { aiSummary } from './analysis.js';
 import { addDays, today } from './dates.js';
 import { $, app, closeSheet, enterApp, sheet, sheetOpen, toTop, toast } from './dom.js';
-import { exportData, giveFile, importData, makeIcs, remind } from './files.js';
+import { exportData, giveFile, hasAlarms, importData, makeIcs, remind } from './files.js';
 import { T } from './i18n.js';
 import { addDose, medKey, medsFor, normDose, setMeds, sugHtml, toggleDoseTime } from './meds.js';
 import { render } from './render.js';
@@ -24,6 +24,13 @@ function commitDoses(list) {
   render();
 }
 
+// 설정 화면을 스크롤 자리를 지킨 채 다시 그린다
+function redrawSettings() {
+  const y = sheet.scrollTop;
+  openSettings();
+  sheet.scrollTop = y;
+}
+
 // ---------- 이벤트 ----------
 const actions = {
   tab: (el) => { if (ui.tab === el.dataset.tab) return; ui.tab = el.dataset.tab; toTop(); render(); enterApp(); },
@@ -33,10 +40,12 @@ const actions = {
   doseTime: (el) => { const list = doseList(); toggleDoseTime(list[Number(el.dataset.i)]); commitDoses(list); },
   doseDel: (el) => { const list = doseList(); list.splice(Number(el.dataset.i), 1); commitDoses(list); },
   ics: async () => {
-    const r = remind();
-    if (!r.log && !r.med1 && !r.med2) { toast(T('알림 시간을 먼저 정해 주세요')); return; }
+    if (!hasAlarms()) { toast(T('알림 시간을 먼저 정해 주세요')); return; }
     await giveFile('tide-reminders.ics', makeIcs(), 'text/calendar');
   },
+  // 설정: 약마다 알람 시각 더하기·지우기 (시각 고치기는 아래 input 처리에서)
+  alarmAdd: (el) => { const m = db.meds[Number(el.dataset.m)]; m.alarms = (m.alarms || []).concat('09:00'); save(); redrawSettings(); },
+  alarmDel: (el) => { db.meds[Number(el.dataset.m)].alarms.splice(Number(el.dataset.i), 1); save(); redrawSettings(); },
   copyAi: async () => {
     const text = aiSummary();
     try { await navigator.clipboard.writeText(text); }
@@ -78,7 +87,7 @@ const actions = {
   },
   addMed: () => {
     ui.addingMed = !ui.addingMed;
-    if (ui.draft) $('#meds').innerHTML = medsHtml(); else { const y = sheet.scrollTop; openSettings(); sheet.scrollTop = y; }
+    if (ui.draft) $('#meds').innerHTML = medsHtml(); else redrawSettings();
     if (ui.addingMed) $('#med-name').focus();
   },
   pickSug: (el) => { $('#med-name').value = el.dataset.name; $('#med-sug').innerHTML = ''; $('#med-dose').focus(); },
@@ -90,7 +99,7 @@ const actions = {
     if (!db.meds.some((x) => medKey(x) === medKey(m))) { db.meds.push(m); save(); }
     ui.addingMed = false;
     if (ui.draft) $('#meds').innerHTML = medsHtml();
-    else { const y = sheet.scrollTop; render(); openSettings(); sheet.scrollTop = y; }
+    else { render(); redrawSettings(); }
   },
   delMed: (el) => {
     db.meds = db.meds.filter((m) => medKey(m) !== el.dataset.med);
@@ -137,6 +146,7 @@ sheet.addEventListener('input', (ev) => {
   const d = ui.draft, el = ev.target;
   if (el.id === 'med-name') { $('#med-sug').innerHTML = sugHtml(el.value.trim()); return; }
   if (el.id.startsWith('r-')) { remind()[el.id.slice(2)] = el.value; save(); return; }
+  if (el.classList.contains('alarm-at')) { db.meds[Number(el.dataset.m)].alarms[Number(el.dataset.i)] = el.value; save(); return; }
   if (!d) return;
   const k = el.id.slice(2);
   if (SLIDERS.includes(k)) d[k] = Number(el.value);

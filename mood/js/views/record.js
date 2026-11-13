@@ -67,69 +67,72 @@ export function sleepHtml() {
 }
 
 // ---------- 화면 ----------
-// focus: 오늘 화면에서 누른 항목 (mood, energy, conf, sleep). 그 자리로 바로 내려간다.
+// 한 항목만 고칠 때 보여 줄 것: 오늘 화면에서 누른 자리(focus) → [제목, 보여 줄 묶음들]
+const FOCUS = {
+  mood: () => [T('기분'), ['mood', 'signs']],
+  energy: () => [T('에너지'), ['energy', 'signs']],
+  conf: () => [T('자신감'), ['conf', 'signs']],
+  sleep: () => [T('지난밤 수면'), ['sleep']],
+  symptoms: () => [T('증상'), ['symptoms']],
+  body: () => [T('몸'), ['body']],
+  note: () => [T('메모'), ['note']],
+};
+const ALL = ['mood', 'energy', 'conf', 'signs', 'symptoms', 'sleep', 'body', 'meds', 'note'];
+
+// focus가 있으면 그 항목만 뜨고(다른 값은 그대로 보존), 없으면 전체가 뜬다.
 export function openRecord(date, focus) {
   ui.draft = newDraft(date);
   ui.addingMed = false;
   const d = ui.draft, isEdit = !!db.entries[date];
+  const [title, show] = FOCUS[focus] ? FOCUS[focus]() : [isEdit ? T('기록 수정') : T('기록하기'), ALL];
+  const only = !!FOCUS[focus];
   if (focus === 'sleep') d.sleepSet = true;
+
+  const sliders = {
+    mood: slider('mood', '', T('기분'), d.mood, T('가라앉음'), T('들뜸')),
+    energy: slider('energy', '', T('에너지'), d.energy, T('바닥'), T('넘침')),
+    conf: slider('conf', IC.star, T('자신감'), d.conf, T('위축'), T('넘침')),
+  };
+  const scores = show.filter((k) => sliders[k]);
+  const sec = (name) => (only ? '' : `<div class="sec">${name}</div>`);   // 한 항목만 뜰 때는 화면 제목이 이름을 대신한다
+  const parts = {
+    signs: `<div id="signs" hidden><div class="sec">${T('오늘 이런 점이 있었나요?')}</div><section class="card list">${signsHtml()}</section></div>`,
+    symptoms: `${sec(T('증상'))}<section class="card list">
+      ${SYMPTOMS.map(([k, label]) => `<div class="li col"><span class="lk">${label}</span>${seg(k, LEVELS, d[k])}</div>`).join('')}</section>`,
+    sleep: `${sec(T('지난밤 수면'))}<section class="card list" id="sleep">${sleepHtml()}</section>`,
+    body: `${sec(T('몸'))}<section class="card list">
+      ${sw('data-flag="period"', d.period, T('생리 중'), IC.drop)}
+      ${slider('appetite', IC.fork, T('식욕'), d.appetite, T('없음'), T('많음'))}
+      ${drinksHtml(d)}</section>`,
+    meds: `${sec(T('오늘 먹은 약'))}<section class="card list" id="meds">${medsHtml()}</section>`,
+    note: `${sec(T('메모'))}<section class="card list">
+      <div class="li"><textarea id="f-note" rows="4" maxlength="1000" placeholder="${T('오늘 있었던 일이나 느낀 점')}">${esc(d.note || '')}</textarea></div></section>`,
+  };
+
   sheet.innerHTML = `<div class="sheet-in">
     <div class="sheet-top">
       <button class="txt" data-act="close">${T('취소')}</button>
-      <div class="st"><b>${isEdit ? T('기록 수정') : T('기록하기')}</b><span>${longDate(date)}</span></div>
+      <div class="st"><b>${title}</b><span>${longDate(date)}</span></div>
       <button class="txt strong" data-act="save">${T('저장')}</button>
     </div>
-    <p class="secnote top-note">${T('적고 싶은 것만 적으면 돼요. 나머지는 나중에 이어서 적을 수 있어요.')}</p>
-
-    <section class="card list">
-      ${slider('mood', '', T('기분'), d.mood, T('가라앉음'), T('들뜸'))}
-      ${slider('energy', '', T('에너지'), d.energy, T('바닥'), T('넘침'))}
-      ${slider('conf', IC.star, T('자신감'), d.conf, T('위축'), T('넘침'))}
-    </section>
-
-    <div id="signs" hidden>
-      <div class="sec">${T('오늘 이런 점이 있었나요?')}</div>
-      <section class="card list">${signsHtml()}</section>
-    </div>
-
-    <div class="sec">${T('증상')}</div>
-    <section class="card list">
-      ${SYMPTOMS.map(([k, label]) => `<div class="li col"><span class="lk">${label}</span>${seg(k, LEVELS, d[k])}</div>`).join('')}
-    </section>
-
-    <div class="sec">${T('지난밤 수면')}</div>
-    <section class="card list" id="sleep">${sleepHtml()}</section>
-
-    <div class="sec">${T('몸')}</div>
-    <section class="card list">
-      ${sw('data-flag="period"', d.period, T('생리 중'), IC.drop)}
-      ${slider('appetite', IC.fork, T('식욕'), d.appetite, T('없음'), T('많음'))}
-      ${drinksHtml(d)}
-    </section>
-
-    <div class="sec">${T('오늘 먹은 약')}</div>
-    <section class="card list" id="meds">${medsHtml()}</section>
-
-    <div class="sec">${T('메모')}</div>
-    <section class="card list">
-      <div class="li"><textarea id="f-note" rows="4" maxlength="1000" placeholder="${T('오늘 있었던 일이나 느낀 점')}">${esc(d.note || '')}</textarea></div>
-    </section>
-
-    ${isEdit ? `<button class="btn plain danger" data-act="deleteEntry">${T('이 날 기록 삭제')}</button>` : ''}
+    ${only ? '' : `<p class="secnote top-note">${T('적고 싶은 것만 적으면 돼요. 나머지는 나중에 이어서 적을 수 있어요.')}</p>`}
+    ${scores.length ? `<section class="card list">${scores.map((k) => sliders[k]).join('')}</section>` : ''}
+    ${show.filter((k) => parts[k]).map((k) => parts[k]).join('')}
+    ${isEdit && !only ? `<button class="btn plain danger" data-act="deleteEntry">${T('이 날 기록 삭제')}</button>` : ''}
     <div class="savebar"><button class="btn" data-act="save">${T('저장')}</button></div>
   </div>`;
   showSheet();
   syncForm();
-  const target = focus && $(focus === 'sleep' ? '#sleep' : `#row-${focus}`);
-  if (target) target.scrollIntoView({ block: 'center' });
 }
 
 // 값에 따라 숫자·이름·아이콘·체크리스트·수면 시간을 바로 갱신
 export function syncForm() {
   const d = ui.draft;
   if (!d) return;
+  // 한 항목만 띄운 화면에서는 나머지 칸이 없다. 화면에 있는 것만 갱신한다.
   SLIDERS.forEach((k) => {
     const v = d[k], input = $(`#f-${k}`), col = tone(k, v);
+    if (!input) return;
     $(`#v-${k}`).textContent = v == null ? '' : v;
     $(`#n-${k}`).textContent = v == null ? T('기록 없음') : nameOf(k, v);
     $(`#n-${k}`).classList.toggle('unset', v == null);
@@ -137,10 +140,11 @@ export function syncForm() {
     input.style.setProperty('--v', (v == null ? SLIDER_START : v) / 10);
     if (col) input.style.setProperty('--tone', col); else input.style.removeProperty('--tone');
   });
-  $('#i-mood').innerHTML = IC.face(d.mood == null ? SLIDER_START : d.mood);
-  $('#i-energy').innerHTML = IC.battery(d.energy == null ? SLIDER_START : d.energy);
-  $('#signs').hidden = !isHigh(d);
-  if (d.sleepSet) $('#v-sleep').textContent = durText(sleepMinutes(d.bed, d.wake));
+  const put = (sel, fn) => { const el = $(sel); if (el) fn(el); };
+  put('#i-mood', (el) => { el.innerHTML = IC.face(d.mood == null ? SLIDER_START : d.mood); });
+  put('#i-energy', (el) => { el.innerHTML = IC.battery(d.energy == null ? SLIDER_START : d.energy); });
+  put('#signs', (el) => { el.hidden = !isHigh(d); });
+  put('#v-sleep', (el) => { el.textContent = durText(sleepMinutes(d.bed, d.wake)); });
 }
 
 // 적은 것이 하나라도 있는지

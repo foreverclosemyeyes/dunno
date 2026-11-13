@@ -7,7 +7,9 @@ import { render } from './render.js';
 import { db, migrate, save } from './store.js';
 import { openSettings } from './views/settings.js';
 
-export const remind = () => (db.settings.remind || (db.settings.remind = { log: '21:30', med1: '', med2: '' }));
+// 기록 알림 시각은 설정에, 약 알람 시각은 약마다(db.meds[i].alarms = ['09:00', ...]) 둔다
+export const remind = () => (db.settings.remind || (db.settings.remind = { log: '21:30' }));
+export const hasAlarms = () => !!remind().log || db.meds.some((m) => (m.alarms || []).some(Boolean));
 // 매일 반복되는 캘린더 알림 파일(.ics)을 만든다
 export function makeIcs() {
   const r = remind(), day = today().replace(/-/g, '');
@@ -15,8 +17,10 @@ export function makeIcs() {
   const url = location.href.split('#')[0];
   const ev = (uid, time, title) => (time ? ['BEGIN:VEVENT', `UID:${uid}@tide-app`, `DTSTAMP:${stamp}`, `DTSTART:${day}T${time.replace(':', '')}00`,
     'DURATION:PT5M', 'RRULE:FREQ=DAILY', `SUMMARY:${title}`, `URL:${url}`, 'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${title}`, 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT'] : []);
+  const medEvents = db.meds.flatMap((m, i) => [...new Set((m.alarms || []).filter(Boolean))].flatMap((time) =>
+    ev(`med${i}-${time.replace(':', '')}`, time, F('{0} 먹을 시간', `${m.name}${m.dose ? ` ${m.dose}` : ''}`))));
   return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Tide//Reminders//KO', 'CALSCALE:GREGORIAN',
-    ...ev('log', r.log, T('Tide 기록하기')), ...ev('med1', r.med1, T('약 먹을 시간')), ...ev('med2', r.med2, T('약 먹을 시간')), 'END:VCALENDAR'].join('\r\n');
+    ...ev('log', r.log, T('Tide 기록하기')), ...medEvents, 'END:VCALENDAR'].join('\r\n');
 }
 
 // 파일 건네기: 아이폰에서는 공유 창, 그 밖에는 내려받기
@@ -59,7 +63,7 @@ export function importData(file) {
       if (!cur || (e.updatedAt || '') >= (cur.updatedAt || '')) db.entries[e.date] = e;
     });
     (Array.isArray(inc.meds) ? inc.meds : []).forEach((m) => {
-      if (m && m.name && !db.meds.some((s) => medKey(s) === medKey(m))) db.meds.push({ name: String(m.name), dose: String(m.dose || '') });
+      if (m && m.name && !db.meds.some((s) => medKey(s) === medKey(m))) db.meds.push({ name: String(m.name), dose: String(m.dose || ''), alarms: (Array.isArray(m.alarms) ? m.alarms : []).filter((t) => /^\d\d:\d\d$/.test(t)) });
     });
     Object.keys(inc.taken || {}).forEach((k) => { if (!db.taken[k] && !db.entries[k] && Array.isArray(inc.taken[k])) db.taken[k] = inc.taken[k]; });
     if (!save()) return;

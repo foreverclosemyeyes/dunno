@@ -104,7 +104,8 @@ function seed() {
 
   // 4-1. 이어서 적기: 나중에 다른 항목만 더해도 먼저 적은 것은 그대로다
   await page.click('.tile[data-focus=energy]');
-  check('타일을 누르면 기록 화면이 열리고 먼저 적은 값이 보임', (await text('#v-mood')) === '3' && (await text('#n-energy')) === '기록 없음');
+  check('타일을 누르면 그 항목만 뜸', (await text('#n-energy')) === '기록 없음' && (await text('.st b')) === '에너지'
+    && (await page.$$('#f-mood, #f-conf, #sleep, #meds, #f-note, [data-act=deleteEntry]')).length === 0);
   await page.click('#f-energy');   // 빈 슬라이더는 누르기만 해도 값이 생긴다
   check('빈 슬라이더를 누르면 값이 생김', (await text('#v-energy')) !== '');
   await page.click('[data-act=clearField][data-k=energy]');
@@ -123,6 +124,24 @@ function seed() {
   await page.click('.tile[data-focus=sleep]');
   check('수면 타일을 누르면 시각 칸이 바로 열림', await page.isVisible('#f-bed'));
   await page.click('.sheet-top [data-act=close]');
+  await page.click('#app button.li[data-focus=symptoms]');
+  check('목록 줄을 누르면 그 항목만 뜸', (await text('.st b')) === '증상' && (await page.$$('[data-field=elev]')).length === 1 && (await page.$$('#f-mood, #sleep')).length === 0);
+  await page.click('[data-field=anx] [data-v="2"]');
+  await page.click('.savebar [data-act=save]');
+  e = (await store()).entries[today];
+  check('한 항목만 고쳐도 나머지는 그대로', e.anx === 2 && e.elev === 3 && e.mood === 3 && e.energy === 6, JSON.stringify(e));
+
+  // 4-1-2. 약마다 알람 시각을 정하면 캘린더 알림 파일에 들어간다
+  await page.click('[data-act=settings]');
+  await page.click('[data-act=alarmAdd]'); await page.click('[data-act=alarmAdd]');
+  await page.fill('.alarm-at >> nth=0', '08:30'); await page.fill('.alarm-at >> nth=1', '21:00');
+  check('약 알람 시각 저장', JSON.stringify((await store()).meds[0].alarms) === '["08:30","21:00"]');
+  const [icsFile] = await Promise.all([page.waitForEvent('download'), page.click('[data-act=ics]')]);
+  const ics = fs.readFileSync(await icsFile.path(), 'utf8');
+  check('알림 파일에 약 이름과 시각이 들어감', ics.includes('알프람 0.25mg 먹을 시간') && ics.includes('T083000') && ics.includes('T210000') && ics.includes('Tide 기록하기'), ics.slice(0, 200));
+  await page.click('[data-act=alarmDel] >> nth=1');
+  check('약 알람 지우기', (await store()).meds[0].alarms.length === 1);
+  await page.click('[data-act=close]');
 
   // 4-2. 기록을 쓰기 전에도 약을 체크할 수 있고, 기록할 때 이어진다
   await put({ version: 2, entries: {}, meds: [{ name: '콘서타', dose: '27mg' }], taken: {}, settings: { hintClosed: true } });

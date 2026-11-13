@@ -4,6 +4,7 @@ import { DISCLAIMER, FONTS, SIZES } from '../constants.js';
 import { esc, sheet, showSheet } from '../dom.js';
 import { remind } from '../files.js';
 import { EN, F, T } from '../i18n.js';
+import { IC } from '../icons.js';
 import { medAddHtml, medKey } from '../meds.js';
 import { standalone } from '../state.js';
 import { db } from '../store.js';
@@ -14,10 +15,14 @@ export function openSettings() {
   const n = Object.keys(db.entries).length;
   const pick = (act, attr, on, label, style) => `<button class="li med" data-act="${act}" ${attr} aria-pressed="${on}"${style ? ` style="${style}"` : ''}>
     <span class="lk">${label}</span><span class="chk">✓</span></button>`;
-  const meds = db.meds.length
-    ? db.meds.map((m) => `<div class="li"><span class="lk">${esc(m.name)}<small>${esc(m.dose || '')}</small></span>
-        <button class="txt dim" data-act="delMed" data-med="${esc(medKey(m))}">${T('삭제')}</button></div>`).join('')
-    : '';
+  // 약마다: 이름·용량, 삭제, 그리고 알람 시각들 (캘린더 알림 파일에 들어간다)
+  const meds = db.meds.map((m, mi) => `<div class="li col">
+      <div class="slh"><span class="lk">${IC.pill}${esc(m.name)}<small>${esc(m.dose || '')}</small></span>
+        <button class="txt dim" data-act="delMed" data-med="${esc(medKey(m))}">${T('삭제')}</button></div>
+      <div class="doses alarms">${(m.alarms || []).map((time, i) => `<span class="dose"><input type="time" class="alarm-at" data-m="${mi}" data-i="${i}" value="${esc(time)}" aria-label="${T('알람 시각')}">
+        <button type="button" data-act="alarmDel" data-m="${mi}" data-i="${i}" aria-label="${T('삭제')}">✕</button></span>`).join('')}
+        <button type="button" class="mini" data-act="alarmAdd" data-m="${mi}">${T('+ 알람')}</button></div>
+    </div>`).join('');
   sheet.innerHTML = `<div class="sheet-in" style="padding-bottom:calc(var(--safe-b) + 30px)">
     <div class="sheet-top">
       <span class="txt"></span>
@@ -40,11 +45,9 @@ export function openSettings() {
     <div class="sec">${T('알림')}</div>
     <section class="card list">
       <label class="li"><span class="lk">${T('기록 알림')}</span><input type="time" id="r-log" value="${esc(remind().log || '')}"></label>
-      <label class="li"><span class="lk">${T('약 알림 1')}</span><input type="time" id="r-med1" value="${esc(remind().med1 || '')}"></label>
-      <label class="li"><span class="lk">${T('약 알림 2')}</span><input type="time" id="r-med2" value="${esc(remind().med2 || '')}"></label>
       <button class="li add" data-act="ics">${T('캘린더에 알림 추가')}</button>
     </section>
-    <p class="secnote">${T('아이폰 웹앱은 정해진 시간에 스스로 알림을 보낼 수 없어요. 대신 매일 반복되는 캘린더 알림 파일을 만들어 드려요. 시간을 정하고 버튼을 누른 뒤 “캘린더에 추가”를 고르세요. 안 쓰는 알림은 시간을 비워 두면 돼요.')}</p>
+    <p class="secnote">${T('아이폰 웹앱은 정해진 시간에 스스로 알림을 보낼 수 없어요. 대신 매일 반복되는 캘린더 알림 파일을 만들어 드려요. 약 알람은 아래 “자주 먹는 약”에서 약마다 정하고, 버튼을 누른 뒤 “캘린더에 추가”를 고르세요. 시간을 바꿨으면 캘린더에서 예전 Tide 알림을 지우고 다시 추가해 주세요.')}</p>
 
     <div class="sec">${T('글씨체')}</div>
     <section class="card list">${Object.keys(FONTS).map((k) => pick('font', `data-font="${k}"`, (db.settings.font || 'system') === k,

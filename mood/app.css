@@ -316,3 +316,9 @@ input[type=range].unset { opacity: .45; }
 .cdot.part { background: var(--card2); }
 .tile .word.unset { font-size: calc(15px * var(--fs, 1.12)); font-weight: 500; letter-spacing: 0; line-height: 1.75; }
 .slv .nm.unset { color: var(--faint); font-weight: 400; }
+
+/* 설정: 약마다 알람 시각 */
+.alarms { flex-wrap: wrap; justify-content: flex-start; margin-left: 0; }
+.dose input[type=time] { background: transparent; padding: 5px 0 5px 10px; font-size: calc(14px * var(--fs, 1.12)); min-width: 0; }
+button.li { text-align: left; }
+button.li .lv { margin-left: auto; }
