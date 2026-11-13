@@ -19,7 +19,7 @@ const weekly = require('./weekly');
 const docsLib = require('./docs');
 const packLib = require('./pack');
 const updater = require('./updater');
-const { NotionMcp, parseMarkdown, cleanText } = require('./notionMcp');
+const { NotionMcp, parseMarkdown, cleanText, escapeText } = require('./notionMcp');
 
 // ---------- 오류 기록 (문제가 생기면 원인을 알 수 있게) ----------
 let logFile = null;
@@ -497,7 +497,7 @@ async function editTodo(id, text) {
       if (!a) throw Object.assign(new Error('no anchor'), { friendly: '잠시 후 다시 해 주세요.' });
       const lines = a.oldStr.split('\n');
       const last = lines[lines.length - 1];
-      const md = text.replace(/([\\*_`~\[\]])/g, '\\$1');
+      const md = escapeText(text);
       const m = last.match(/^(\s*- \[(?: |x|X)\]\s*)/);
       if (!m) throw Object.assign(new Error('bad line'), { friendly: '이 항목은 앱에서 고칠 수 없어요. 노션에서 고쳐 주세요.' });
       const neu = [...lines.slice(0, -1), m[1] + md].join('\n');
@@ -632,7 +632,7 @@ async function addTodo(date, text) {
       const old = w.adders[date];
       const lines = old.split('\n');
       const last = lines[lines.length - 1];
-      const md = text.replace(/([\\*_`~\[\]])/g, '\\$1');
+      const md = escapeText(text);
       const neu = /^\s*- \[ \]\s*$/.test(last)
         ? [...lines.slice(0, -1), last.replace(/- \[ \]\s*$/, `- [ ] ${md}`)].join('\n') // 비어 있는 체크박스 채우기
         : `${old}${/^\s*#/.test(last) ? '\n' : ''}\n- [ ] ${md}`;

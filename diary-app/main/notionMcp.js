@@ -140,14 +140,23 @@ const DATE_RE = /^\s*#{1,6}\s*(\d{1,2})\s*[/.월]\s*(\d{1,2})/;
 const TODO_RE = /^(\s*)- \[( |x|X)\]\s?(.*)$/;
 const pad = (n) => String(n).padStart(2, '0');
 
+// 노션 마크다운은 글자 그대로의 기호 앞에 역슬래시를 붙여서 준다 (7\~9, \[가\]). 꾸밈 기호를 걷어 낼 때
+// 그런 글자는 건드리지 않도록 잠깐 빼 두었다가, 마지막에 역슬래시 없이 되돌려 놓는다.
+const ESCAPED = /\\([!-\/:-@\[-`{-~])/g;
 function cleanText(s) {
+  const kept = [];
   return String(s || '')
+    .replace(ESCAPED, (_, c) => `\u0000${kept.push(c) - 1}\u0000`)
     .replace(/<mention-[^>]*>([^<]*)<\/mention-[^>]*>/g, '$1')
     .replace(/<[^>]+>/g, '')
     .replace(/\*\*|__|~~|`/g, '')
     .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/\u0000(\d+)\u0000/g, (_, i) => kept[i])
     .trim();
 }
+
+// 앱에서 적은 글을 노션 마크다운으로: 꾸밈으로 읽힐 수 있는 기호 앞에 역슬래시
+const escapeText = (s) => String(s || '').replace(/([\\*_`~\[\]<])/g, '\\$1');
 
 function resolveYear(month, refISO) {
   const [ry, rm] = refISO.split('-').map(Number);
@@ -223,4 +232,4 @@ function parseMarkdown(md, pageId, startISO) {
   return { days, anchors, adders };
 }
 
-module.exports = { NotionMcp, parseMarkdown, cleanText, REDIRECT };
+module.exports = { NotionMcp, parseMarkdown, cleanText, escapeText, REDIRECT };

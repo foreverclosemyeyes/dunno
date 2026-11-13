@@ -99,3 +99,15 @@ console.log('✓ 노션 로그인(MCP) 마크다운 파싱 테스트 통과');
   assert.strictEqual(r.days['2026-11-12'][0].text, '뉴스기사 큐레이션');
   console.log('✓ 체크리스트 지우기 테스트 통과');
 }
+
+// 역슬래시: 노션이 붙여 준 건 떼고 보여 주고, 앱에서 적은 글은 붙여서 보냄 → 오가도 글자가 그대로
+{
+  const { cleanText, escapeText } = require('../main/notionMcp');
+  assert.strictEqual(cleanText('유연근무 7\\~9월분 정산'), '유연근무 7~9월분 정산');
+  assert.strictEqual(cleanText('\\[중요\\] **굵게** 3\\*4 a\\_b'), '[중요] 굵게 3*4 a_b');
+  assert.strictEqual(cleanText('C:\\\\temp'), 'C:\\temp');
+  for (const t of ['유연근무 7~9월분', '[중요] 3*4 = 12', 'a_b `c` <태그>', 'C:\\temp\\~x']) assert.strictEqual(cleanText(escapeText(t)), t);
+  const r = parseMarkdown('#### 11/16 (월)\n- [ ] 유연근무 7\\~9월분', 'P', '2026-11-16');
+  assert.strictEqual(r.days['2026-11-16'][0].text, '유연근무 7~9월분');
+  console.log('✓ 역슬래시 오가기 테스트 통과');
+}

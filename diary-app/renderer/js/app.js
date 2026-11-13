@@ -459,10 +459,10 @@
   function renderQuests() {
     const quests = visibleQuests();
     const head = $('#quest-title'); head.innerHTML = '';
-    const add = h('button', 'q-add', renderQuests.adding ? '닫기' : '+ 추가');
+    const add = h('button', 'q-add', renderQuests.adding ? '×' : '+');
+    add.title = renderQuests.adding ? '닫기' : '업무 추가';
     add.onclick = () => { renderQuests.adding = !renderQuests.adding; renderQuests(); };
-    const right = h('span', 'q-head-right'); right.append(h('small', null, `${quests.length}개`), add);
-    head.append(S('section', '진행 중 업무'), right);
+    head.append(S('section', '진행 중 업무'), add);
     const list = $('#quest-list'); list.innerHTML = '';
     if (renderQuests.adding) list.append(questForm());
     if (!quests.length && !renderQuests.adding) {
