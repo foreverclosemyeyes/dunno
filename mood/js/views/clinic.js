@@ -76,7 +76,9 @@ function figures(s, width, SH, show) {
   const n = s.dates.length, L = 18, R = clinicView.lines.includes('si') ? 80 : 44, pw = width - L - R, col = pw / n;
   const cx = (i) => L + col * (i + 0.5);
   const ink = 'style="fill:var(--ink)"', mutedText = 'style="fill:var(--muted)"';
-  const marks = s.dates.map((d, i) => (i === 0 || parse(d).getDay() === 1 ? i : -1)).filter((i) => i >= 0);
+  // 날짜를 적을 자리: 첫날과 월요일들. 첫날 바로 뒤(사흘 안)에 월요일이 오면 글자가 겹치니 첫날은 뺀다 (여러 주를 그릴 때).
+  const mondays = s.dates.map((d, i) => (parse(d).getDay() === 1 ? i : -1)).filter((i) => i > 0);
+  const marks = n > 7 && mondays.length && mondays[0] <= 3 ? mondays : [0, ...mondays];
   let out = '', y = 6;
 
   // 지금까지 그린 것을 그림 한 장으로 마무리하고 다음 장을 시작한다
@@ -148,14 +150,16 @@ function figures(s, width, SH, show) {
   const sleep = take('sum-sleep', y);
 
   // 3. 증상: 날마다 요일(영어 한 글자, 사용자가 고름)이 적힌 네모 한 칸, 그런 날은 색칠 (단계가 높을수록 진하게). 위 그래프와 같은 날짜 자리에 놓인다.
-  const sq = Math.max(4, Math.min(col - 7, 30));   // 옆 칸과 살짝만 떨어지게
+  // 칸 크기는 하루 너비를 따라간다 (옆 칸과 살짝만 떨어지게). 1주는 30, 2주는 15쯤, 4주는 7쯤.
+  // 요일 글자는 칸이 넉넉하면 크게, 2주처럼 좁으면 작게 넣고, 4주처럼 더 좁으면 빼서 색으로만 보이게 한다.
+  const sq = Math.max(4, Math.min(col - Math.max(2, col * 0.18), 30)), letter = sq >= 24 ? 13 : sq >= 14 ? 9.5 : 0;
   const squares = (name, levelOf) => {
     const vals = s.days.map((e) => (e ? levelOf(e) : 0)), count = vals.filter(Boolean).length;
     head(name, count ? F('{0}일', count) : T('없음'));
     s.dates.forEach((d, i) => {
       const v = vals[i], x = cx(i) - sq / 2, top = y + 13;
       out += `<rect x="${x.toFixed(1)}" y="${top}" width="${sq.toFixed(1)}" height="${sq.toFixed(1)}" rx="${(sq * 0.28).toFixed(1)}" ${v ? `style="fill:var(--ink)" fill-opacity="${[0, 0.3, 0.5, 0.75, 1][v]}"` : 'class="c0"'}/>`;
-      out += `<text x="${cx(i).toFixed(1)}" y="${(top + sq / 2 + 4.6).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="600" style="fill:${v >= 3 ? 'var(--ink-inv)' : v ? 'var(--text)' : 'var(--faint)'}">${'SMTWTFS'[parse(d).getDay()]}</text>`;
+      if (letter) out += `<text x="${cx(i).toFixed(1)}" y="${(top + sq / 2 + letter * 0.36).toFixed(1)}" text-anchor="middle" font-size="${letter}" font-weight="600" style="fill:${v >= 3 ? 'var(--ink-inv)' : v ? 'var(--text)' : 'var(--faint)'}">${'SMTWTFS'[parse(d).getDay()]}</text>`;
     });
     y += 13 + sq + 22;
   };
@@ -217,16 +221,10 @@ function summaryHtml(weeks) {
   const toggles = lineDefs().map(([key, name, max]) => `<button class="sum-tog" data-act="clinicLine" data-k="${key}" aria-pressed="${clinicView.lines.includes(key)}">${lineSample(key)}${name}${max === 10 && s[key] ? ` <b>${one(s[key].avg)}</b>` : ''}</button>`).join('');
   const show = { fx: s.fx.length > 0, custom: customDefs().filter((c) => s.got.some((e) => customLevel(c, (e.custom || {})[c.id]))) };
   const count = ([name, c]) => li(esc(name), F('{0}일', c));
-  // 그래프(선들과 수면)는 고른 기간 전체를 한 장에 그려서 한눈에 보이게 한다 (2주·4주를 주마다 쪼갰더니 흐름이 안 보인다고 함, 2026-11-13).
-  // 네모·○× 줄은 하루 칸이 넓어야 읽히니, 2주·4주에서는 그래프 아래에 한 주씩 카드로 쌓는다 (오래된 주부터).
-  const whole = figures(s, width, 150, show);
-  const graphs = `${toggles ? whole.chart : ''}${itemOn('sleep') ? whole.sleep : ''}`;
-  const weekRows = (b) => {
-    const { rows } = figures(b, width, 150, show);
-    return rows ? `<section class="card sum-stack"><div class="sum-week">${md(parse(b.dates[0]))} – ${md(parse(b.dates[6]))}</div>${rows}</section>` : '';
-  };
-  const cards = weeks === 1 ? `<section class="card sum-stack">${graphs}${whole.rows}</section>`
-    : `${graphs ? `<section class="card sum-stack">${graphs}</section>` : ''}${Array.from({ length: weeks }, (_, i) => weekRows(summary(1, (weeks - 1 - i) * 7))).join('')}`;
+  // 그래프·수면·네모 줄·○× 줄을 전부 고른 기간 전체로 한 카드에 그린다. 위아래로 같은 자리가 같은 날이다.
+  // (한때 2주·4주를 주마다 카드로 쪼갰는데, 사용자가 한 줄에 14칸·28칸으로 이어서 보는 쪽을 골랐다, 2026-11-13)
+  const fig = figures(s, width, 150, show);
+  const cards = `<section class="card sum-stack">${toggles ? fig.chart : ''}${itemOn('sleep') ? fig.sleep : ''}${fig.rows}</section>`;
   const signs = s.signs.map(([name, c]) => li(esc(name), F('{0}일', c)));
   const says = (title, rows) => (rows.length ? `<div class="sec">${title}</div><section class="card list">${rows.join('')}</section>` : '');
   return `

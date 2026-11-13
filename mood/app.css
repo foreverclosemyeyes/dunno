@@ -368,7 +368,6 @@ input[type=date] { border: 0; outline: none; background: var(--card2); color: va
 
 /* 진료용 요약: 선을 켜고 끄는 단추와 그림 */
 .sum-togs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 4px 12px; }
-.sum-week { color: var(--muted); font-size: calc(12.5px * var(--fs, 1.12)); font-weight: 600; margin-bottom: 14px; }
 .sum-tog { background: var(--card2); border-radius: 999px; padding: 6px 12px; font-size: calc(12.5px * var(--fs, 1.12)); color: var(--faint); }
 .sum-tog b { font-family: var(--round); font-weight: 600; }
 #summary .sum-tog svg { display: inline-block; vertical-align: middle; margin: -2px 6px 0 0; opacity: .4; }

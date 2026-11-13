@@ -251,9 +251,8 @@ ${lines.join('\n') || '(기록 없음)'}`;
 
 // ---------- 진료용 요약: 최근 n주를 숫자로 정리 (화면·글·인쇄가 같이 쓴다) ----------
 export const SHORT_SLEEP = 300;   // 이 분(5시간)보다 짧게 잔 날을 따로 적는다
-// back: 며칠 전에 끝나는 구간인지 (0이면 오늘까지). 주 단위로 나눠 그릴 때 쓴다.
-export function summary(weeks, back = 0) {
-  const n = weeks * 7, t = addDays(today(), -back);
+export function summary(weeks) {
+  const n = weeks * 7, t = today();
   const dates = Array.from({ length: n }, (_, i) => addDays(t, i - n + 1));
   const days = dates.map((d) => db.entries[d] || null), got = days.filter(Boolean);
   const stat = (key) => {
