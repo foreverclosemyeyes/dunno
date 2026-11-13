@@ -49,7 +49,7 @@ export function moodFill(v) {
 // ---------- 화면 모드 · 글씨 ----------
 export const themeQuery = matchMedia('(prefers-color-scheme: light)');
 export function applyTheme() {
-  const pref = db.settings.theme || 'auto', light = pref === 'light' || (pref === 'auto' && themeQuery.matches);
+  const pref = db.settings.theme || 'dark', light = pref === 'light' || (pref === 'auto' && themeQuery.matches);
   document.documentElement.dataset.theme = light ? 'light' : 'dark';
   const meta = $('meta[name=theme-color]');
   if (meta) meta.content = light ? '#eef0f3' : '#000000';

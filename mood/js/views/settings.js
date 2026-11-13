@@ -36,7 +36,7 @@ export function openSettings() {
 
     <div class="sec">${T('화면 모드')}</div>
     <section class="card list">${[['auto', T('자동 (아이폰 설정 따라감)')], ['light', T('라이트')], ['dark', T('다크')]].map(([k, label]) =>
-      pick('theme', `data-theme-pick="${k}"`, (db.settings.theme || 'auto') === k, label)).join('')}</section>
+      pick('theme', `data-theme-pick="${k}"`, (db.settings.theme || 'dark') === k, label)).join('')}</section>
 
     <div class="sec">${T('색')}</div>
     <section class="card list">${pick('color', 'data-color-pick="off"', !accentKey(), T('흑백'))}${Object.keys(ACCENTS).map((k) =>

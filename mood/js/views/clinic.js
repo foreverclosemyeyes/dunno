@@ -41,17 +41,12 @@ function nextText() {
 }
 
 // 큰 그래프에 켜고 끌 수 있는 선들: [열쇠, 이름, 가장 높은 값]. 증상(0~4)은 그래프 높이에 맞춰 늘려 그린다.
+// 0~10으로 적는 세 가지만 선으로 그린다. 증상(우울·불안 등)은 바로 아래 네모 줄에 있어서, 선으로 또 그리면 겹쳐서 난잡하다고 해서 뺐다 (2026-11-14).
 // 설정에서 꺼 둔 항목은 뺀다.
-const lineDefs = () => [
-  ['mood', T('기분'), 10], ['energy', T('에너지'), 10], ['conf', T('자신감'), 10],
-  ['dep', T('우울'), 4], ['anx', T('불안'), 4], ['si', T('죽고 싶은 생각'), 4],
-].filter(([key]) => itemOn(key));
+const lineDefs = () => [['mood', T('기분'), 10], ['energy', T('에너지'), 10], ['conf', T('자신감'), 10]].filter(([key]) => itemOn(key));
 
 // 선은 색이 아니라 모양으로 구분한다: [굵기, 끊김 무늬]. 기분만 설정에서 고른 색의 굵은 실선이고, 나머지는 같은 색(--ink)이다.
-const LINE_STYLE = {
-  mood: [3, ''], energy: [1.6, ''], conf: [1.8, '7 5'],
-  dep: [2.4, '0.1 5.5'], anx: [1.8, '10 4 1.5 4'], si: [1.8, '3 4'],
-};
+const LINE_STYLE = { mood: [3, ''], energy: [1.6, ''], conf: [1.8, '7 5'] };
 const lineColor = (key) => (key === 'mood' ? tone('mood', 10) || 'var(--ink)' : 'var(--ink)');
 const lineAttrs = (key) => `fill="none" stroke-linejoin="round" stroke-linecap="round" style="stroke:${lineColor(key)}" stroke-width="${LINE_STYLE[key][0]}"${LINE_STYLE[key][1] ? ` stroke-dasharray="${LINE_STYLE[key][1]}"` : ''}`;
 // 단추에 붙는 선 견본
@@ -67,13 +62,13 @@ function dateRanges(list) {
   return runs.map(([a, b]) => (a === b ? shortDate(a) : `${shortDate(a)}–${shortDate(b)}`)).join(', ');
 }
 
-// 요약에 들어가는 그림 세 장: 큰 그래프(켜 둔 선들, 선 끝에 이름) · 수면(곡선) · 줄들(증상 네모, 약 ○×, 생리 ○).
+// 요약에 들어가는 그림 세 장: 큰 그래프(켜 둔 선들, 선 끝에 이름) · 수면(곡선) · 네모 줄들(증상, 부작용, 내 항목, 약, 생리).
 // 셋 다 같은 너비와 여백으로 그려서, 위아래로 같은 자리가 같은 날이다 (약을 안 먹은 날의 기분·증상이 한 줄로 이어져 보인다).
 // 선은 전부 부드러운 실선이다. 색은 CSS 변수를 따라가서 다크·라이트·인쇄에서 그대로 읽힌다.
 // show: 기간 전체에서 한 번이라도 있었던 것만 줄을 만든다 { fx: 부작용이 있었는지, custom: [값이 있었던 내 항목들] }
 function figures(s, width, SH, show) {
   // 오른쪽에는 선 끝 이름이 들어갈 자리를 둔다 (이름이 긴 "죽고 싶은 생각"을 켰을 때만 넓게)
-  const n = s.dates.length, L = 18, R = clinicView.lines.includes('si') ? 80 : 44, pw = width - L - R, col = pw / n;
+  const n = s.dates.length, L = 18, R = 44, pw = width - L - R, col = pw / n;
   const cx = (i) => L + col * (i + 0.5);
   const ink = 'style="fill:var(--ink)"', mutedText = 'style="fill:var(--muted)"';
   // 날짜를 적을 자리: 첫날과 월요일들. 첫날 바로 뒤(사흘 안)에 월요일이 오면 글자가 겹치니 첫날은 뺀다 (여러 주를 그릴 때).
@@ -153,9 +148,10 @@ function figures(s, width, SH, show) {
   // 칸 크기는 하루 너비를 따라간다 (옆 칸과 살짝만 떨어지게). 1주는 30, 2주는 15쯤, 4주는 7쯤.
   // 요일 글자는 칸이 넉넉하면 크게, 2주처럼 좁으면 작게 넣고, 4주처럼 더 좁으면 빼서 색으로만 보이게 한다.
   const sq = Math.max(4, Math.min(col - Math.max(2, col * 0.18), 30)), letter = sq >= 24 ? 13 : sq >= 14 ? 9.5 : 0;
-  const squares = (name, levelOf) => {
-    const vals = s.days.map((e) => (e ? levelOf(e) : 0)), count = vals.filter(Boolean).length;
-    head(name, count ? F('{0}일', count) : T('없음'));
+  // vals: 날마다의 정도(0~4), right: 오른쪽에 적을 글 (안 주면 며칠인지)
+  const squaresOf = (name, vals, right) => {
+    const count = vals.filter(Boolean).length;
+    head(name, right || (count ? F('{0}일', count) : T('없음')));
     s.dates.forEach((d, i) => {
       const v = vals[i], x = cx(i) - sq / 2, top = y + 13;
       out += `<rect x="${x.toFixed(1)}" y="${top}" width="${sq.toFixed(1)}" height="${sq.toFixed(1)}" rx="${(sq * 0.28).toFixed(1)}" ${v ? `style="fill:var(--ink)" fill-opacity="${[0, 0.3, 0.5, 0.75, 1][v]}"` : 'class="c0"'}/>`;
@@ -163,34 +159,18 @@ function figures(s, width, SH, show) {
     });
     y += 13 + sq + 22;
   };
+  const squares = (name, levelOf) => squaresOf(name, s.days.map((e) => (e ? levelOf(e) : 0)));
   SYMPTOMS.filter(([k]) => itemOn(k)).forEach(([k, name]) => squares(name, (e) => e[k] || 0));
   if (itemOn('psy')) squares(T('정신병적 증상'), (e) => e.psy || 0);   // 그날 몇 가지였는지에 따라 진해진다
   // 부작용(하나라도 있던 날)과 내 항목도 같은 네모 줄로
   if (itemOn('fx') && show.fx) squares(T('부작용'), (e) => (onlyOn(e.fx) ? 3 : 0));
   show.custom.forEach((c) => squares(esc(c.name), (e) => customLevel(c, (e.custom || {})[c.id])));
 
-  // 4. 약 · 생리: 얇은 선으로 먹은 날 ○, 안 먹은 날 ×
-  const r = Math.max(2, Math.min(col / 2 - 1.5, 5.5));
-  const marksRow = (has, cross) => {
-    s.dates.forEach((d, i) => {
-      const x = cx(i), my = y + 13 + sq / 2;
-      if (has(d, s.days[i])) out += `<circle cx="${x.toFixed(1)}" cy="${my}" r="${r.toFixed(1)}" fill="none" stroke-width="1.2" style="stroke:var(--ink)"/>`;
-      else if (cross) {
-        const k = r * 0.75;
-        out += `<path d="M${(x - k).toFixed(1)},${(my - k).toFixed(1)}L${(x + k).toFixed(1)},${(my + k).toFixed(1)}M${(x + k).toFixed(1)},${(my - k).toFixed(1)}L${(x - k).toFixed(1)},${(my + k).toFixed(1)}" fill="none" stroke-width="1" stroke-linecap="round" style="stroke:var(--faint)"/>`;
-      }
-    });
-    y += 13 + sq + 22;   // 증상 네모 줄과 같은 높이
-  };
-  const meds = itemOn('meds') ? s.meds : [], period = itemOn('period') && s.period.length > 0;
-  meds.forEach(([m, count]) => {
-    head(esc(`${m.name}${m.dose ? ` ${m.dose}` : ''}`), F('{0}일 중 {1}일', n, count));
-    marksRow((d) => medsFor(d).some((x) => medKey(x) === medKey(m)), true);
+  // 4. 약 · 생리도 같은 네모 줄: 먹은 날(생리 중인 날)만 칠한다. ○ ×로 그렸더니 ×가 줄줄이 늘어서 난잡하다고 해서 바꿨다 (2026-11-14).
+  if (itemOn('meds')) s.meds.forEach(([m, count]) => {
+    squaresOf(esc(`${m.name}${m.dose ? ` ${m.dose}` : ''}`), s.dates.map((d) => (medsFor(d).some((x) => medKey(x) === medKey(m)) ? 3 : 0)), F('{0}일 중 {1}일', n, count));
   });
-  if (period) {
-    head(T('생리'), F('{0}일', s.period.length));
-    marksRow((d, e) => e && e.period, false);
-  }
+  if (itemOn('period') && s.period.length) squares(T('생리'), (e) => (e.period ? 3 : 0));
   if (!out) return { chart, sleep, rows: '' };
   dateLabels(y - 5);
   return { chart, sleep, rows: take('sum-rows', y + 1) };
@@ -221,7 +201,7 @@ function summaryHtml(weeks) {
   const toggles = lineDefs().map(([key, name, max]) => `<button class="sum-tog" data-act="clinicLine" data-k="${key}" aria-pressed="${clinicView.lines.includes(key)}">${lineSample(key)}${name}${max === 10 && s[key] ? ` <b>${one(s[key].avg)}</b>` : ''}</button>`).join('');
   const show = { fx: s.fx.length > 0, custom: customDefs().filter((c) => s.got.some((e) => customLevel(c, (e.custom || {})[c.id]))) };
   const count = ([name, c]) => li(esc(name), F('{0}일', c));
-  // 그래프·수면·네모 줄·○× 줄을 전부 고른 기간 전체로 한 카드에 그린다. 위아래로 같은 자리가 같은 날이다.
+  // 그래프·수면·네모 줄을 전부 고른 기간 전체로 한 카드에 그린다. 위아래로 같은 자리가 같은 날이다.
   // (한때 2주·4주를 주마다 카드로 쪼갰는데, 사용자가 한 줄에 14칸·28칸으로 이어서 보는 쪽을 골랐다, 2026-11-13)
   const fig = figures(s, width, 150, show);
   const cards = `<section class="card sum-stack">${toggles ? fig.chart : ''}${itemOn('sleep') ? fig.sleep : ''}${fig.rows}</section>`;
@@ -231,7 +211,7 @@ function summaryHtml(weeks) {
     <div class="sec">${md(parse(s.dates[0]))} – ${md(parse(s.dates[s.dates.length - 1]))} · ${F('기록 {0}일 / {1}일', s.got.length, s.dates.length)}</div>
     ${toggles ? `<div class="sum-togs">${toggles}</div>` : ''}
     ${cards}
-    <p class="secnote">${T('위아래로 같은 자리가 같은 날이에요 · 네모는 진할수록 심한 날 · 약은 먹은 날 ○, 안 먹은 날 ×')}</p>
+    <p class="secnote">${T('위아래로 같은 자리가 같은 날이에요 · 증상 네모는 진할수록 심한 날 · 약은 먹은 날만 칠해져요')}</p>
     ${says(T('기분이 높았던 날 체크한 항목'), signs)}
     ${itemOn('psy') ? says(T('정신병적 증상'), s.psych.map(count)) : ''}
     ${itemOn('fx') ? says(T('부작용'), s.fx.map(count)) : ''}

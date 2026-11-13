@@ -51,7 +51,7 @@ const DICT = {
   '추가': 'Add',
   '진료용 요약': 'Summary for your appointment',
   '평균 (가장 낮은 날–가장 높은 날)': 'Average (lowest–highest day)',
-  '위아래로 같은 자리가 같은 날이에요 · 네모는 진할수록 심한 날 · 약은 먹은 날 ○, 안 먹은 날 ×': 'The same position up and down is the same day · darker squares mean a harder day · medication: ○ taken, × not taken',
+  '위아래로 같은 자리가 같은 날이에요 · 증상 네모는 진할수록 심한 날 · 약은 먹은 날만 칠해져요': 'The same position up and down is the same day · darker symptom squares mean a harder day · medication squares are filled on days taken',
   '5시간': '5 h',
   '5시간 미만인 밤': 'Nights under 5 h:',
   '5시간 미만 {0}일': 'Under 5 h on {0} days',

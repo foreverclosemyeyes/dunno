@@ -214,12 +214,12 @@ function seed() {
 
   // 5-2. 진료 탭: 다음 진료일, 말할 것, 요약
   await page.click('[data-tab=clinic]');
-  check('진료용 요약에 그림과 눈에 띄는 날, 약이 나옴', (await page.$$('.sum-rows circle')).length > 3 && (await page.$$('.sum-fig path')).length >= 3 && (await page.$$('.sum-rows rect')).length % 14 === 0 && (await page.$$('.sum-rows rect[style]')).length > 0
+  check('진료용 요약에 그림과 눈에 띄는 날, 약이 나옴', (await page.$$('.sum-rows circle, .sum-rows path')).length === 0 && (await page.$$('.sum-fig path')).length === 2 && (await page.$$('.sum-rows rect')).length % 14 === 0 && (await page.$$('.sum-rows rect[style]')).length > 0
     && (await text('.sum-rows')).includes('우울') && (await text('.sum-rows')).includes('브린텔릭스') && (await text('#summary')).includes('5시간 미만'));
-  const anxOff = !(await text('.sum-fig')).includes('불안');
-  await page.click('.sum-tog[data-k=anx]');
-  check('큰 그래프에서 선을 켜고 끔', anxOff && (await text('.sum-fig')).includes('불안') && (await page.getAttribute('.sum-tog[data-k=anx]', 'aria-pressed')) === 'true');
-  await page.click('.sum-tog[data-k=anx]');
+  const confOff = !(await text('.sum-fig')).includes('자신감');
+  await page.click('.sum-tog[data-k=conf]');
+  check('큰 그래프에서 선을 켜고 끔 (선은 기분·에너지·자신감 세 가지뿐)', confOff && (await text('.sum-fig')).includes('자신감') && (await page.getAttribute('.sum-tog[data-k=conf]', 'aria-pressed')) === 'true' && (await page.$$('.sum-tog')).length === 3);
+  await page.click('.sum-tog[data-k=conf]');
   check('요약 그림이 카드 밖으로 안 넘침', await page.evaluate(() => [...document.querySelectorAll('#summary .card svg')].every((el) => el.getBoundingClientRect().right <= el.closest('.card').getBoundingClientRect().right)));
   await page.fill('#c-note', '약 먹으면 오후에 졸림'); await page.press('#c-note', 'Enter');
   check('말할 것 추가 (엔터)', (await store()).clinic.notes[0] === '약 먹으면 오후에 졸림' && (await text('#summary')).includes('약 먹으면 오후에 졸림'));

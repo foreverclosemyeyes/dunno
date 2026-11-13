@@ -10,4 +10,4 @@ export const standalone = () => window.navigator.standalone === true || matchMed
 export const trend = { mode: 'week', anchor: today(), pick: null };
 
 // ---------- 진료 화면 (요약 기간: 1 / 2 / 4주 또는 'since' = 지난 진료 후, 큰 그래프에 켜 둔 선) ----------
-export const clinicView = { weeks: 2, lines: ['mood', 'energy', 'dep'] };
+export const clinicView = { weeks: 2, lines: ['mood', 'energy'] };
