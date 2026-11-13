@@ -30,7 +30,7 @@
   --sel: rgba(255, 255, 255, .26);
   --bar: rgba(10, 10, 12, .55);
   --shadow: none;
-  --glow: radial-gradient(60% 40% at 12% 0%, rgba(255,255,255,.17), transparent 70%);
+  --glow: radial-gradient(95% 58% at 8% 0%, rgba(255,255,255,.27), rgba(255,255,255,.07) 45%, transparent 74%);
   --radius: 20px;
   --safe-t: env(safe-area-inset-top, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
@@ -54,7 +54,7 @@
   --sel: #fff;
   --bar: rgba(248, 248, 250, .74);
   --shadow: 0 1px 1px rgba(0, 0, 0, .02), 0 6px 20px rgba(0, 0, 0, .035);
-  --glow: radial-gradient(60% 40% at 10% 0%, #fff, transparent 70%);
+  --glow: radial-gradient(95% 58% at 8% 0%, #fff, rgba(255,255,255,.55) 45%, transparent 74%);
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
