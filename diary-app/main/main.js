@@ -283,7 +283,19 @@ function persona() {
     claudeUrl: a.claudeUrl != null ? a.claudeUrl : st.claudeUrl || '',
     model: a.model || st.aiModel || 'opus',
     docs: docsLib.text(docsDir(), a.docs), // 이 비서에게 맡긴 참고 문서(인수인계 파일 등)의 내용
+    memory: memoryOf((t && t.castActive) || 'ren').map((n) => `- ${n.text}`).join('\n'), // 사용자가 "앞으로는 이렇게 해 줘"라고 한 것들
   };
+}
+// 비서별로 기억해 둔 규칙. 대답 끝의 [기억: …] 줄에서 모음 (같은 문장은 한 번만, 비서당 40개까지)
+function memoryOf(id) { return (store.get('asstMemory', {})[id]) || []; }
+function remember(id, notes) {
+  if (!notes || !notes.length) return;
+  const all = store.get('asstMemory', {});
+  const list = all[id] || [];
+  for (const text of notes) if (!list.some((n) => n.text === text)) list.push({ text, at: new Date().toISOString() });
+  all[id] = list.slice(-40);
+  store.set('asstMemory', all);
+  push('memory', all);
 }
 function docsDir() { return path.join(app.getPath('userData'), 'docs'); }
 
@@ -308,17 +320,32 @@ function addChat(...msgs) {
   push('chat', list);
 }
 
-async function runAssistant({ notify }) {
+// auto: 매시간 자동 체크 (그 외에는 사용자가 '지금 확인해줘'를 누른 것)
+async function runAssistant({ notify, auto = false }) {
   // 키가 없으면 무료 모드(정해진 문장)로 말함
   const ctx = currentContext();
   const who = persona(); // 묻는 순간의 비서 (대답을 기다리는 동안 비서를 바꿔도 이 비서의 대화로 남음)
-  push('assistant', { thinking: true });
+  const st = store.get('settings', {});
+  // Gmail 을 맡겨 뒀으면 할 일 리마인드 대신 메일함을 점검: 지난 점검 뒤(처음엔 최근 2시간)의 메일만
+  const started = new Date().toISOString();
+  const since = st.lastMailCheck && Date.now() - new Date(st.lastMailCheck) < 24 * 3600 * 1000 ? st.lastMailCheck : new Date(Date.now() - 2 * 3600 * 1000).toISOString();
+  if (!auto) push('assistant', { thinking: true }); // 자동 체크는 말할 게 있을 때만 나타남
   let msg;
   try {
-    msg = await assistant.generate(secrets.get('anthropic'), who, ctx, chatHistoryFor(who.id));
+    msg = await assistant.generate(secrets.get('anthropic'), who, ctx, chatHistoryFor(who.id), st.gmail ? { gmail: { server: st.gmailServer, since, alerts: store.get('mailAlerts', []) } } : {});
+    if (st.gmail && msg.source === 'claude') setSettings({ lastMailCheck: started });
+    remember(who.id, msg.notes);
+    // 메일 점검에서 알린 내용을 적어 둠 → 다음 점검 때 같은 얘기를 반복하지 않게
+    if (st.gmail && msg.source === 'claude' && !msg.nothing) store.set('mailAlerts', [...store.get('mailAlerts', []), { at: started, text: msg.text }].slice(-40));
   } catch (e) {
     console.error('[assistant]', e);
+    if (auto) return null; // 자동 체크가 실패하면 조용히 넘어감 (다음 시간에 다시)
     msg = { ...assistant.fallbackMessage(ctx, who), note: assistant.friendlyError(e) };
+  }
+  if (msg.nothing) {
+    // 새로 말할 게 없음: 자동 체크면 아무것도 띄우지 않고, 직접 눌렀을 때만 한 줄로 알림
+    if (auto) return null;
+    msg = { text: st.gmail ? '지난 확인 뒤로 메일함에 따로 볼 건 없습니다.' : '지난번과 달라진 건 없습니다.', source: 'local', name: who.name };
   }
   msg.at = new Date().toISOString();
   store.set('lastAssistant', msg);
@@ -344,6 +371,7 @@ async function chatWithAssistant(text) {
   try {
     const st = store.get('settings', {});
     msg = await assistant.chat(secrets.get('anthropic'), who, currentContext(), history, text, st.gmail ? { gmail: { server: st.gmailServer } } : {});
+    remember(who.id, msg.notes);
   } catch (e) {
     console.error('[chat]', e);
     msg = { text: assistant.friendlyError(e), source: 'local', name: who.name, error: true };
@@ -594,7 +622,7 @@ function tick() {
     const key = `${t}-${h}`;
     if (wd >= 1 && wd <= 5 && h >= 9 && h <= 19 && now.getMinutes() < 3 && store.get('lastHourly') !== key) {
       store.set('lastHourly', key);
-      sync(true).then(() => runAssistant({ notify: true }));
+      sync(true).then(() => runAssistant({ notify: true, auto: true }));
     }
   }
 }
@@ -769,6 +797,7 @@ function registerIpc() {
     version: app.getVersion(),
     update: updateState,
     theme: store.get('theme', null),
+    memory: store.get('asstMemory', {}),
     stats: store.get('stats', {}),
     lastAssistant: store.get('lastAssistant', null),
     chat: store.get('chat', []),
@@ -836,6 +865,12 @@ function registerIpc() {
     return r.filePaths.map((f) => { try { return docsLib.save(docsDir(), f); } catch (e) { return { error: String(e.message || e) }; } });
   });
   ipcMain.handle('docs:remove', (_e, id) => { docsLib.remove(docsDir(), String(id)); return true; });
+  ipcMain.handle('memory:forget', (_e, id, text) => {
+    const all = store.get('asstMemory', {});
+    all[String(id)] = (all[String(id)] || []).filter((n) => n.text !== text);
+    store.set('asstMemory', all);
+    return all;
+  });
   ipcMain.handle('clipboard:write', (_e, text) => { clipboard.writeText(String(text || '')); return true; });
   ipcMain.handle('chat:clear', () => { store.set('chat', []); push('chat', []); return []; });
   ipcMain.handle('todo:delete', (_e, id) => deleteTodo(String(id)));

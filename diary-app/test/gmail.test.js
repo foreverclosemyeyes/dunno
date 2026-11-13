@@ -54,4 +54,15 @@ assert.strictEqual(s.reason, 'denied');
 assert.strictEqual(S([init(), res({ is_error: true, result: 'Please log in' })]).reason, 'login');
 assert.strictEqual(S([init()]).reason, 'cli');
 
+// 매시간 메일 점검 안내문: 지난 확인 시각과 이미 알린 내용이 들어가고, 할 일 재촉은 하지 말라고 적혀 있음
+const cp = gmail.checkPrompt('2026-11-13T07:00:00.000Z', [{ at: '2026-11-13T06:00:00.000Z', text: 'MBC 세금계산서 완료 회신 아직 없음' }]);
+assert.ok(cp.includes('after:1794553200') && cp.includes('MBC 세금계산서 완료 회신 아직 없음') && cp.includes(gmail.NOTHING));
+assert.ok(cp.includes('업무 리마인드는 하지 마'));
+assert.ok(!gmail.checkPrompt('2026-11-13T07:00:00.000Z').includes('[이미 알린 내용]\n-'), '알린 게 없으면 목록도 없음');
+
+// 답변 끝의 [기억: …] 줄은 떼어서 따로 저장
+const { splitMemory } = require('../main/assistant');
+assert.deepStrictEqual(splitMemory('알겠어. 앞으로 그렇게 할게.\n[기억: 세금계산서 발행 요청 뒤에는 기한까지 완료됐는지 확인한다]'), { text: '알겠어. 앞으로 그렇게 할게.', notes: ['세금계산서 발행 요청 뒤에는 기한까지 완료됐는지 확인한다'] });
+assert.deepStrictEqual(splitMemory('그냥 답변'), { text: '그냥 답변', notes: [] });
+
 console.log('✓ Gmail 연동 규칙·연결 확인 판정 테스트 통과');

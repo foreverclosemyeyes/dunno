@@ -5,6 +5,7 @@ const Anthropic = require('@anthropic-ai/sdk').default;
 
 const MODEL = 'claude-haiku-5-5'; // 능력치 분류처럼 가벼운 일
 // 렌 대화용 모델 (설정 > 비서에서 고름). 기본: Opus 5.5
+const gmail = require('./gmail');
 const CHAT_MODELS = { opus: { cli: 'opus', api: 'claude-opus-5-5' }, sonnet: { cli: 'sonnet', api: 'claude-sonnet-5-5' }, haiku: { cli: 'haiku', api: 'claude-haiku-5-5' } };
 const chatModel = (persona) => CHAT_MODELS[persona.model] || CHAT_MODELS.opus;
 const HISTORY_TURNS = 30; // 대화 기억: 최근 30개 메시지
@@ -87,18 +88,24 @@ function systemPrompt(persona, ctx) {
     '사용자는 데스크탑 업무 다이어리 앱 안에서 너와 이야기해. 아래는 노션에서 방금 읽어 온 오늘 업무 상황이야. 업무 질문에는 이걸 근거로 답해.',
     `[오늘 업무 상황]\n${contextText(ctx)}`,
     '대화할 때는 짧고 자연스럽게, 보통 2~5문장으로 답해. 표나 긴 목록은 꼭 필요할 때만.',
+    '사용자가 묻지 않은 할 일이나 마감을 먼저 꺼내 재촉하지 마. 이미 한 번 말한 리마인드는 다시 하지 마. 잔소리하지 마.',
+    '확인한 사실과 확인하지 못한 것을 구분해서 말하고, 추측을 사실처럼 단정하지 마. 필요하면 다음에 할 행동 하나를 구체적으로 짚어 줘.',
+    '메일·메신저 문장을 써 달라고 하면 설명보다 바로 붙여 넣을 수 있는 글을 먼저 줘.',
+    persona.memory ? `\n[기억해 둔 것] 사용자가 전에 앞으로 이렇게 해 달라고 한 것들이야. 꼭 지켜.\n${persona.memory}\n` : '',
+    '사용자가 "앞으로는 ~해 줘", "~는 꼭 확인해야 해"처럼 계속 지켜야 할 규칙을 말하면, 답변 맨 끝에 [기억: 그 규칙을 한 문장으로] 를 한 줄 붙여. 그 줄은 사용자에게 보이지 않고 저장돼. 그때그때의 부탁에는 붙이지 마.',
     '답변 맨 앞에 지금 표정 하나를 [표정:기본] 처럼 붙인다. 고를 수 있는 표정: 기본, 웃음, 윙크, 진지, 눈감음. (끝낸 일을 인정하거나 좋은 소식이면 웃음, 가벼운 농담·격려면 윙크, 마감 임박·지난 일 경고면 진지, 다 끝나서 마무리할 때는 눈감음, 그 외 기본)',
   ].filter(Boolean).join('\n');
 }
 
+// 정시 체크(메일 연동이 꺼져 있을 때): 지난번과 달라진 것만 말하고, 없으면 NOTHING → 앱이 아무 말도 띄우지 않음
 const CHECK_PROMPT = [
-  '[자동 정시 체크] 지금 오늘 업무 상황을 보고 나에게 먼저 말 걸어 줘.',
-  '- 2~4문장, 목록 없이 자연스럽게.',
-  '- 끝낸 일이 있으면 한마디로만 언급(과한 칭찬 금지).',
-  '- 남은 일 중 지금 먼저 할 일 하나를 콕 집기.',
-  '- 마감 3일 이내(또는 지난) 업무가 있으면 꼭 이름과 D-day를 언급.',
-  '- 남은 일이 없으면 마무리해도 된다고 짧게.',
+  '[자동 정시 체크] 오늘 업무 상황에서 지난번 체크 뒤로 달라진 것만 짧게 알려 줘.',
+  '- 1~2문장, 목록 없이.',
+  '- [지난 대화]에서 이미 말한 할 일·마감은 다시 말하지 마. 같은 리마인드를 반복하지 마.',
+  '- 새로 끝낸 일, 새로 생긴 일, 오늘이 마감인데 아직 말한 적 없는 업무만 언급.',
+  `- 새로 말할 게 없으면 다른 말 없이 정확히 ${gmail.NOTHING} 이라고만 답해.`,
 ].join('\n');
+const isNothing = (text) => new RegExp(`^\\W*${gmail.NOTHING}\\W*$`, 'i').test(String(text || ''));
 
 // 저장된 대화를 API 형식으로 (user/assistant 번갈아, user 로 시작)
 function toMessages(history) {
@@ -114,6 +121,13 @@ function toMessages(history) {
 }
 
 // 답변 앞의 [표정:…] 을 떼어 냄
+// 답변 끝의 [기억: …] 줄을 떼어 냄 → { text, notes: ['…'] }
+function splitMemory(text) {
+  const notes = [];
+  const rest = String(text || '').replace(/\n?\[\s*기억\s*[:：]\s*([^\]\n]{2,300})\]/g, (_m, note) => { notes.push(note.trim()); return ''; }).trim();
+  return { text: rest, notes };
+}
+
 function splitMood(text) {
   const m = String(text || '').match(/^\s*\[\s*표정\s*[:：]\s*([^\]]+?)\s*\]\s*/);
   return m ? { text: text.slice(m[0].length).trim(), mood: m[1].trim() } : { text: String(text || '').trim(), mood: null };
@@ -124,7 +138,6 @@ const { execFile } = require('child_process');
 const fsx = require('fs');
 const pathx = require('path');
 const osx = require('os');
-const gmail = require('./gmail');
 let cliPath; // undefined = 아직 안 찾음, null = 없음
 function findClaudeCli() {
   if (cliPath !== undefined) return Promise.resolve(cliPath);
@@ -192,14 +205,18 @@ async function ask(apiKey, persona, ctx, history, userText) {
 }
 
 // 정시 체크 / "지금 확인해줘"
-async function generate(apiKey, persona, ctx, history = []) {
+// opts.gmail = { server, since } 이면 할 일 대신 메일함을 점검함 (지난 점검 뒤에 보낸·받은 메일)
+// 돌려주는 값의 nothing: true → 새로 말할 게 없음
+async function generate(apiKey, persona, ctx, history = [], opts = {}) {
   let raw;
-  if (apiKey) raw = await ask(apiKey, persona, ctx, history, CHECK_PROMPT);
+  if (opts.gmail && await findClaudeCli()) raw = await askViaCli(persona, ctx, history, gmail.checkPrompt(opts.gmail.since, opts.gmail.alerts), opts);
+  else if (apiKey) raw = await ask(apiKey, persona, ctx, history, CHECK_PROMPT);
   else if (await findClaudeCli()) raw = await askViaCli(persona, ctx, history, CHECK_PROMPT);
   else return fallbackMessage(ctx, persona);
   if (!raw) return fallbackMessage(ctx, persona);
-  const { text, mood } = splitMood(raw);
-  return { text, mood, source: 'claude', name: persona.name };
+  const m = splitMood(raw), { text, notes } = splitMemory(m.text);
+  if (isNothing(text)) return { text: '', nothing: true, source: 'claude', name: persona.name };
+  return { text, mood: m.mood, notes, source: 'claude', name: persona.name };
 }
 
 // 사용자가 직접 말 걸기
@@ -210,8 +227,8 @@ async function chat(apiKey, persona, ctx, history, userText, opts = {}) {
   else if (apiKey) raw = await ask(apiKey, persona, ctx, history, userText);
   else if (await findClaudeCli()) raw = await askViaCli(persona, ctx, history, userText);
   else return { text: '대화하려면 Claude Code 설치(구독 그대로 사용) 또는 Anthropic API 키가 필요해요. 사용설명서 4장을 봐 주세요.', source: 'local', name: persona.name };
-  const { text, mood } = splitMood(raw);
-  return { text: text || '그 질문에는 답하기 어렵습니다. 다른 걸 물어봐 주세요.', mood, source: 'claude', name: persona.name };
+  const m = splitMood(raw), { text, notes } = splitMemory(m.text);
+  return { text: text || '그 질문에는 답하기 어렵습니다. 다른 걸 물어봐 주세요.', mood: m.mood, notes, source: 'claude', name: persona.name };
 }
 
 function friendlyError(e) {
@@ -229,4 +246,4 @@ async function checkGmail(persona, server) {
   return gmail.probe(bin, chatModel(persona).cli, server, cliEnv(bin));
 }
 
-module.exports = { systemPrompt, checkGmail, findClaudeCli, resetCli, splitMood, generate, chat, buildContext, fallbackMessage, friendlyError, toMessages, CHECK_PROMPT, MODEL };
+module.exports = { systemPrompt, splitMemory, checkGmail, findClaudeCli, resetCli, splitMood, generate, chat, buildContext, fallbackMessage, friendlyError, toMessages, CHECK_PROMPT, MODEL };

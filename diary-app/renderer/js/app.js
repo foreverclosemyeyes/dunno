@@ -1003,6 +1003,7 @@
     state.stats = init.stats || {};
     state.lastAssistant = init.lastAssistant;
     state.chat = init.chat || [];
+    state.memory = init.memory || {};
     state.data = init.data;
     state.today = init.data.today || state.today;
     state.selected = state.today;
@@ -1080,6 +1081,7 @@
       if (!r.ok) toast(r.message, 6000);
     };
     window.diary.onChat((list) => { state.chat = list; if (!$('#chat-log').hidden) renderChat(); });
+    window.diary.onMemory((all) => { state.memory = all; if (D.settings && D.settings.refresh) D.settings.refresh(); });
     $('#chat-form').onsubmit = async (e) => {
       e.preventDefault();
       const input = $('#chat-input');

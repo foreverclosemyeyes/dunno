@@ -88,6 +88,7 @@ body.mac .set-head { padding-top: 14px; }
 .test-result.err { color: #c62d0d; }
 .test-detail { font-size: 11px; line-height: 1.5; opacity: .6; margin-top: 4px; word-break: break-all; }
 .test-detail:empty { display: none; }
+.mem-text { flex: 1; font-size: 12px; line-height: 1.5; color: #ddd; }
 .stop { border-left: 3px solid #1a1a1a22; padding-left: 8px; margin: 4px 0; }
 .theme-row { border: 1.5px solid #1a1a1a22; border-radius: 8px; padding: 8px 10px; margin: 4px 0; background: #fff; }
 .theme-name { font-weight: 900; }

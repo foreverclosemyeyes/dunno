@@ -511,7 +511,17 @@
     );
     cl.body.append(note('<b>지침·채팅 주소·모델은 비서마다 따로</b> 저장돼요. 예를 들어 한 비서에는 GMEP 채팅의 지침과 주소를, 다른 비서에는 유연근무 채팅의 지침과 주소를 넣어 두고, 말풍선의 이름을 눌러 비서를 바꿔 가며 쓰면 돼요. 대화도 비서별로 따로 이어져요.'));
     cl.body.append(note('앱 안의 비서는 Claude(Haiku 5.5)가 이 지침과 오늘 노션 업무를 보고 대답해요. claude.ai 채팅방 자체와 대화 기록이 직접 이어지지는 않아요(Claude가 그걸 외부 앱에 열어 주지 않아요). 대신 지침을 똑같이 맞추고, "Claude에서 열기" 버튼으로 그 채팅방을 바로 열 수 있어요.'));
-    body.append(a.el, img.el, hide.el, cl.el);
+    // 기억해 둔 것: 대화 중에 "앞으로는 ~해 줘"라고 한 규칙을 비서가 적어 둔 목록 (비서별)
+    const castId = state.theme.castActive || 'ren';
+    const mem = (state.memory || {})[castId] || [];
+    const ms2 = C.section(`${asstName} · 기억해 둔 것 (${mem.length})`, mem.length > 0);
+    if (!mem.length) ms2.body.append(note('아직 없어요. 대화에서 <b>"앞으로는 ~해 줘"</b>, <b>"~는 꼭 확인해야 해"</b>처럼 말하면 비서가 여기에 적어 두고 계속 지켜요.'));
+    for (const n of mem) {
+      const row = h('div', 'row-inline');
+      row.append(h('span', 'mem-text', n.text), btn('잊기', 'sm', async () => { state.memory = await window.diary.forgetMemory(castId, n.text); render(); }));
+      ms2.body.append(row);
+    }
+    body.append(a.el, img.el, hide.el, cl.el, ms2.el);
   }
 
   // ---------- 시작 ----------
