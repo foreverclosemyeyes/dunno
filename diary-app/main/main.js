@@ -7,7 +7,7 @@ const crypto = require('crypto');
 const { pathToFileURL } = require('url');
 const {
   app, BrowserWindow, Tray, Menu, ipcMain, Notification, shell, dialog, globalShortcut,
-  nativeImage, protocol, net, session, powerMonitor,
+  nativeImage, protocol, net, session, powerMonitor, clipboard,
 } = require('electron');
 
 const { JsonStore } = require('./store');
@@ -826,6 +826,7 @@ function registerIpc() {
     if (r.ok) setSettings({ gmailServer: r.server });
     return r;
   });
+  ipcMain.handle('clipboard:write', (_e, text) => { clipboard.writeText(String(text || '')); return true; });
   ipcMain.handle('chat:clear', () => { store.set('chat', []); push('chat', []); return []; });
   ipcMain.handle('todo:delete', (_e, id) => deleteTodo(String(id)));
   ipcMain.handle('todo:add', (_e, date, text) => addTodo(String(date), String(text)));

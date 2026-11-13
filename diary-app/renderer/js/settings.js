@@ -472,6 +472,13 @@
     url.placeholder = 'https://claude.ai/project/… 또는 https://claude.ai/chat/…';
     const r1 = h('div', 'ctl'); r1.append(h('label', 'ctl-label', '업무비서 지침'), ins, h('span'));
     const r2 = h('div', 'ctl'); r2.append(h('label', 'ctl-label', 'Claude 채팅 주소'), url, h('span'));
+    // 지침을 직접 쓰지 않고, 쓰던 claude.ai 채팅방에서 뽑아 오기
+    const how = h('div', 'row-inline');
+    how.append(
+      btn('① 지침 뽑는 프롬프트 복사', '', async () => { await window.diary.copyText(D.INSTRUCTION_PROMPT); D.toast('복사했어요. 그 채팅방에 붙여 넣고, 나온 답을 아래 칸에 넣으세요.', 5000); }),
+      btn('② 그 채팅 열기 ↗', '', () => window.diary.open(url.value.trim() || 'https://claude.ai/recents')),
+    );
+    cl.body.append(note('<b>쓰던 Claude 채팅에서 지침 뽑아 오기</b>: ① 프롬프트를 복사해서 ② 그 채팅방(GMEP, 유연근무 등)에 붙여 넣으면, 그 채팅 내용으로 지침을 정리해 줘요. ③ 나온 답을 아래 <b>업무비서 지침</b> 칸에 붙여 넣고 저장하세요. 맨 끝의 "확신 없었던 부분"은 읽어 보고 틀린 데만 고치고, 칸에는 넣지 마세요.'), how);
     cl.body.append(r1, r2, h('div', 'row-inline'));
     cl.body.lastChild.append(
       btn('저장', 'primary', async () => {
