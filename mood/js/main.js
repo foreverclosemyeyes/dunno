@@ -46,6 +46,12 @@ const actions = {
     if (!hasAlarms()) { toast(T('알림 시간을 먼저 정해 주세요')); return; }
     await giveFile('tide-reminders.ics', makeIcs(), 'text/calendar');
   },
+  // 설정: 기록 항목 켜고 끄기 (꺼진 항목의 열쇠를 settings.off에 모아 둔다)
+  item: (el) => {
+    const k = el.dataset.k, off = db.settings.off || [];
+    db.settings.off = off.includes(k) ? off.filter((x) => x !== k) : [...off, k];
+    save(); render(); redrawSettings();
+  },
   // 설정: 약마다 알람 시각 더하기·지우기 (시각 고치기는 아래 input 처리에서)
   alarmAdd: (el) => { const m = db.meds[Number(el.dataset.m)]; m.alarms = (m.alarms || []).concat('09:00'); save(); redrawSettings(); },
   alarmDel: (el) => { db.meds[Number(el.dataset.m)].alarms.splice(Number(el.dataset.i), 1); save(); redrawSettings(); },

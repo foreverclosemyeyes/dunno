@@ -68,7 +68,7 @@ function seed() {
   check('기분 7 이상이면 체크리스트 표시', await page.isVisible('#signs'));
   check('기분 값에 이름이 붙음', (await text('#n-mood')) === '신남');
   await page.click('[data-sign=racing]');
-  await page.click('[data-field=elev] [data-v="3"]');
+  await page.click('[data-field=dep] [data-v="3"]');
   await page.click('[data-act=sleepOn]');
   await page.fill('#f-bed', '01:20'); await page.fill('#f-wake', '06:45');
   check('수면 시간 자동 계산', (await text('#v-sleep')) === '5시간 25분');
@@ -82,8 +82,8 @@ function seed() {
   await page.fill('#f-note', '<b>메모</b>\n둘째 줄');
   await page.click('.savebar [data-act=save]');
   let e = (await store()).entries[today];
-  check('기록 저장', e && e.mood === 8 && e.elev === 3 && e.sleepMin === 325 && e.signs.racing === true && e.caffeine === 6 && e.meds[0].name === '알프람', JSON.stringify(e));
-  check('안 만진 항목은 빈 값으로 남음', e.energy === null && e.conf === null && e.appetite === null && e.dep === null && e.anx === null, JSON.stringify(e));
+  check('기록 저장', e && e.mood === 8 && e.dep === 3 && e.sleepMin === 325 && e.signs.racing === true && e.caffeine === 6 && e.meds[0].name === '알프람', JSON.stringify(e));
+  check('안 만진 항목은 빈 값으로 남음', e.energy === null && e.conf === null && e.appetite === null && e.si === null && e.anx === null, JSON.stringify(e));
   check('약을 체크하면 시각이 찍힘', /^\d\d:\d\d$/.test(e.meds[0].at), JSON.stringify(e.meds));
   check('메모는 여러 줄, 글자 그대로 표시', e.note === '<b>메모</b>\n둘째 줄' && (await page.$$('#app b >> text=메모')).length === 0 && (await text('#app .note')).includes('<b>메모</b>'));
   check('오늘 타일에 이름 표시', (await text('.tile .word')) === '신남');
@@ -114,7 +114,7 @@ function seed() {
   await page.fill('#f-energy', '6');
   await page.click('.savebar [data-act=save]');
   e = (await store()).entries[today];
-  check('이어서 적은 것만 더해짐', e.mood === 3 && e.energy === 6 && e.sleepMin === 325 && e.elev === 3, JSON.stringify(e));
+  check('이어서 적은 것만 더해짐', e.mood === 3 && e.energy === 6 && e.sleepMin === 325 && e.dep === 3, JSON.stringify(e));
 
   // 4-1-1. 수면 지우기, 수면 타일로 바로 적기
   await page.click('.btn[data-act=record]'); await page.click('[data-act=sleepOff]');
@@ -126,11 +126,11 @@ function seed() {
   check('수면 타일을 누르면 시각 칸이 바로 열림', await page.isVisible('#f-bed'));
   await page.click('.sheet-top [data-act=close]');
   await page.click('#app button.li[data-focus=symptoms]');
-  check('목록 줄을 누르면 그 항목만 뜸', (await text('.st b')) === '증상' && (await page.$$('[data-field=elev]')).length === 1 && (await page.$$('#f-mood, #sleep')).length === 0);
+  check('목록 줄을 누르면 그 항목만 뜸', (await text('.st b')) === '증상' && (await page.$$('[data-field=dep]')).length === 1 && (await page.$$('#f-mood, #sleep')).length === 0);
   await page.click('[data-field=anx] [data-v="2"]');
   await page.click('.savebar [data-act=save]');
   e = (await store()).entries[today];
-  check('한 항목만 고쳐도 나머지는 그대로', e.anx === 2 && e.elev === 3 && e.mood === 3 && e.energy === 6, JSON.stringify(e));
+  check('한 항목만 고쳐도 나머지는 그대로', e.anx === 2 && e.dep === 3 && e.mood === 3 && e.energy === 6, JSON.stringify(e));
   check('죽고 싶은 생각을 안 적었으면 상담전화는 안 보임', (await page.$$('#app a[href="tel:109"]')).length === 0);
   await page.click('#app button.li[data-focus=symptoms]'); await page.click('[data-field=si] [data-v="3"]'); await page.click('.savebar [data-act=save]');
   check('죽고 싶은 생각이 높으면 오늘 화면에 상담전화가 보임', (await store()).entries[today].si === 3 && (await page.$$('#app a[href="tel:109"]')).length === 1);
@@ -199,7 +199,7 @@ function seed() {
   // 5-2. 진료 탭: 다음 진료일, 말할 것, 요약
   await page.click('[data-tab=clinic]');
   check('진료용 요약에 그림과 눈에 띄는 날, 약이 나옴', (await page.$$('#sum-meds circle')).length > 3 && (await page.$$('#sum-fig path')).length >= 3 && (await page.$$('#summary rect')).length === 0
-    && (await text('#summary')).includes('고조 높음 이상') && (await text('#sum-meds')).includes('브린텔릭스') && (await text('#sum-sleep')).includes('5시간 미만'));
+    && (await text('#summary')).includes('우울 높음 이상') && (await text('#sum-meds')).includes('브린텔릭스') && (await text('#sum-sleep')).includes('5시간 미만'));
   const anxOff = !(await text('#sum-fig')).includes('불안');
   await page.click('.sum-tog[data-k=anx]');
   check('큰 그래프에서 선을 켜고 끔', anxOff && (await text('#sum-fig')).includes('불안') && (await page.getAttribute('.sum-tog[data-k=anx]', 'aria-pressed')) === 'true');
@@ -215,6 +215,21 @@ function seed() {
   check('요약을 글로 복사', await page.waitForFunction(() => document.querySelector('#toast').textContent === '복사했어요', null, { timeout: 3000 }).then(() => true, () => false));
   await page.click('[data-act=clinicNoteDel]');
   check('말할 것 지우기', (await store()).clinic.notes.length === 0);
+
+  // 5-2-1. 설정에서 기록 항목 끄기: 화면에서만 빠지고 적어 둔 값은 남는다
+  await page.click('[data-tab=today]'); await page.click('[data-act=settings]');
+  await page.click('[data-act=item][data-k=conf]'); await page.click('[data-act=item][data-k=anx]');
+  await page.click('.sheet-top [data-act=close]');
+  const entriesBefore = JSON.stringify((await store()).entries);
+  check('끈 항목은 오늘 화면에 칸이 없음', (await page.$$('.tile[data-focus=conf]')).length === 0 && (await page.$$('.tile[data-focus=mood]')).length === 1);
+  await page.click('.btn[data-act=record]');
+  check('끈 항목은 기록 화면에 없음', (await page.$$('#f-conf, [data-field=anx]')).length === 0 && (await page.$$('#f-mood, [data-field=dep]')).length === 2);
+  await page.click('.sheet-top [data-act=close]');
+  check('끈 항목에 적어 둔 값은 그대로', JSON.stringify((await store()).entries) === entriesBefore && (await store()).settings.off.length === 2);
+  await page.click('[data-act=settings]');
+  await page.click('[data-act=item][data-k=conf]'); await page.click('[data-act=item][data-k=anx]');
+  await page.click('.sheet-top [data-act=close]');
+  check('다시 켜면 칸이 돌아옴', (await page.$$('.tile[data-focus=conf]')).length === 1 && (await store()).settings.off.length === 0);
 
   // 5-3. 메모 모아 보기
   await page.click('[data-tab=insight]'); await page.click('[data-act=notes]');

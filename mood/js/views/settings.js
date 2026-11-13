@@ -1,6 +1,6 @@
 // 설정 화면
 import { VERSION } from '../config.js';
-import { DISCLAIMER, FONTS, SIZES } from '../constants.js';
+import { DISCLAIMER, FONTS, ITEMS, SIZES } from '../constants.js';
 import { esc, sheet, showSheet } from '../dom.js';
 import { daysSinceBackup, remind } from '../files.js';
 import { EN, F, T } from '../i18n.js';
@@ -8,7 +8,7 @@ import { IC } from '../icons.js';
 import { hasPin } from '../lock.js';
 import { medAddHtml, medKey } from '../meds.js';
 import { standalone } from '../state.js';
-import { db } from '../store.js';
+import { db, itemOn } from '../store.js';
 import { ACCENTS, accentKey, isLight } from '../theme.js';
 
 // ---------- 설정·백업 ----------
@@ -42,6 +42,10 @@ export function openSettings() {
     <section class="card list">${pick('color', 'data-color-pick="off"', !accentKey(), T('흑백'))}${Object.keys(ACCENTS).map((k) =>
       pick('color', `data-color-pick="${k}"`, accentKey() === k, `<i class="sw-dot" style="background:rgb(${ACCENTS[k][isLight() ? 2 : 1]})"></i>${T(ACCENTS[k][0])}`)).join('')}</section>
     <p class="secnote">${T('기분·에너지·자신감이 낮은 날은 회색, 높을수록 고른 색으로 물들어요.')}</p>
+
+    <div class="sec">${T('기록 항목')}</div>
+    <section class="card list">${ITEMS.map(([k, label]) => `<button type="button" class="li sw" data-act="item" data-k="${k}" aria-pressed="${itemOn(k)}"><span class="lk">${label}</span><i></i></button>`).join('')}</section>
+    <p class="secnote">${T('안 쓰는 항목을 끄면 기록·오늘·흐름·진료 화면에서 안 보여요. 이미 적어 둔 값은 지워지지 않고, 다시 켜면 그대로 나와요.')}</p>
 
     <div class="sec">${T('알림')}</div>
     <section class="card list">

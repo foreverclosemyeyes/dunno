@@ -1,6 +1,6 @@
 // 오늘 화면
 import { signals } from '../analysis.js';
-import { DISCLAIMER, HELPLINE, LEVELS, SIGNS, SI_CARE_FROM, cafMg, drinkText, nameOf } from '../constants.js';
+import { DISCLAIMER, HELPLINE, LEVELS, SIGNS, SI_CARE_FROM, SYMPTOMS, cafMg, drinkText, nameOf } from '../constants.js';
 import { WD, addDays, durText, longDate, parse, today, weekStart } from '../dates.js';
 import { app, esc } from '../dom.js';
 import { backupDue, daysSinceBackup } from '../files.js';
@@ -8,7 +8,7 @@ import { F, T } from '../i18n.js';
 import { IC } from '../icons.js';
 import { doseRowsHtml, medsFor, medsText } from '../meds.js';
 import { standalone, ui } from '../state.js';
-import { db } from '../store.js';
+import { db, itemOn } from '../store.js';
 import { moodFill, tone } from '../theme.js';
 
 // ---------- 오늘 화면 ----------
@@ -52,7 +52,7 @@ export function viewToday() {
       <button class="nav" data-act="week" data-step="1" aria-label="${T('다음 주')}" ${addDays(ws, 7) > t ? 'disabled' : ''}>›</button>
     </div>
     ${tilesHtml(e || {})}
-    ${medCard(sel)}
+    ${itemOn('meds') ? medCard(sel) : ''}
     ${e ? detailHtml(e) : ''}
     <button class="btn${e ? ' gray' : ''}" data-act="record">${e ? T('이어서 적기') : T('기록하기')}</button>
     ${sel !== t ? `<button class="btn plain" data-act="goToday">${T('오늘로 돌아가기')}</button>` : ''}
@@ -87,10 +87,12 @@ export function tilesHtml(e) {
     pos = 0.5 + diff / 360;   // 막대 끝에서 끝이 ±3시간
     sub = Math.abs(diff) < 10 ? T('평소와 비슷') : F(diff > 0 ? '평소보다 {0} 김' : '평소보다 {0} 짧음', durText(Math.abs(diff)));
   }
-  return `<div class="tiles">
-      ${scoreTile('mood', T('기분'), e.mood)}${scoreTile('energy', T('에너지'), e.energy)}${scoreTile('conf', T('자신감'), e.conf)}
-      ${tile('sleep', T('수면'), sleepBig, null, pos, sub)}
-    </div>`;
+  // 설정에서 꺼 둔 항목은 칸을 만들지 않는다
+  const tiles = [
+    ['mood', () => scoreTile('mood', T('기분'), e.mood)], ['energy', () => scoreTile('energy', T('에너지'), e.energy)],
+    ['conf', () => scoreTile('conf', T('자신감'), e.conf)], ['sleep', () => tile('sleep', T('수면'), sleepBig, null, pos, sub)],
+  ].filter(([k]) => itemOn(k)).map(([, html]) => html()).join('');
+  return tiles ? `<div class="tiles">${tiles}</div>` : '';
 }
 
 export function detailHtml(e) {
@@ -98,18 +100,17 @@ export function detailHtml(e) {
   // 저장된 약 목록에 없는 약(목록에서 지운 약)만 여기 글로 보여 준다. 나머지는 위 약 카드에 있다.
   const extra = db.meds.length ? '' : esc(medsText(e.meds || []));
   const ten = (key, v) => `${nameOf(key, v)}<span class="of"> ${v}</span>`;
-  const sym = (label, v) => (v ? li(label, `${LEVELS[v]}${bars(v)}`, 'symptoms') : '');
-  // 줄을 누르면 그 항목만 고치는 화면이 열린다
+  // 줄을 누르면 그 항목만 고치는 화면이 열린다. 설정에서 꺼 둔 항목은 줄을 만들지 않는다.
   const rows = [
-    sym(T('우울'), e.dep), sym(T('고조'), e.elev), sym(T('불안'), e.anx), sym(T('죽고 싶은 생각'), e.si),
-    e.tired ? li(`${IC.moon}${T('일어났을 때')}`, T('피곤'), 'sleep') : '',
-    e.period ? li(`${IC.drop}${T('생리')}`, T('생리 중'), 'body') : '',
-    e.appetite != null ? li(`${IC.fork}${T('식욕')}`, ten('appetite', e.appetite), 'body') : '',
-    e.drinks ? li(`${IC.coffee}${T('카페인')}`, cafMg(e.drinks) ? `${drinkText(e.drinks)}<span class="of"> · ${F('약 {0}mg', cafMg(e.drinks))}</span>` : nameOf('caffeine', 0), 'body')
+    ...SYMPTOMS.map(([k, label]) => (e[k] && itemOn(k) ? li(label, `${LEVELS[e[k]]}${bars(e[k])}`, 'symptoms') : '')),
+    e.tired && itemOn('sleep') ? li(`${IC.moon}${T('일어났을 때')}`, T('피곤'), 'sleep') : '',
+    e.period && itemOn('period') ? li(`${IC.drop}${T('생리')}`, T('생리 중'), 'body') : '',
+    e.appetite != null && itemOn('appetite') ? li(`${IC.fork}${T('식욕')}`, ten('appetite', e.appetite), 'body') : '',
+    !itemOn('caffeine') ? '' : e.drinks ? li(`${IC.coffee}${T('카페인')}`, cafMg(e.drinks) ? `${drinkText(e.drinks)}<span class="of"> · ${F('약 {0}mg', cafMg(e.drinks))}</span>` : nameOf('caffeine', 0), 'body')
       : e.caffeine != null ? li(`${IC.coffee}${T('카페인')}`, ten('caffeine', e.caffeine), 'body') : '',
-    extra ? li(`${IC.pill}${T('약')}`, extra) : '',
+    extra && itemOn('meds') ? li(`${IC.pill}${T('약')}`, extra) : '',
     signs.length ? li(T('체크'), signs.map(esc).join('<br>')) : '',
-    e.note ? `<button class="li say note" data-act="record" data-focus="note">${esc(e.note)}</button>` : '',
+    e.note && itemOn('note') ? `<button class="li say note" data-act="record" data-focus="note">${esc(e.note)}</button>` : '',
   ].join('');
   return rows ? `<section class="card list">${rows}</section>` : '';
 }

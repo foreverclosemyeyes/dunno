@@ -28,3 +28,6 @@ export function save() {
   catch (e) { toast(T('저장하지 못했어요. 저장 공간을 확인해 주세요.')); return false; }
 }
 export const db = load();
+
+// 설정에서 꺼 둔 기록 항목인지 (settings.off에 열쇠가 있으면 꺼진 것. 없으면 전부 켜짐)
+export const itemOn = (key) => !(db.settings.off || []).includes(key);

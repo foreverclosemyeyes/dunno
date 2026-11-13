@@ -9,7 +9,7 @@ import { IC } from '../icons.js';
 import { doseRowsHtml, medAddHtml } from '../meds.js';
 import { render } from '../render.js';
 import { ui } from '../state.js';
-import { db, save } from '../store.js';
+import { db, itemOn, save } from '../store.js';
 import { tone } from '../theme.js';
 
 // 0~10 슬라이더 항목. 처음에는 비어 있고(null), 슬라이더를 만지면 값이 생긴다.
@@ -22,7 +22,7 @@ export function newDraft(date) {
   // 잠든·깬 시각은 가장 최근 기록을 기본값으로 보여 준다 (대부분 비슷하니까 덜 만져도 되게). 수면을 적겠다고 해야 저장된다.
   const last = Object.keys(db.entries).sort().reverse().map((k) => db.entries[k]).find((x) => x.bed && x.wake);
   const blank = {
-    date, mood: null, energy: null, conf: null, appetite: null, dep: null, elev: null, anx: null, si: null,
+    date, mood: null, energy: null, conf: null, appetite: null, dep: null, anx: null, si: null,
     sleepSet: false, bed: last ? last.bed : '23:30', wake: last ? last.wake : '07:00', tired: false,
     period: false, drinks: {}, meds: (db.taken[date] || []).slice(), note: '', signs: {},
   };
@@ -93,20 +93,21 @@ export function openRecord(date, focus) {
     energy: slider('energy', '', T('에너지'), d.energy, T('바닥'), T('넘침')),
     conf: slider('conf', IC.star, T('자신감'), d.conf, T('위축'), T('넘침')),
   };
-  const scores = show.filter((k) => sliders[k]);
+  // 설정에서 꺼 둔 항목은 칸을 만들지 않는다 (그 항목에 적어 둔 값은 건드리지 않고 그대로 저장된다)
+  const scores = show.filter((k) => sliders[k] && itemOn(k));
   const sec = (name) => (only ? '' : `<div class="sec">${name}</div>`);   // 한 항목만 뜰 때는 화면 제목이 이름을 대신한다
+  const group = (name, rows, id) => (rows ? `${sec(name)}<section class="card list"${id ? ` id="${id}"` : ''}>${rows}</section>` : '');
   const parts = {
     signs: `<div id="signs" hidden><div class="sec">${T('오늘 이런 점이 있었나요?')}</div><section class="card list">${signsHtml()}</section></div>`,
-    symptoms: `${sec(T('증상'))}<section class="card list">
-      ${SYMPTOMS.map(([k, label]) => `<div class="li col"><span class="lk">${label}</span>${seg(k, LEVELS, d[k])}</div>`).join('')}</section>`,
-    sleep: `${sec(T('지난밤 수면'))}<section class="card list" id="sleep">${sleepHtml()}</section>`,
-    body: `${sec(T('몸'))}<section class="card list">
-      ${sw('data-flag="period"', d.period, T('생리 중'), IC.drop)}
-      ${slider('appetite', IC.fork, T('식욕'), d.appetite, T('없음'), T('많음'))}
-      ${drinksHtml(d)}</section>`,
-    meds: `${sec(T('오늘 먹은 약'))}<section class="card list" id="meds">${medsHtml()}</section>`,
-    note: `${sec(T('메모'))}<section class="card list">
-      <div class="li"><textarea id="f-note" rows="4" maxlength="1000" placeholder="${T('오늘 있었던 일이나 느낀 점')}">${esc(d.note || '')}</textarea></div></section>`,
+    symptoms: group(T('증상'), SYMPTOMS.filter(([k]) => itemOn(k)).map(([k, label]) => `<div class="li col"><span class="lk">${label}</span>${seg(k, LEVELS, d[k])}</div>`).join('')),
+    sleep: group(T('지난밤 수면'), itemOn('sleep') ? sleepHtml() : '', 'sleep'),
+    body: group(T('몸'), [
+      itemOn('period') ? sw('data-flag="period"', d.period, T('생리 중'), IC.drop) : '',
+      itemOn('appetite') ? slider('appetite', IC.fork, T('식욕'), d.appetite, T('없음'), T('많음')) : '',
+      itemOn('caffeine') ? drinksHtml(d) : '',
+    ].join('')),
+    meds: group(T('오늘 먹은 약'), itemOn('meds') ? medsHtml() : '', 'meds'),
+    note: group(T('메모'), itemOn('note') ? `<div class="li"><textarea id="f-note" rows="4" maxlength="1000" placeholder="${T('오늘 있었던 일이나 느낀 점')}">${esc(d.note || '')}</textarea></div>` : ''),
   };
 
   sheet.innerHTML = `<div class="sheet-in">
@@ -162,7 +163,7 @@ export function saveEntry() {
   // 수면을 안 적었으면 빈 값. 다만 시각 없이 수면 시간만 있던 예전 기록은 그대로 둔다.
   const keepOldSleep = !d.sleepSet && !!prev && !prev.bed && prev.sleepMin != null;
   db.entries[d.date] = {
-    date: d.date, mood: d.mood, energy: d.energy, conf: d.conf, dep: d.dep, elev: d.elev, anx: d.anx, si: d.si,
+    date: d.date, mood: d.mood, energy: d.energy, conf: d.conf, dep: d.dep, anx: d.anx, si: d.si,
     bed: d.sleepSet ? d.bed || null : null, wake: d.sleepSet ? d.wake || null : null,
     sleepMin: d.sleepSet ? sleepMinutes(d.bed, d.wake) : keepOldSleep ? prev.sleepMin : null,
     tired: d.sleepSet && !!d.tired, period: !!d.period, appetite: d.appetite,

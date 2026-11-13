@@ -1,11 +1,11 @@
 // 흐름 화면 (주 / 월)
-import { DISCLAIMER, LEVELS, nameOf } from '../constants.js';
+import { DISCLAIMER, LEVELS, SYMPTOMS, nameOf } from '../constants.js';
 import { WD, addDays, ds, durText, longDate, md, monthTitle, parse, today, weekStart } from '../dates.js';
 import { app } from '../dom.js';
 import { EN, F, T } from '../i18n.js';
 import { IC } from '../icons.js';
 import { trend } from '../state.js';
-import { db } from '../store.js';
+import { db, itemOn } from '../store.js';
 import { fontScale, moodFill, tone } from '../theme.js';
 
 export function trendRange(anchor) {
@@ -151,7 +151,7 @@ export function viewTrend() {
       <div class="mnote calkey"><span>${T('가라앉음')} ${scale} ${T('들뜸')}</span><span><i class="pdot"></i> ${T('생리')}</span></div></section>`;
   };
 
-  // 증상(우울·고조·불안)은 기분과 같은 선 그래프로, 0(없음)~4(매우 높음)
+  // 증상(우울·불안·죽고 싶은 생각)은 기분과 같은 선 그래프로, 0(없음)~4(매우 높음)
   // 평소에는 이름만 보이고, 날짜를 누르면 그날 단계가 나온다
   const symCard = (key, name) => lineCard(key, name, 4, [[0, ''], [2, ''], [4, '']],
     `<div class="mt">${name}</div>${pickDate ? `<div class="mv"><b>${pickE && pickE[key] != null ? LEVELS[pickE[key]] : '–'}</b><span>${pickLabel}</span></div>` : '<div class="mv"></div>'}`);
@@ -171,7 +171,7 @@ export function viewTrend() {
     }
     return srow(T('생리'), pickDate ? (pickE && pickE.period ? T('생리 중') : '–') : n ? F('{0}일', n) : T('없음'), 16, out);
   };
-  const marks = `<section class="card mcard"><div class="plot strips" data-n="${r.n}" data-w="${W}">
+  const marks = () => `<section class="card mcard"><div class="plot strips" data-n="${r.n}" data-w="${W}">
       ${periodRow()}
       <svg width="${W}" height="18">${xLabelsAt(13)}</svg>
     </div></section>`;
@@ -185,9 +185,9 @@ export function viewTrend() {
       <button data-act="shift" data-step="1" aria-label="${T('다음')}" ${shiftAnchor(r.start, 1) > t ? 'disabled' : ''}>›</button></div>
     ${pickDate ? `<div class="pickbar"><span>${pickLabel}${pickE ? '' : T(' · 기록 없음')}</span><button class="mini" data-act="openDay" data-date="${pickDate}">${pickE ? T('기록 열기') : T('기록하기')}</button></div>` : ''}
     ${isWeek ? '' : calendar()}
-    ${scoreCard('mood', IC.face(5), T('기분'))}${scoreCard('energy', IC.battery(6), T('에너지'))}${scoreCard('conf', IC.star, T('자신감'))}
-    ${sleepCard()}
-    ${symCard('dep', T('우울'))}${symCard('elev', T('고조'))}${symCard('anx', T('불안'))}${symCard('si', T('죽고 싶은 생각'))}
-    ${marks}
+    ${[['mood', IC.face(5), T('기분')], ['energy', IC.battery(6), T('에너지')], ['conf', IC.star, T('자신감')]].filter(([k]) => itemOn(k)).map(([k, icon, name]) => scoreCard(k, icon, name)).join('')}
+    ${itemOn('sleep') ? sleepCard() : ''}
+    ${SYMPTOMS.filter(([k]) => itemOn(k)).map(([k, name]) => symCard(k, name)).join('')}
+    ${itemOn('period') ? marks() : ''}
     <p class="foot">${T('그래프나 달력에서 날짜를 누르면 그날 값을 볼 수 있어요.')}<br>${DISCLAIMER}</p>`;
 }

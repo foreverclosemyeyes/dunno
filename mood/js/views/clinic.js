@@ -6,7 +6,7 @@ import { app, esc } from '../dom.js';
 import { F, T } from '../i18n.js';
 import { medKey, medsFor } from '../meds.js';
 import { clinicView } from '../state.js';
-import { db } from '../store.js';
+import { db, itemOn } from '../store.js';
 import { tone } from '../theme.js';
 import { li } from './today.js';
 import { smoothPath } from './trend.js';
@@ -27,10 +27,11 @@ function nextText() {
 }
 
 // 큰 그래프에 켜고 끌 수 있는 선들: [열쇠, 이름, 가장 높은 값]. 증상(0~4)은 그래프 높이에 맞춰 늘려 그린다.
+// 설정에서 꺼 둔 항목은 뺀다.
 const lineDefs = () => [
   ['mood', T('기분'), 10], ['energy', T('에너지'), 10], ['conf', T('자신감'), 10],
-  ['dep', T('우울'), 4], ['elev', T('고조'), 4], ['anx', T('불안'), 4], ['si', T('죽고 싶은 생각'), 4],
-];
+  ['dep', T('우울'), 4], ['anx', T('불안'), 4], ['si', T('죽고 싶은 생각'), 4],
+].filter(([key]) => itemOn(key));
 
 // 선마다 색이 다르다 (한 그래프에 여러 선을 겹쳐도 구분되도록, 이 그래프에서만). 기분은 설정에서 고른 색.
 const lineColor = (key) => (key === 'mood' ? tone('mood', 10) || 'var(--ink)' : `var(--l-${key})`);
@@ -129,15 +130,16 @@ function figures(s, width) {
     });
     y += 44;
   };
-  s.meds.forEach(([m, count]) => {
+  const meds = itemOn('meds') ? s.meds : [], period = itemOn('period') && s.period.length > 0;
+  meds.forEach(([m, count]) => {
     head(esc(`${m.name}${m.dose ? ` ${m.dose}` : ''}`), F('{0}일 중 {1}일', n, count));
     marksRow((d) => medsFor(d).some((x) => medKey(x) === medKey(m)), true);
   });
-  if (s.period.length) {
+  if (period) {
     head(T('생리'), F('{0}일', s.period.length));
     marksRow((d, e) => e && e.period, false);
   }
-  if (!s.meds.length && !s.period.length) return { chart, sleep, marks: '' };
+  if (!meds.length && !period) return { chart, sleep, marks: '' };
   dateLabels(y - 10);
   return { chart, sleep, marks: take('sum-meds', y - 4) };
 }
@@ -148,7 +150,7 @@ function summaryRows(s) {
   const num = (x) => (Number.isInteger(x) ? String(x) : one(x));
   const dur = (m) => durText(Math.round(m));
   const flags = [
-    [T('우울 높음 이상'), s.high.dep], [T('고조 높음 이상'), s.high.elev], [T('불안 높음 이상'), s.high.anx],
+    [T('우울 높음 이상'), s.high.dep], [T('불안 높음 이상'), s.high.anx],
     [T('죽고 싶은 생각'), s.high.si], [T('5시간 미만 수면'), s.shortSleep], [T('생리'), s.period],
   ].filter(([, list]) => list.length).map(([name, list]) => [name, `${F('{0}일', list.length)} · ${dateList(list)}`]);
   return {
@@ -167,18 +169,18 @@ function summaryHtml(weeks) {
   // 큰 그래프의 선을 켜고 끄는 단추: 기분·에너지·자신감은 평균을 옆에 적는다
   const toggles = lineDefs().map(([key, name, max]) => `<button class="sum-tog" data-act="clinicLine" data-k="${key}" aria-pressed="${clinicView.lines.includes(key)}"><i style="background:${lineColor(key)}"></i>${name}${max === 10 && s[key] ? ` <b>${one(s[key].avg)}</b>` : ''}</button>`).join('');
   const flags = [
-    [T('우울 높음 이상'), s.high.dep.length], [T('고조 높음 이상'), s.high.elev.length], [T('불안 높음 이상'), s.high.anx.length],
-    [T('죽고 싶은 생각'), s.high.si.length], ...s.signs,
-  ].filter(([, c]) => c).map(([name, c]) => li(esc(name), F('{0}일', c))).join('');
+    ['dep', T('우울 높음 이상')], ['anx', T('불안 높음 이상')], ['si', T('죽고 싶은 생각')],
+  ].filter(([key]) => itemOn(key)).map(([key, name]) => [name, s.high[key].length]).concat(s.signs)
+    .filter(([, c]) => c).map(([name, c]) => li(esc(name), F('{0}일', c))).join('');
   const says = (title, rows) => (rows.length ? `<div class="sec">${title}</div><section class="card list">${rows.join('')}</section>` : '');
   return `
     <div class="sec">${md(parse(s.dates[0]))} – ${md(parse(s.dates[s.dates.length - 1]))} · ${F('기록 {0}일 / {1}일', s.got.length, s.dates.length)}</div>
-    <section class="card">
+    ${toggles ? `<section class="card">
       <div class="sum-togs">${toggles}</div>
       ${fig.chart}
       <p class="sum-key">${T('증상은 맨 아래가 없음, 맨 위가 매우 높음')}</p>
-    </section>
-    <section class="card">${fig.sleep}</section>
+    </section>` : ''}
+    ${itemOn('sleep') ? `<section class="card">${fig.sleep}</section>` : ''}
     ${fig.marks ? `<section class="card">${fig.marks}</section>` : ''}
     ${flags ? `<div class="sec">${T('눈에 띄는 날')}</div><section class="card list">${flags}</section>` : ''}
     ${says(T('지금 떠 있는 신호'), s.signals.map((x) => `<div class="li say">${esc(x)}</div>`))}
