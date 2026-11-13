@@ -64,7 +64,7 @@ if (!out) { console.error('쓰는 법: node test/look/snap.js <결과.json>'); p
   await row.hover(); await row.locator('.todo-ed').click(); await snap('edit'); await win.keyboard.press('Escape');
   await E(() => document.querySelector('#btn-chatlog').click()); await snap('log'); await win.keyboard.press('Escape');
   await E(() => D.openParams()); await snap('params'); await win.keyboard.press('Escape'); await E(() => document.querySelector('.ps2')?.remove());
-  await E(() => D.pointUp([{ stat: '지식', delta: 1, text: '보고서' }])); await win.waitForTimeout(2200); await snap('pointup'); await E(() => document.querySelector('.pu')?.remove());
+  await E(() => D.pointUp([{ stat: '지식', delta: 1, text: '보고서' }], true)); await win.waitForTimeout(2200); await snap('pointup'); await E(() => document.querySelector('.pu')?.remove());
   await E(() => { D.cutscene.play({ force: true }); }); await win.waitForTimeout(3600); await snap('cutscene'); await E(() => document.querySelector('.cut')?.click()); await win.waitForTimeout(1200);
   await E(() => { D.city.isTownHall = () => true; D.cutscene.play({ force: true }); }); await win.waitForTimeout(3600); await snap('cutscene-hall'); await E(() => document.querySelector('.cut')?.click()); await win.waitForTimeout(1200);
   await win.click('#btn-hidechar'); await snap('hide'); await win.click('#btn-hidechar'); await win.waitForTimeout(500);

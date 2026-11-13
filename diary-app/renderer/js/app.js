@@ -542,10 +542,19 @@
       }
     });
     list.scrollTop = list.scrollHeight;
+    logBar();
+  }
+  // 대화 기록의 스크롤 막대: 지금 보고 있는 위치만큼 안쪽 칸을 옮김
+  function logBar() {
+    const list = $('#chat-list'), thumb = $('.log-bar b');
+    const h = Math.min(1, list.clientHeight / Math.max(1, list.scrollHeight));
+    thumb.style.setProperty('--h', `${Math.max(12, h * 100)}%`);
+    thumb.style.setProperty('--t', `${(list.scrollTop / Math.max(1, list.scrollHeight)) * 100}%`);
   }
   function openChat(on) {
     const log = $('#chat-log');
     if (log.parentElement !== document.body) document.body.append(log); // 화면 전체를 덮도록 맨 바깥으로
+    $('#chat-list').onscroll = logBar;
     log.hidden = !on;
     if (on) renderChat();
   }
@@ -682,6 +691,40 @@
   const NS_SVG = 'http://www.w3.org/2000/svg';
   const svgEl = (tag, attrs) => { const e = document.createElementNS(NS_SVG, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
   const starPts = (R, r, rot = -90) => Array.from({ length: 10 }, (_, k) => { const a = ((rot + k * 36) * Math.PI) / 180, q = k % 2 ? r : R; return [q * Math.cos(a), q * Math.sin(a)]; });
+  // 음표 (레퍼런스 영상의 모양): 검은 8분음표에 주황 테두리, 머리에는 이빨을 드러낸 흰 웃음
+  const NOTE_FLAG = 'M46 3 L90 42 L95 80 L84 86 L90 106 L74 84 L79 72 L63 54 L57 50 L61 104 L41 100 Z';
+  const NOTE_HEAD = { cx: 34, cy: 107, rx: 30, ry: 23, transform: 'rotate(-16 34 107)' };
+  function noteSvg(cls) {
+    const n = svgEl('svg', { viewBox: '0 0 100 140', class: cls });
+    const shape = (g) => { g.append(svgEl('path', { d: NOTE_FLAG }), svgEl('ellipse', NOTE_HEAD)); return g; };
+    n.append(
+      shape(svgEl('g', { class: 'n-out' })), shape(svgEl('g', { class: 'n-in' })), // 테두리를 먼저 통째로 깔고 그 위에 검은 몸
+      svgEl('path', { d: 'M4 103 C12 128 46 134 66 106 C48 119 22 117 4 103 Z', class: 'n-grin' }),
+      svgEl('path', { d: 'M11 109 L17 122 L22 113 L28 126 L33 116 L39 127 L44 116 L50 123 L54 112 L60 114', class: 'n-teeth' }),
+    );
+    return n;
+  }
+  // 포인트업·랭크업 앞머리: 캐릭터 머리 위에서 작은 음표들이 까딱거리다가 화면 밖으로 크게 튀어나감
+  function noteIntro() {
+    return new Promise((resolve) => {
+      const fig = $('#asst-figure img'), r = fig && !$('#assistant').hidden ? fig.getBoundingClientRect() : null;
+      const on = r && r.width > 0, vh = innerHeight / 100;
+      // 머리 위 한 점. 캐릭터가 없거나 숨겨져 있으면 화면 왼쪽 가운데쯤
+      const hx = on ? r.left + r.width * 0.5 : innerWidth * 0.3, hy = on ? r.top + r.height * 0.1 : innerHeight * 0.5;
+      const layer = h('div', 'nt');
+      // [머리에서 x·y(vh), 크기(vh), 기울기, 날아갈 곳 x·y(vh), 커지는 배율]
+      [[-7, -2, 9, -14, -70, 62, 4.6], [0, -8, 11, 6, 40, -90, 3.8], [7, -1, 8, 18, 100, 30, 5], [-2, 2, 7, -4, -100, -30, 4.2]].forEach(([x, y, w, rot, fx, fy, fs], k) => {
+        const n = noteSvg('nt-note');
+        Object.assign(n.style, { left: `${hx + x * vh}px`, top: `${hy + y * vh}px`, width: `${w}vh` });
+        [['--r', rot + 'deg'], ['--d', k * 90 + 'ms'], ['--fx', fx + 'vh'], ['--fy', fy + 'vh'], ['--fs', fs]].forEach(([prop, v]) => n.style.setProperty(prop, v));
+        layer.append(n);
+      });
+      document.body.append(layer);
+      setTimeout(() => layer.classList.add('fly'), 1150);
+      setTimeout(() => { layer.remove(); resolve(); }, 1850);
+    });
+  }
+
   function pointUpShow(ups, totals) {
     const sk = state.theme.layout.skin || {};
     const box = h('div', 'pu');
@@ -717,12 +760,10 @@
       lab.append(tag, h('span', null, RANKS[sName][lv - 1] || ''));
       stage.append(lab);
     });
-    // 음표 세 개가 바깥에서 가운데로
-    [[-92, -30, -18], [-70, 60, 14], [86, -64, -10]].forEach(([x, y, r], k) => {
-      const n = svgEl('svg', { viewBox: '0 0 60 90', class: 'pu-note' });
-      n.append(svgEl('path', { d: 'M22 4 L52 18 L46 40 L30 30 L30 66 A14 12 0 1 1 22 56 Z', class: 'n-body' }));
-      n.append(svgEl('path', { d: 'M6 66 L10 72 L14 66 L18 72 L22 66 L26 72', class: 'n-teeth' }));
-      n.style.setProperty('--x', `${x}vh`); n.style.setProperty('--y', `${y}vh`); n.style.setProperty('--r', `${r}deg`); n.style.setProperty('--d', `${380 + k * 130}ms`);
+    // 음표들이 화면 밖에서 크게 날아와 별 가운데에 납작하게 꽂힘 (첫 음표가 닿는 순간 별이 금색으로)
+    [[-120, 70, -28], [-115, -45, 22], [25, -125, -10], [120, 65, 30]].forEach(([x, y, r], k) => {
+      const n = noteSvg('pu-note');
+      [['--x', x + 'vh'], ['--y', y + 'vh'], ['--r', r + 'deg'], ['--d', 400 + k * 170 + 'ms']].forEach(([prop, v]) => n.style.setProperty(prop, v));
       stage.append(n);
     });
     // 글자
@@ -747,12 +788,19 @@
     const at = (ms, cls) => timers.push(setTimeout(() => box.classList.add(cls), ms));
     void box.offsetWidth; // 처음 상태를 한 번 그린 뒤에 시작
     box.classList.add('in');
-    at(900, 'gold'); at(1250, 't1'); at(1480, 't2'); at(1750, 't3'); at(3300, 'tout');
-    timers.push(setTimeout(close, 4200));
+    at(780, 'gold'); at(1500, 't1'); at(1730, 't2'); at(2000, 't3'); at(3550, 'tout');
+    timers.push(setTimeout(close, 4450));
   }
 
-  function pointUp(ups) {
+  let introUps = null; // 음표 앞머리가 도는 동안 들어온 포인트업을 모아 뒀다가 한 번에 보여 줌
+  function pointUp(ups, afterIntro) {
     if (!ups.length) return;
+    if (!afterIntro && D.fx && D.fx.on()) {
+      if (introUps) { introUps.push(...ups); return; }
+      introUps = [...ups];
+      noteIntro().then(() => { const all = introUps; introUps = null; pointUp(all, true); });
+      return;
+    }
     const before = monthTotals(state.today);
     document.querySelectorAll('.pup, .pu').forEach((e) => e.remove());
     const rankUps = ups.filter((c) => lvOf(before[c.stat]) > lvOf(before[c.stat] - 1) && LV.includes(before[c.stat]));
