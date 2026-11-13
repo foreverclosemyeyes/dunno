@@ -56,7 +56,7 @@ function dateRanges(list) {
 // 요약에 들어가는 그림 세 장: 큰 그래프(켜 둔 선들, 선 끝에 이름) · 수면(곡선) · 줄들(증상 네모, 약 ○×, 생리 ○).
 // 셋 다 같은 너비와 여백으로 그려서, 위아래로 같은 자리가 같은 날이다 (약을 안 먹은 날의 기분·증상이 한 줄로 이어져 보인다).
 // 선은 전부 부드러운 실선이다. 색은 CSS 변수를 따라가서 다크·라이트·인쇄에서 그대로 읽힌다.
-function figures(s, width) {
+function figures(s, width, SH) {
   // 오른쪽에는 선 끝 이름이 들어갈 자리를 둔다 (이름이 긴 "죽고 싶은 생각"을 켰을 때만 넓게)
   const n = s.dates.length, L = 18, R = clinicView.lines.includes('si') ? 80 : 44, pw = width - L - R, col = pw / n;
   const cx = (i) => L + col * (i + 0.5);
@@ -66,7 +66,7 @@ function figures(s, width) {
 
   // 지금까지 그린 것을 그림 한 장으로 마무리하고 다음 장을 시작한다
   const take = (id, height) => {
-    const svg = `<svg id="${id}" width="${width}" height="${height}" role="img">${out}</svg>`;
+    const svg = `<svg class="${id}" width="${width}" height="${height}" role="img">${out}</svg>`;
     out = ''; y = 12;
     return svg;
   };
@@ -92,7 +92,7 @@ function figures(s, width) {
   const floor = (at) => { out += `<line x1="${L}" x2="${L + pw}" y1="${at}" y2="${at}" style="stroke:var(--line)"/>`; };
 
   // 1. 큰 그래프: 켜 둔 선들을 한 축 위에. 선 끝에 이름을 적는다 (겹치면 아래로 민다).
-  const SH = 150, top = y, sy = (v) => top + (1 - v / 10) * SH;
+  const top = y, sy = (v) => top + (1 - v / 10) * SH;
   [0, 5, 10].forEach((v) => { floor(sy(v)); out += `<text x="${L - 6}" y="${sy(v) + 3.5}" font-size="10" text-anchor="end" ${mutedText}>${v}</text>`; });
   weekLines(top, top + SH);
   const ends = [];
@@ -186,19 +186,22 @@ function summaryRows(s) {
 function summaryHtml(weeks) {
   const s = summary(weeks);
   const width = Math.max(240, Math.min(app.clientWidth, 480) - 32 - 32);
-  const fig = figures(s, width);
+  // 그림은 한 주에 한 장씩 그린다 (하루 칸이 넓어야 읽힌다). 2주·4주는 같은 모양의 카드가 오래된 주부터 차례로 쌓인다.
+  const stack = (b) => {
+    const fig = figures(b, width, weeks > 1 ? 104 : 150);
+    return `<section class="card sum-stack">
+      ${weeks > 1 ? `<div class="sum-week">${md(parse(b.dates[0]))} – ${md(parse(b.dates[6]))}</div>` : ''}
+      ${toggles ? fig.chart : ''}${itemOn('sleep') ? fig.sleep : ''}${fig.rows}</section>`;
+  };
   // 큰 그래프의 선을 켜고 끄는 단추: 기분·에너지·자신감은 평균을 옆에 적는다
   const toggles = lineDefs().map(([key, name, max]) => `<button class="sum-tog" data-act="clinicLine" data-k="${key}" aria-pressed="${clinicView.lines.includes(key)}">${lineSample(key)}${name}${max === 10 && s[key] ? ` <b>${one(s[key].avg)}</b>` : ''}</button>`).join('');
   const signs = s.signs.map(([name, c]) => li(esc(name), F('{0}일', c)));
   const says = (title, rows) => (rows.length ? `<div class="sec">${title}</div><section class="card list">${rows.join('')}</section>` : '');
   return `
     <div class="sec">${md(parse(s.dates[0]))} – ${md(parse(s.dates[s.dates.length - 1]))} · ${F('기록 {0}일 / {1}일', s.got.length, s.dates.length)}</div>
-    <section class="card sum-stack">
-      ${toggles ? `<div class="sum-togs">${toggles}</div>${fig.chart}` : ''}
-      ${itemOn('sleep') ? fig.sleep : ''}
-      ${fig.rows}
-      <p class="sum-key">${T('위아래로 같은 자리가 같은 날이에요 · 네모는 진할수록 심한 날 · 약은 먹은 날 ○, 안 먹은 날 ×')}</p>
-    </section>
+    ${toggles ? `<div class="sum-togs">${toggles}</div>` : ''}
+    ${Array.from({ length: weeks }, (_, i) => stack(summary(1, (weeks - 1 - i) * 7))).join('')}
+    <p class="secnote">${T('위아래로 같은 자리가 같은 날이에요 · 네모는 진할수록 심한 날 · 약은 먹은 날 ○, 안 먹은 날 ×')}</p>
     ${says(T('기분이 높았던 날 체크한 항목'), signs)}
     ${says(T('지금 떠 있는 신호'), s.signals.map((x) => `<div class="li say">${esc(x)}</div>`))}
     ${says(T('메모'), s.notes.map(([d, note]) => `<div class="li say note"><small>${shortDate(d)}</small> ${esc(note)}</div>`))}

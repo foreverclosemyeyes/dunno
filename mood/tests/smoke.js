@@ -198,13 +198,13 @@ function seed() {
 
   // 5-2. 진료 탭: 다음 진료일, 말할 것, 요약
   await page.click('[data-tab=clinic]');
-  check('진료용 요약에 그림과 눈에 띄는 날, 약이 나옴', (await page.$$('#sum-rows circle')).length > 3 && (await page.$$('#sum-fig path')).length >= 3 && (await page.$$('#sum-rows rect')).length % 14 === 0 && (await page.$$('#sum-rows rect[style]')).length > 0
-    && (await text('#sum-rows')).includes('우울') && (await text('#sum-rows')).includes('브린텔릭스') && (await text('#sum-sleep')).includes('5시간 미만'));
-  const anxOff = !(await text('#sum-fig')).includes('불안');
+  check('진료용 요약에 그림과 눈에 띄는 날, 약이 나옴', (await page.$$('.sum-rows circle')).length > 3 && (await page.$$('.sum-fig path')).length >= 3 && (await page.$$('.sum-rows rect')).length % 14 === 0 && (await page.$$('.sum-rows rect[style]')).length > 0
+    && (await text('.sum-rows')).includes('우울') && (await text('.sum-rows')).includes('브린텔릭스') && (await text('#summary')).includes('5시간 미만'));
+  const anxOff = !(await text('.sum-fig')).includes('불안');
   await page.click('.sum-tog[data-k=anx]');
-  check('큰 그래프에서 선을 켜고 끔', anxOff && (await text('#sum-fig')).includes('불안') && (await page.getAttribute('.sum-tog[data-k=anx]', 'aria-pressed')) === 'true');
+  check('큰 그래프에서 선을 켜고 끔', anxOff && (await text('.sum-fig')).includes('불안') && (await page.getAttribute('.sum-tog[data-k=anx]', 'aria-pressed')) === 'true');
   await page.click('.sum-tog[data-k=anx]');
-  check('요약 그림이 카드 밖으로 안 넘침', await page.evaluate(() => [...document.querySelectorAll('#summary svg')].every((el) => el.getBoundingClientRect().right <= el.closest('.card').getBoundingClientRect().right)));
+  check('요약 그림이 카드 밖으로 안 넘침', await page.evaluate(() => [...document.querySelectorAll('#summary .card svg')].every((el) => el.getBoundingClientRect().right <= el.closest('.card').getBoundingClientRect().right)));
   await page.fill('#c-note', '약 먹으면 오후에 졸림'); await page.press('#c-note', 'Enter');
   check('말할 것 추가 (엔터)', (await store()).clinic.notes[0] === '약 먹으면 오후에 졸림' && (await text('#summary')).includes('약 먹으면 오후에 졸림'));
   await page.fill('#c-next', dayAgo(-3));
@@ -212,7 +212,7 @@ function seed() {
   await page.click('[data-act=clinicWeeks][data-w="4"]');
   check('4주 요약', (await text('#summary')).includes('/ 28일'));
   await page.click('[data-act=clinicWeeks][data-w="1"]');
-  check('1주 요약: 요일이 적힌 네모가 날마다 한 칸', (await text('#summary')).includes('/ 7일') && (await page.$$('#sum-rows rect')).length % 7 === 0 && (await page.$$('#sum-rows rect + text')).length > 0);
+  check('1주 요약: 요일이 적힌 네모가 날마다 한 칸', (await text('#summary')).includes('/ 7일') && (await page.$$('.sum-rows rect')).length % 7 === 0 && (await page.$$('.sum-rows rect + text')).length > 0);
   await page.click('[data-act=clinicWeeks][data-w="4"]');
   await page.click('[data-act=copySummary]');
   check('요약을 글로 복사', await page.waitForFunction(() => document.querySelector('#toast').textContent === '복사했어요', null, { timeout: 3000 }).then(() => true, () => false));

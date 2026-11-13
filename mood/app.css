@@ -362,14 +362,14 @@ input[type=date] { border: 0; outline: none; background: var(--card2); color: va
 .lock-pad .lock-txt { background: none; font-family: inherit; font-size: calc(14px * var(--fs, 1.12)); color: var(--muted); }
 
 /* 진료용 요약: 선을 켜고 끄는 단추와 그림 */
-.sum-togs { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 16px; }
+.sum-togs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 4px 12px; }
+.sum-week { color: var(--muted); font-size: calc(12.5px * var(--fs, 1.12)); font-weight: 600; margin-bottom: 14px; }
 .sum-tog { background: var(--card2); border-radius: 999px; padding: 6px 12px; font-size: calc(12.5px * var(--fs, 1.12)); color: var(--faint); }
 .sum-tog b { font-family: var(--round); font-weight: 600; }
 #summary .sum-tog svg { display: inline-block; vertical-align: middle; margin: -2px 6px 0 0; opacity: .4; }
 .sum-tog[aria-pressed=true] svg { opacity: 1; }
 .sum-tog[aria-pressed=true] { background: var(--sel); color: var(--text); font-weight: 600; }
 #summary svg { display: block; overflow: visible; font-family: inherit; }
-.sum-key { color: var(--faint); font-size: calc(10.5px * var(--fs, 1.12)); margin: 8px 0 0; line-height: 1.45; }
 
 /* 진료용 요약: 그림들을 한 카드에 위아래로 쌓는다. 증상 네모의 빈 칸 색 */
 .sum-stack svg + svg { margin-top: 22px; }
