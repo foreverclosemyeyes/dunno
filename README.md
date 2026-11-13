@@ -21,3 +21,7 @@ mood/
 ```
 
 작업 규칙은 `CLAUDE.md`에 있습니다.
+
+## 올라가는 곳
+
+`claude/eloquent-faraday-9lbkys` 가지에 올리면 Cloudflare가 `wrangler.jsonc`를 읽고 `mood/` 폴더를 그대로 웹에 내보냅니다 (만드는 과정 없음).
