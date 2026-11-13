@@ -1,7 +1,7 @@
 // 기록 화면
 // 한 번에 다 적지 않아도 된다: 만진 항목만 저장되고, 안 만진 항목은 빈 값(null)으로 남는다.
 // 아침에 수면만 적고 밤에 기분을 적는 식으로 같은 날을 여러 번 열어 이어 적을 수 있다.
-import { DRINKS, LEVELS, PSYCH, SIDE_EFFECTS, SIGNS, SYMPTOMS, TAGS, cafMg, cafScore, isHigh, nameOf, onlyOn } from '../constants.js';
+import { DRINKS, LEVELS, PSYCH, SIDE_EFFECTS, SIGNS, SYMPTOMS, cafMg, cafScore, isHigh, nameOf, onlyOn } from '../constants.js';
 import { durText, longDate, sleepMinutes } from '../dates.js';
 import { $, closeSheet, esc, sheet, showSheet, toast } from '../dom.js';
 import { F, T } from '../i18n.js';
@@ -9,7 +9,7 @@ import { IC } from '../icons.js';
 import { doseRowsHtml, medAddHtml } from '../meds.js';
 import { render } from '../render.js';
 import { ui } from '../state.js';
-import { db, itemOn, save } from '../store.js';
+import { customDefs, db, itemOn, save } from '../store.js';
 import { tone } from '../theme.js';
 
 // 0~10 슬라이더 항목. 처음에는 비어 있고(null), 슬라이더를 만지면 값이 생긴다.
@@ -24,7 +24,7 @@ export function newDraft(date) {
   const blank = {
     date, mood: null, energy: null, conf: null, appetite: null, dep: null, anx: null, si: null,
     sleepSet: false, bed: last ? last.bed : '23:30', wake: last ? last.wake : '07:00', tired: false,
-    period: false, drinks: {}, meds: (db.taken[date] || []).slice(), note: '', signs: {}, fx: {}, psych: {}, tags: {},
+    period: false, drinks: {}, meds: (db.taken[date] || []).slice(), note: '', signs: {}, fx: {}, psych: {}, custom: {},
   };
   if (!old) return blank;
   const d = Object.assign(blank, JSON.parse(JSON.stringify(old)));
@@ -35,7 +35,7 @@ export function newDraft(date) {
   d.fx = d.fx || {};
   d.psych = d.psych || {};
   d.fxOpen = !!onlyOn(d.fx);
-  d.tags = d.tags || {};
+  d.custom = d.custom || {};
   d.meds = d.meds || [];
   return d;
 }
@@ -56,8 +56,25 @@ export const slider = (id, icon, label, v, lo, hi) => `<div class="li sl" id="ro
   <div class="ends"><span>${lo}</span><span>${hi}</span></div></div>`;
 export const sw = (attr, on, label, icon) => `<button type="button" class="li sw" ${attr} aria-pressed="${!!on}"><span class="lk">${icon || ''}${label}</span><i></i></button>`;
 
-// 여러 개를 누를 수 있는 딱지들 (부작용, 술·운동). attr는 data-fx / data-tag
+// 여러 개를 누를 수 있는 딱지들 (부작용, 정신병적 증상). attr는 data-fx / data-psych
 const chips = (attr, list, on) => `<div class="li chips">${list.map(([k, label]) => `<button type="button" class="chip" data-${attr}="${esc(k)}" aria-pressed="${!!on[k]}">${esc(label)}</button>`).join('')}</div>`;
+
+// 내 항목 한 줄: 종류에 따라 스위치(했음) · 0~10 슬라이더 · 숫자 칸
+const customRow = (c) => {
+  const v = ui.draft.custom[c.id], name = esc(c.name);
+  if (c.type === 'check') return sw(`data-custom="${esc(c.id)}"`, v === true, name);
+  if (c.type === 'scale') {
+    return `<div class="li sl"><div class="slh"><span class="lk">${name}</span>
+      <button type="button" class="slv" data-act="customClear" data-k="${esc(c.id)}" aria-label="${T('지우기')}"><span class="nm${v == null ? ' unset' : ''}" id="cv-${esc(c.id)}">${v == null ? T('기록 없음') : v}</span></button></div>
+      <input type="range" class="${v == null ? 'unset' : ''}" data-custom="${esc(c.id)}" min="0" max="10" step="1" value="${v == null ? SLIDER_START : v}" style="--v:${(v == null ? SLIDER_START : v) / 10}" aria-label="${name}"></div>`;
+  }
+  return `<label class="li"><span class="lk">${name}</span><span class="num"><input type="number" inputmode="decimal" step="any" data-custom="${esc(c.id)}" value="${v == null ? '' : v}" placeholder="–" aria-label="${name}">${c.unit ? `<small>${esc(c.unit)}</small>` : ''}</span></label>`;
+};
+// 저장할 때: 안 적은 것(빈 값, 꺼진 스위치)은 빼고, 하나도 없으면 undefined
+const customValues = (bag) => {
+  const keep = Object.keys(bag || {}).filter((k) => bag[k] != null && bag[k] !== false && bag[k] !== '');
+  return keep.length ? Object.fromEntries(keep.map((k) => [k, bag[k]])) : undefined;
+};
 
 // 정신병적 증상: 그날 있었던 것을 누르는 딱지들과, 목록에 없는 것을 직접 적는 칸
 export function psychHtml() {
@@ -107,18 +124,19 @@ const FOCUS = {
   appetite: () => [T('식욕'), ['appetite']],
   caffeine: () => [T('카페인'), ['caffeine']],
   fx: () => [T('부작용'), ['fx']],
-  tags: () => [T('오늘 한 것'), ['tags']],
   note: () => [T('메모'), ['note']],
 };
-const ALL = ['mood', 'energy', 'conf', 'signs', 'symptoms', 'psy', 'sleep', 'body', 'meds', 'fx', 'tags', 'note'];
+const ALL = ['mood', 'energy', 'conf', 'signs', 'symptoms', 'psy', 'sleep', 'body', 'meds', 'fx', 'custom', 'note'];
 
 // focus가 있으면 그 항목만 뜨고(다른 값은 그대로 보존), 없으면 전체가 뜬다.
 export function openRecord(date, focus) {
   ui.draft = newDraft(date);
   ui.addingMed = false;
   const d = ui.draft, isEdit = !!db.entries[date];
-  const [title, show] = FOCUS[focus] ? FOCUS[focus]() : [isEdit ? T('기록 수정') : T('기록하기'), ALL];
-  const only = !!FOCUS[focus];
+  // 오늘 화면에서 내 항목 한 줄을 눌렀으면 focus가 'c:항목id'로 온다
+  const mine = customDefs().find((c) => `c:${c.id}` === focus);
+  const [title, show] = FOCUS[focus] ? FOCUS[focus]() : mine ? [esc(mine.name), [focus]] : [isEdit ? T('기록 수정') : T('기록하기'), ALL];
+  const only = !!FOCUS[focus] || !!mine;
   d.fxAlways = focus === 'fx';
   if (focus === 'sleep') d.sleepSet = true;
 
@@ -149,7 +167,8 @@ export function openRecord(date, focus) {
     psy: group(T('정신병적 증상'), itemOn('psy') ? psychHtml() : '', 'psych'),
     meds: group(T('오늘 먹은 약'), itemOn('meds') ? medsHtml() : '', 'meds'),
     fx: itemOn('fx') ? `<section class="card list" id="fx">${fxHtml()}</section>` : '',
-    tags: group(T('오늘 한 것'), itemOn('tags') ? chips('tag', TAGS, d.tags) : ''),
+    custom: group(T('내 항목'), customDefs().map(customRow).join('')),
+    ...Object.fromEntries(customDefs().map((c) => [`c:${c.id}`, one(customRow(c))])),
     note: group(T('메모'), itemOn('note') ? `<div class="li"><textarea id="f-note" rows="4" maxlength="1000" placeholder="${T('오늘 있었던 일이나 느낀 점')}">${esc(d.note || '')}</textarea></div>` : ''),
   };
 
@@ -193,7 +212,7 @@ export function syncForm() {
 
 // 적은 것이 하나라도 있는지
 const hasContent = (d) => SLIDERS.some((k) => d[k] != null) || SYMPTOMS.some(([k]) => d[k] != null) || d.sleepSet || d.period
-  || cafMg(d.drinks) > 0 || d.meds.length > 0 || !!onlyOn(d.fx) || !!onlyOn(d.psych) || !!onlyOn(d.tags) || !!(d.note || '').trim();
+  || cafMg(d.drinks) > 0 || d.meds.length > 0 || !!onlyOn(d.fx) || !!onlyOn(d.psych) || !!customValues(d.custom) || !!(d.note || '').trim();
 
 export function saveEntry() {
   const d = ui.draft, prev = db.entries[d.date];
@@ -212,7 +231,7 @@ export function saveEntry() {
     sleepMin: d.sleepSet ? sleepMinutes(d.bed, d.wake) : keepOldSleep ? prev.sleepMin : null,
     tired: d.sleepSet && !!d.tired, period: !!d.period, appetite: d.appetite,
     caffeine: keepOldCaf ? prev.caffeine : hasDrinks ? cafScore(d.drinks) : null, drinks: hasDrinks ? d.drinks : undefined,
-    meds: d.meds, fx: onlyOn(d.fx), tags: onlyOn(d.tags), note: (d.note || '').trim(), signs, updatedAt: new Date().toISOString(),
+    meds: d.meds, fx: onlyOn(d.fx), custom: customValues(d.custom), note: (d.note || '').trim(), signs, updatedAt: new Date().toISOString(),
   };
   delete db.taken[d.date];
   if (!save()) return;

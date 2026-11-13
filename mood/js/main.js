@@ -61,6 +61,29 @@ const actions = {
     ui.draft.fx[`c:${name}`] = true;
     $('#fx').innerHTML = fxHtml();
   },
+  // 내 항목: 0~10 값을 다시 비우기 (기록 화면), 새 항목 종류 고르기 · 더하기 · 지우기 (설정)
+  customClear: (el) => {
+    const k = el.dataset.k, input = sheet.querySelector(`input[type=range][data-custom="${k}"]`), out = $(`#cv-${k}`);
+    ui.draft.custom[k] = null;
+    input.classList.add('unset');
+    out.textContent = T('기록 없음'); out.classList.add('unset');
+  },
+  customType: (el) => {
+    document.querySelectorAll('[data-act=customType]').forEach((b) => b.setAttribute('aria-pressed', String(b === el)));
+    $('#cu-unit').hidden = el.dataset.t !== 'number';
+  },
+  customAdd: () => {
+    const name = $('#cu-name').value.trim(), type = document.querySelector('[data-act=customType][aria-pressed=true]').dataset.t;
+    if (!name) { toast(T('항목 이름을 적어 주세요')); return; }
+    const list = db.settings.custom || (db.settings.custom = []);
+    list.push({ id: `u${Date.now().toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`, name, type, unit: type === 'number' ? $('#cu-unit').value.trim() : '' });
+    save(); render(); redrawSettings();
+  },
+  customDel: (el) => {
+    if (!confirm(T('이 항목을 목록에서 지울까요? 이미 적어 둔 값은 기록에 남아 있지만 화면에는 안 보여요.'))) return;
+    db.settings.custom = (db.settings.custom || []).filter((c) => c.id !== el.dataset.id);
+    save(); render(); redrawSettings();
+  },
   psyAdd: () => {
     const name = $('#psy-new').value.trim();
     if (!name) return;
@@ -192,8 +215,11 @@ document.addEventListener('click', (ev) => {
   } else if (t.dataset.sign) {                   // 조건부 체크리스트
     d.signs[t.dataset.sign] = !d.signs[t.dataset.sign];
     t.setAttribute('aria-pressed', String(!!d.signs[t.dataset.sign]));
-  } else if (t.dataset.fx || t.dataset.tag || t.dataset.psych) {    // 딱지 (부작용, 술·운동, 정신병적 증상)
-    const bag = t.dataset.fx ? d.fx : t.dataset.tag ? d.tags : d.psych, k = t.dataset.fx || t.dataset.tag || t.dataset.psych;
+  } else if (t.dataset.custom) {                // 내 항목 가운데 스위치 (했음 · 안 했음)
+    d.custom[t.dataset.custom] = !d.custom[t.dataset.custom];
+    t.setAttribute('aria-pressed', String(!!d.custom[t.dataset.custom]));
+  } else if (t.dataset.fx || t.dataset.psych) {    // 딱지 (부작용, 정신병적 증상)
+    const bag = t.dataset.fx ? d.fx : d.psych, k = t.dataset.fx || t.dataset.psych;
     bag[k] = !bag[k];
     t.setAttribute('aria-pressed', String(!!bag[k]));
   }
@@ -209,6 +235,15 @@ sheet.addEventListener('pointerdown', (ev) => {
 
 sheet.addEventListener('input', (ev) => {
   const d = ui.draft, el = ev.target;
+  if (d && el.dataset.custom) {                  // 내 항목 가운데 0~10 슬라이더와 숫자 칸
+    const k = el.dataset.custom;
+    d.custom[k] = el.value === '' ? null : Number(el.value);
+    if (el.type === 'range') {
+      el.classList.remove('unset'); el.style.setProperty('--v', d.custom[k] / 10);
+      const out = $(`#cv-${k}`); out.textContent = d.custom[k]; out.classList.remove('unset');
+    }
+    return;
+  }
   if (el.id === 'med-name') { $('#med-sug').innerHTML = sugHtml(el.value.trim()); return; }
   if (el.id === 'q-notes') { $('#notes-list').innerHTML = notesListHtml(el.value); return; }
   if (el.id.startsWith('r-')) { remind()[el.id.slice(2)] = el.value; save(); return; }

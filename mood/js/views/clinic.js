@@ -1,12 +1,12 @@
 // 진료 화면: 다음 진료일, 진료 때 말할 것, 진료용 요약 (최근 2주/4주를 한 장으로)
 import { SHORT_SLEEP, summary } from '../analysis.js';
-import { DISCLAIMER, LEVELS, SYMPTOMS, TAGS, onlyOn } from '../constants.js';
+import { DISCLAIMER, LEVELS, SYMPTOMS, customLevel, customText, onlyOn } from '../constants.js';
 import { durText, md, parse, today } from '../dates.js';
 import { app, esc, sheet, showSheet } from '../dom.js';
 import { F, T } from '../i18n.js';
 import { medKey, medsFor } from '../meds.js';
 import { clinicView } from '../state.js';
-import { db, itemOn } from '../store.js';
+import { customDefs, db, itemOn } from '../store.js';
 import { tone } from '../theme.js';
 import { li } from './today.js';
 import { smoothPath } from './trend.js';
@@ -70,7 +70,7 @@ function dateRanges(list) {
 // 요약에 들어가는 그림 세 장: 큰 그래프(켜 둔 선들, 선 끝에 이름) · 수면(곡선) · 줄들(증상 네모, 약 ○×, 생리 ○).
 // 셋 다 같은 너비와 여백으로 그려서, 위아래로 같은 자리가 같은 날이다 (약을 안 먹은 날의 기분·증상이 한 줄로 이어져 보인다).
 // 선은 전부 부드러운 실선이다. 색은 CSS 변수를 따라가서 다크·라이트·인쇄에서 그대로 읽힌다.
-// show: 기간 전체에서 한 번이라도 있었던 것만 줄을 만든다 { fx: 부작용이 있었는지, tags: [있었던 생활 열쇠] }
+// show: 기간 전체에서 한 번이라도 있었던 것만 줄을 만든다 { fx: 부작용이 있었는지, custom: [값이 있었던 내 항목들] }
 function figures(s, width, SH, show) {
   // 오른쪽에는 선 끝 이름이 들어갈 자리를 둔다 (이름이 긴 "죽고 싶은 생각"을 켰을 때만 넓게)
   const n = s.dates.length, L = 18, R = clinicView.lines.includes('si') ? 80 : 44, pw = width - L - R, col = pw / n;
@@ -160,9 +160,9 @@ function figures(s, width, SH, show) {
   };
   SYMPTOMS.filter(([k]) => itemOn(k)).forEach(([k, name]) => squares(name, (e) => e[k] || 0));
   if (itemOn('psy')) squares(T('정신병적 증상'), (e) => e.psy || 0);   // 그날 몇 가지였는지에 따라 진해진다
-  // 부작용(하나라도 있던 날)과 술·운동도 같은 네모 줄로
+  // 부작용(하나라도 있던 날)과 내 항목도 같은 네모 줄로
   if (itemOn('fx') && show.fx) squares(T('부작용'), (e) => (onlyOn(e.fx) ? 3 : 0));
-  if (itemOn('tags')) TAGS.filter(([k]) => show.tags.includes(k)).forEach(([k, name]) => squares(name, (e) => (e.tags && e.tags[k] ? 3 : 0)));
+  show.custom.forEach((c) => squares(esc(c.name), (e) => customLevel(c, (e.custom || {})[c.id])));
 
   // 4. 약 · 생리: 얇은 선으로 먹은 날 ○, 안 먹은 날 ×
   const r = Math.max(2, Math.min(col / 2 - 1.5, 5.5));
@@ -221,7 +221,7 @@ function summaryHtml(weeks) {
   };
   // 큰 그래프의 선을 켜고 끄는 단추: 기분·에너지·자신감은 평균을 옆에 적는다
   const toggles = lineDefs().map(([key, name, max]) => `<button class="sum-tog" data-act="clinicLine" data-k="${key}" aria-pressed="${clinicView.lines.includes(key)}">${lineSample(key)}${name}${max === 10 && s[key] ? ` <b>${one(s[key].avg)}</b>` : ''}</button>`).join('');
-  const show = { fx: s.fx.length > 0, tags: TAGS.filter(([k]) => s.got.some((e) => e.tags && e.tags[k])).map(([k]) => k) };
+  const show = { fx: s.fx.length > 0, custom: customDefs().filter((c) => s.got.some((e) => customLevel(c, (e.custom || {})[c.id]))) };
   const count = ([name, c]) => li(esc(name), F('{0}일', c));
   const signs = s.signs.map(([name, c]) => li(esc(name), F('{0}일', c)));
   const says = (title, rows) => (rows.length ? `<div class="sec">${title}</div><section class="card list">${rows.join('')}</section>` : '');
@@ -248,6 +248,7 @@ export function summaryText(weeks) {
     ...part(T('평균 (가장 낮은 날–가장 높은 날)'), r.averages), ...part(T('눈에 띄는 날'), r.flags),
     ...(s.signals.length ? [`\n[${T('지금 떠 있는 신호')}]`, ...s.signals.map((x) => `- ${x}`)] : []),
     ...part(T('기분이 높았던 날 체크한 항목'), r.signs), ...part(T('정신병적 증상'), s.psych.map(([name, c]) => [name, F('{0}일', c)])), ...part(T('부작용'), s.fx.map(([name, c]) => [name, F('{0}일', c)])), ...part(T('약 먹은 날'), r.meds),
+    ...part(T('내 항목'), customDefs().map((c) => [c.name, s.got.filter((e) => customText(c, (e.custom || {})[c.id])).map((e) => `${shortDate(e.date)} ${customText(c, e.custom[c.id])}`).join(', ')]).filter(([, v]) => v)),
     ...part(T('진료 · 약 변경 기록'), clinicData().log.filter((x) => x.date >= s.dates[0]).map((x) => [`${shortDate(x.date)} ${kindName(x.kind)}`, x.text || '–'])),
     ...(s.notes.length ? [`\n[${T('메모')}]`, ...s.notes.map(([d, note]) => `${shortDate(d)} ${note}`)] : []),
     `\n${F('증상은 {0}~{1} 다섯 단계로 적은 것', LEVELS[0], LEVELS[4])}. ${DISCLAIMER}`,

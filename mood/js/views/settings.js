@@ -1,6 +1,6 @@
 // 설정 화면
 import { VERSION } from '../config.js';
-import { DISCLAIMER, FONTS, ITEMS, SIZES } from '../constants.js';
+import { CUSTOM_TYPES, DISCLAIMER, FONTS, ITEMS, SIZES } from '../constants.js';
 import { esc, sheet, showSheet } from '../dom.js';
 import { daysSinceBackup, remind } from '../files.js';
 import { EN, F, T } from '../i18n.js';
@@ -8,7 +8,7 @@ import { IC } from '../icons.js';
 import { hasPin } from '../lock.js';
 import { medAddHtml, medKey } from '../meds.js';
 import { standalone } from '../state.js';
-import { db, itemOn } from '../store.js';
+import { customDefs, db, itemOn } from '../store.js';
 import { ACCENTS, accentKey, isLight } from '../theme.js';
 
 // ---------- 설정·백업 ----------
@@ -46,6 +46,19 @@ export function openSettings() {
     <div class="sec">${T('기록 항목')}</div>
     <section class="card list">${ITEMS.map(([k, label]) => `<button type="button" class="li sw" data-act="item" data-k="${k}" aria-pressed="${itemOn(k)}"><span class="lk">${label}</span><i></i></button>`).join('')}</section>
     <p class="secnote">${T('안 쓰는 항목을 끄면 기록·오늘·흐름·진료 화면에서 안 보여요. 이미 적어 둔 값은 지워지지 않고, 다시 켜면 그대로 나와요.')}</p>
+
+    <div class="sec">${T('내 항목')}</div>
+    <section class="card list">
+      ${customDefs().map((c) => `<div class="li"><span class="lk">${esc(c.name)}<small>${CUSTOM_TYPES.find(([k]) => k === c.type)[1]}${c.unit ? ` · ${esc(c.unit)}` : ''}</small></span>
+        <button class="txt dim" data-act="customDel" data-id="${esc(c.id)}">${T('삭제')}</button></div>`).join('')}
+      <div class="li col">
+        <input type="text" id="cu-name" maxlength="20" placeholder="${T('새 항목 이름 (예: 술, 운동, 걸음 수)')}" autocomplete="off">
+        <div class="seg">${CUSTOM_TYPES.map(([k, label], i) => `<button type="button" data-act="customType" data-t="${k}" aria-pressed="${i === 0}">${label}</button>`).join('')}</div>
+        <input type="text" id="cu-unit" maxlength="10" placeholder="${T('단위 (예: 잔, 분, 보)')}" autocomplete="off" hidden>
+        <button class="mini" data-act="customAdd">${T('항목 추가')}</button>
+      </div>
+    </section>
+    <p class="secnote">${T('내가 따로 적고 싶은 것을 만들 수 있어요. 했음 · 안 했음은 누르기만 하면 되고, 0~10 정도는 슬라이더로, 숫자는 단위와 함께 적어요.')}</p>
 
     <div class="sec">${T('알림')}</div>
     <section class="card list">

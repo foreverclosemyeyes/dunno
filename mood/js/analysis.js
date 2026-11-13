@@ -1,9 +1,9 @@
 // 초기 신호 · 인사이트 · 진료용 요약 계산 (전부 이 폰 안에서)
-import { SIGNS, TAGS, cafMg, drinkText, fxName, fxNames, psyName, psyNames } from './constants.js';
+import { SIGNS, cafMg, customText, drinkText, fxName, fxNames, psyName, psyNames } from './constants.js';
 import { WD, addDays, durText, md, parse, today } from './dates.js';
 import { F, T } from './i18n.js';
 import { aided, medsFor, medsText } from './meds.js';
-import { db } from './store.js';
+import { customDefs, db } from './store.js';
 
 // ---------- 초기 신호 · 인사이트 (전부 이 폰 안에서 계산) ----------
 export const avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
@@ -59,8 +59,11 @@ function before(entries, start, mine) {
   if (missed) points.push(F('약을 안 먹은 날이 {0}일 있었어요', missed));
   const cw = vals(win, 'caffeine'), cb = vals(base, 'caffeine');
   if (cw.length && cb.length >= 3 && avg(cw) >= avg(cb) + 2) points.push(T('카페인이 평소보다 많았어요'));
-  const drank = win.filter((e) => e.tags && e.tags.alcohol).length;
-  if (drank) points.push(F('술을 마신 날이 {0}일 있었어요', drank));
+  // 내 항목 가운데 했음/안 했음 항목 (술, 운동처럼 사용자가 만든 것)
+  if (mine) customDefs().filter((c) => c.type === 'check').forEach((c) => {
+    const n = win.filter((e) => e.custom && e.custom[c.id]).length;
+    if (n) points.push(F('“{0}” 한 날이 {1}일 있었어요', c.name, n));
+  });
   const anxious = win.filter((e) => e.anx >= 2).length;
   if (anxious >= 2) points.push(F('불안이 보통 이상인 날이 {0}일 있었어요', anxious));
   if (win.some((e) => e.period)) points.push(T('생리 중이었어요'));
@@ -220,13 +223,15 @@ export function insights(entries = db.entries) {
   const ap = all.filter((e) => e.caffeine != null && e.appetite != null);
   compare('appetite', ap.filter((e) => e.caffeine >= 7), ap.filter((e) => e.caffeine < 7), days, { ...score, gap: 1 },
     ['카페인을 많이 마신 날은 식욕이 {0} 낮았어요.', '카페인을 많이 마신 날은 식욕이 {0} 높았어요.', 0]);
-  const tagged = (k) => (e) => !!(e.tags && e.tags[k]);
-  const nextMood = all.filter((e) => night(e) && night(e).mood != null);
-  compare('mood', nextMood.filter(tagged('alcohol')).map(night), nextMood.filter((e) => !tagged('alcohol')(e)).map(night), days, score,
-    ['술 마신 다음 날은 기분이 {0} 낮았어요.', '술 마신 다음 날은 기분이 {0} 높았어요.', 0]);
-  const nextSleep = all.filter((e) => night(e) && night(e).sleepMin != null);
-  compare('sleepMin', nextSleep.filter(tagged('exercise')).map(night), nextSleep.filter((e) => !tagged('exercise')(e)).map(night), days, sleep,
-    ['운동한 날 밤에는 {0} 덜 잤어요.', '운동한 날 밤에는 {0} 더 잤어요.', 1]);
+  // 내 항목 가운데 했음/안 했음 항목: 한 다음 날의 기분, 한 날 밤의 잠 (내 기록일 때만. 흔한 예상은 따로 두지 않는다)
+  if (mine) customDefs().filter((c) => c.type === 'check').forEach((c) => {
+    const did = (e) => !!(e.custom && e.custom[c.id]), named = (text) => F(text, '{0}', c.name);
+    const nextMood = all.filter((e) => night(e) && night(e).mood != null), nextSleep = all.filter((e) => night(e) && night(e).sleepMin != null);
+    compare('mood', nextMood.filter(did).map(night), nextMood.filter((e) => !did(e)).map(night), days, score,
+      [named('“{1}” 한 다음 날은 기분이 {0} 낮았어요.'), named('“{1}” 한 다음 날은 기분이 {0} 높았어요.')]);
+    compare('sleepMin', nextSleep.filter(did).map(night), nextSleep.filter((e) => !did(e)).map(night), days, sleep,
+      [named('“{1}” 한 날 밤에는 {0} 덜 잤어요.'), named('“{1}” 한 날 밤에는 {0} 더 잤어요.')]);
+  });
   compare('mood', withMood.filter((e) => e.period), withMood.filter((e) => !e.period), [T('생리 중'), T('다른 날')], score,
     ['생리 중인 날은 기분이 {0} 낮았어요.', '생리 중인 날은 기분이 {0} 높았어요.', 0]);
   // 기분이 가장 낮은 요일 (요일마다 2일 이상 적었을 때)
@@ -262,10 +267,9 @@ export function aiSummary() {
     if (!e) { if (meds) lines.push(`${d} | (기록 없음) | 약: ${meds}`); continue; }
     const signs = SIGNS.filter(([k]) => e.signs && e.signs[k]).map(([, l]) => l).join(', ');
     const val = (label, v, unit) => (v == null ? '' : `${label} ${v}${unit || ''}`);   // 안 적은 항목은 줄에서 뺀다
-    const named = (label, list, on) => { const got = list.filter(([k]) => on && on[k]).map(([, l]) => l).join(', '); return got ? `${label}: ${got}` : ''; };
     lines.push([d, val('기분', e.mood), val('에너지', e.energy), val('자신감', e.conf), val('우울', e.dep, '/4'), val('불안', e.anx, '/4'), psyNames(e.psych).length ? `정신병적 증상: ${psyNames(e.psych).join(', ')}` : val('정신병적 증상', e.psy, '/4'), val('죽고 싶은 생각', e.si, '/4'),
       e.sleepMin != null ? `수면 ${Math.floor(e.sleepMin / 60)}시간 ${e.sleepMin % 60}분${aided(e) ? '(전날 안정제·수면제 복용)' : ''}` : '', e.tired ? '기상 시 피곤' : '', e.period ? '생리 중' : '',
-      e.appetite != null ? `식욕 ${e.appetite}` : '', e.drinks ? `카페인 약 ${cafMg(e.drinks)}mg(${drinkText(e.drinks) || '없음'})` : e.caffeine != null ? `카페인 ${e.caffeine}/10` : '', `약: ${meds || '없음'}`, fxNames(e.fx).length ? `부작용: ${fxNames(e.fx).join(', ')}` : '', named('한 것', TAGS, e.tags), signs ? `체크: ${signs}` : '', e.note ? `메모: ${e.note}` : '']
+      e.appetite != null ? `식욕 ${e.appetite}` : '', e.drinks ? `카페인 약 ${cafMg(e.drinks)}mg(${drinkText(e.drinks) || '없음'})` : e.caffeine != null ? `카페인 ${e.caffeine}/10` : '', `약: ${meds || '없음'}`, fxNames(e.fx).length ? `부작용: ${fxNames(e.fx).join(', ')}` : '', ...(e.custom ? customDefs().map((c) => (customText(c, e.custom[c.id]) ? `${c.name}: ${customText(c, e.custom[c.id])}` : '')) : []), signs ? `체크: ${signs}` : '', e.note ? `메모: ${e.note}` : '']
       .filter(Boolean).join(' | '));
   }
   return `아래는 내가 직접 적은 최근 4주 기분·수면·복약 기록이야 (기분·에너지·자신감·식욕·카페인은 0~10, 우울·불안·죽고 싶은 생각은 0~4).
@@ -295,7 +299,6 @@ export function summary(weeks, back = 0) {
     signs: SIGNS.map(([k, label]) => [label, got.filter((e) => e.signs && e.signs[k]).length]).filter(([, c]) => c),
     psych: [...new Set(got.flatMap((e) => Object.keys(e.psych || {}).filter((k) => e.psych[k])))].map((k) => [psyName(k), got.filter((e) => e.psych && e.psych[k]).length]),
     fx: [...new Set(got.flatMap((e) => Object.keys(e.fx || {}).filter((k) => e.fx[k])))].map((k) => [fxName(k), got.filter((e) => e.fx && e.fx[k]).length]),
-    tags: TAGS.map(([k, label]) => [label, got.filter((e) => e.tags && e.tags[k]).length]).filter(([, c]) => c),
     meds: db.meds.map((m) => [m, dates.filter((d) => medsFor(d).some((x) => x.name === m.name && (x.dose || '') === (m.dose || ''))).length]),
     period: got.filter((e) => e.period).map((e) => e.date),
     notes: got.filter((e) => e.note).map((e) => [e.date, e.note]),

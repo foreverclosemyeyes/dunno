@@ -87,6 +87,11 @@ export function importData(file) {
       if (m && m.name && !db.meds.some((s) => medKey(s) === medKey(m))) db.meds.push({ name: String(m.name), dose: String(m.dose || ''), alarms: (Array.isArray(m.alarms) ? m.alarms : []).filter((t) => /^\d\d:\d\d$/.test(t)) });
     });
     Object.keys(inc.taken || {}).forEach((k) => { if (!db.taken[k] && !db.entries[k] && Array.isArray(inc.taken[k])) db.taken[k] = inc.taken[k]; });
+    // 내 항목: 백업에 있는 항목 가운데 내게 없는 것만 더한다 (그래야 가져온 기록의 값이 화면에 보인다)
+    const defs = db.settings.custom || (db.settings.custom = []);
+    ((inc.settings && Array.isArray(inc.settings.custom)) ? inc.settings.custom : []).forEach((c) => {
+      if (c && c.id && c.name && ['check', 'scale', 'number'].includes(c.type) && !defs.some((x) => x.id === c.id)) defs.push({ id: String(c.id), name: String(c.name), type: c.type, unit: String(c.unit || '') });
+    });
     // 진료 탭: 말할 것은 없는 줄만 더하고, 다음 진료일은 비어 있을 때만 가져온다
     if (inc.clinic && typeof inc.clinic === 'object') {
       const mine = db.clinic || (db.clinic = { next: '', notes: [] });

@@ -16,7 +16,7 @@ export const ITEMS = [
   ['mood', T('기분')], ['energy', T('에너지')], ['conf', T('자신감')], ['sleep', T('수면')],
   ['dep', T('우울')], ['anx', T('불안')], ['psy', T('정신병적 증상')], ['si', T('죽고 싶은 생각')],
   ['period', T('생리')], ['appetite', T('식욕')], ['caffeine', T('카페인')], ['meds', T('약')],
-  ['fx', T('부작용')], ['tags', T('술 · 운동')], ['note', T('메모')],
+  ['fx', T('부작용')], ['note', T('메모')],
 ];
 // 부작용: 그날 겪은 것을 눌러서 적는다 (entry.fx = { 열쇠: true })
 // 목록에 없는 것은 직접 적어 넣을 수 있다: 열쇠가 'c:이름'이고, 적어 넣은 이름들은 settings.fxCustom에 남아 다음에도 딱지로 뜬다.
@@ -31,8 +31,13 @@ const onKeys = (bag) => Object.keys(bag || {}).filter((k) => bag[k]);
 export const fxName = nameIn(SIDE_EFFECTS), fxNames = (fx) => onKeys(fx).map(fxName);
 // 정신병적 증상도 같은 방식
 export const psyName = nameIn(PSYCH), psyNames = (psych) => onKeys(psych).map(psyName);
-// 생활: 그날 있었던 것 (entry.tags = { 열쇠: true }). 인사이트에서 그런 날과 다른 날을 견준다.
-export const TAGS = [['alcohol', T('술')], ['exercise', T('운동')]];
+// 내 항목: 사용자가 설정에서 직접 만드는 기록 항목 (settings.custom = [{ id, name, type, unit }]). 그날 값은 entry.custom = { id: 값 }.
+// type: 'check'(했음/안 했음 → true) · 'scale'(0~10) · 'number'(숫자, 단위는 unit)
+export const CUSTOM_TYPES = [['check', T('했음 · 안 했음')], ['scale', T('0~10 정도')], ['number', T('숫자')]];
+// 그날 값을 글로 (안 적었으면 '')
+export const customText = (def, v) => (v == null || v === false || v === '' ? '' : def.type === 'check' ? T('했음') : def.type === 'number' ? `${v}${def.unit ? ` ${def.unit}` : ''}` : String(v));
+// 네모 줄에 칠할 정도 (0~4): 했음은 3, 0~10은 높을수록 진하게, 숫자는 0보다 크면 3
+export const customLevel = (def, v) => (v == null || v === false || v === '' ? 0 : def.type === 'scale' ? Math.ceil(v / 2.5) : v === true || v > 0 ? 3 : 0);
 // 켜진 열쇠만 남긴다. 하나도 없으면 undefined (저장할 때 빈 칸을 남기지 않으려고)
 export const onlyOn = (obj) => {
   const keys = Object.keys(obj || {}).filter((k) => obj[k]);
