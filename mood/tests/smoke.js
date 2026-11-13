@@ -325,7 +325,9 @@ function seed() {
   check('홈 화면 앱: 짧은 화면도 페이지가 화면보다 길고 탭바는 바닥', edges[0] && edges[1] === edges[2], edges.join(', '));
   await put(seed());
 
-  // 7. 백업 내보내기 → 지우기 → 불러오기
+  // 7. 백업 내보내기 → 지우기 → 불러오기 (앱을 지웠다가 다시 깔았을 때와 같은 흐름)
+  await page.evaluate(([k]) => { const d = JSON.parse(localStorage.getItem(k)); Object.assign(d.settings, { color: 'blue', use: ['depression', 'adhd'], fxCustom: ['발진'], custom: [{ id: 'walk', name: '걸음 수', type: 'number', unit: '보' }] }); d.clinic = { next: '', notes: ['잠 이야기'], log: [{ date: Object.keys(d.entries)[0], kind: 'med', text: '10mg → 15mg' }] }; localStorage.setItem(k, JSON.stringify(d)); }, [KEY]);
+  await page.reload(); await page.waitForSelector('h1');
   await page.click('[data-act=settings]');
   const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#sheet [data-act=export]')]);
   const backup = fs.readFileSync(await dl.path());
@@ -334,6 +336,9 @@ function seed() {
   await page.setInputFiles('#importFile', { name: 'backup.json', mimeType: 'application/json', buffer: backup });
   await page.waitForFunction((k) => localStorage.getItem(k) && Object.keys(JSON.parse(localStorage.getItem(k)).entries).length > 20, KEY);
   check('백업 불러오기', Object.keys((await store()).entries).length === 29);
+  const back = await store();
+  check('새 앱에 불러오면 약·내 항목·진료 기록·화면 설정·진단명도 돌아옴', back.meds.length === 1 && back.settings.custom[0].name === '걸음 수' && back.clinic.log[0].text === '10mg → 15mg' && back.clinic.notes[0] === '잠 이야기'
+    && back.settings.color === 'blue' && back.settings.use.join() === 'depression,adhd' && back.settings.fxCustom[0] === '발진', JSON.stringify(back.settings));
 
   // 8. 예전(3단계) 기록 옮기기
   await put({ version: 1, entries: { [today]: { date: today, mood: 5, energy: 5, dep: 0, elev: 0, anx: 0, appetite: 2, caffeine: 1, meds: [], signs: {}, tags: { alcohol: true } } }, meds: [], settings: {} });

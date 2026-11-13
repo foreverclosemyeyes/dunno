@@ -5,6 +5,7 @@ import { F, T } from './i18n.js';
 import { medKey } from './meds.js';
 import { render } from './render.js';
 import { db, migrate, save } from './store.js';
+import { applyFont, applyTheme } from './theme.js';
 import { openSettings } from './views/settings.js';
 
 // 기록 알림 시각은 설정에, 약 알람 시각은 약마다(db.meds[i].alarms = ['09:00', ...]) 둔다
@@ -79,6 +80,12 @@ export function importData(file) {
     migrate(inc);
     const n = Object.keys(inc.entries).length;
     if (!confirm(F('백업 파일에 {0}일치 기록이 있어요.\n지금 기록과 합칠까요? (같은 날짜는 더 최근에 수정한 쪽을 남겨요)', n))) return;
+    // 기록이 하나도 없는 새 앱(지웠다가 다시 깔았거나 새 폰)에 불러올 때는 화면 설정과 직접 만든 목록도 백업에서 가져온다.
+    // 이미 쓰던 앱에 합칠 때는 지금 설정을 그대로 둔다. 잠금 비밀번호는 백업에 없다.
+    if (!Object.keys(db.entries).length && inc.settings && typeof inc.settings === 'object') {
+      ['theme', 'color', 'font', 'size', 'remind', 'use', 'off', 'fxCustom', 'psyCustom'].forEach((k) => { if (inc.settings[k] != null) db.settings[k] = inc.settings[k]; });
+      applyTheme(); applyFont();
+    }
     Object.values(inc.entries).forEach((e) => {
       const cur = db.entries[e.date];
       if (!cur || (e.updatedAt || '') >= (cur.updatedAt || '')) db.entries[e.date] = e;
