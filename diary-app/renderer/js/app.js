@@ -513,7 +513,7 @@
       meta.textContent = `${pad(t.getHours())}:${pad(t.getMinutes())}${msg.note ? ' — ' + msg.note : ''}`;
     } else meta.textContent = '';
     $('#chk-hourly').checked = !!state.settings.hourly;
-    $('#btn-claude').hidden = !(state.settings.claudeUrl || !state.hasKeys.anthropic);
+    $('#btn-claude').hidden = !(D.asstWork(state.theme, state.settings).claudeUrl || !state.hasKeys.anthropic);
   }
 
   // 대화 기록: 화면 전체를 덮는 로그 화면. 왼쪽에 제목·날짜, 오른쪽에 말한 사람 이름(주황) + 대사, 내 말은 들여쓰기
@@ -1095,7 +1095,7 @@
     $('#btn-chat-close').onclick = () => openChat(false);
     window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#chat-log').hidden) openChat(false); });
     $('#btn-chat-clear').onclick = async () => { if (confirm('비서와의 대화 기록을 지울까요?')) state.chat = await window.diary.clearChat(); renderChat(); };
-    $('#btn-claude').onclick = () => window.diary.open(state.settings.claudeUrl || 'https://claude.ai/new');
+    $('#btn-claude').onclick = () => window.diary.open(D.asstWork(state.theme, state.settings).claudeUrl || 'https://claude.ai/new');
     $('#chk-hourly').onchange = (e) => window.diary.setSettings({ hourly: e.target.checked });
     $('#btn-pin').onclick = () => window.diary.setSettings({ alwaysOnTop: !state.settings.alwaysOnTop });
     const toggleChar = () => window.diary.setSettings({ hideChar: !state.settings.hideChar });

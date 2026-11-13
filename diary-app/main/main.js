@@ -274,7 +274,14 @@ function persona() {
   const t = store.get('theme', null);
   const a = (t && t.assistant) || {};
   const st = store.get('settings', {});
-  return { name: a.name || '업무비서', tone: a.tone || '차분하고 간결한 존댓말', instructions: st.assistantInstructions || '', model: st.aiModel || 'opus' };
+  // 지침·Claude 채팅 주소·모델은 비서마다 따로. 그 비서에 정한 게 없으면 예전에 정해 둔 공통 값을 씀
+  return {
+    id: (t && t.castActive) || 'ren',
+    name: a.name || '업무비서', tone: a.tone || '차분하고 간결한 존댓말',
+    instructions: a.instructions != null ? a.instructions : st.assistantInstructions || '',
+    claudeUrl: a.claudeUrl != null ? a.claudeUrl : st.claudeUrl || '',
+    model: a.model || st.aiModel || 'opus',
+  };
 }
 
 function currentContext() {
@@ -290,6 +297,8 @@ function currentContext() {
 
 // 대화 기록 (앱 안의 비서 대화. 정시 체크도 같은 대화에 이어서 쌓임)
 function chatHistory() { return store.get('chat', []); }
+// 지금 비서와 나눈 대화만 (비서마다 맡은 일이 달라서 서로의 대화가 섞이지 않게). 예전 기록(비서 표시 없음)은 모두에게 보임
+function chatHistoryFor(id) { return chatHistory().filter((m) => !m.cast || m.cast === id); }
 function addChat(...msgs) {
   const list = [...chatHistory(), ...msgs].slice(-200);
   store.set('chat', list);
@@ -299,20 +308,21 @@ function addChat(...msgs) {
 async function runAssistant({ notify }) {
   // 키가 없으면 무료 모드(정해진 문장)로 말함
   const ctx = currentContext();
+  const who = persona(); // 묻는 순간의 비서 (대답을 기다리는 동안 비서를 바꿔도 이 비서의 대화로 남음)
   push('assistant', { thinking: true });
   let msg;
   try {
-    msg = await assistant.generate(secrets.get('anthropic'), persona(), ctx, chatHistory());
+    msg = await assistant.generate(secrets.get('anthropic'), who, ctx, chatHistoryFor(who.id));
   } catch (e) {
     console.error('[assistant]', e);
-    msg = { ...assistant.fallbackMessage(ctx, persona()), note: assistant.friendlyError(e) };
+    msg = { ...assistant.fallbackMessage(ctx, who), note: assistant.friendlyError(e) };
   }
   msg.at = new Date().toISOString();
   store.set('lastAssistant', msg);
   push('assistant', msg);
-  if (msg.source === 'claude') addChat({ role: 'user', text: assistant.CHECK_PROMPT, auto: true, at: msg.at }, { role: 'assistant', text: msg.text, at: msg.at, name: msg.name });
+  if (msg.source === 'claude') addChat({ role: 'user', text: assistant.CHECK_PROMPT, auto: true, at: msg.at, cast: who.id }, { role: 'assistant', text: msg.text, at: msg.at, name: msg.name, cast: who.id });
   if (notify && Notification.isSupported()) {
-    const n = new Notification({ title: msg.name || persona().name, body: msg.text, silent: false });
+    const n = new Notification({ title: msg.name || who.name, body: msg.text, silent: false });
     n.on('click', showWindow);
     n.show();
   }
@@ -323,19 +333,20 @@ async function chatWithAssistant(text) {
   text = String(text || '').trim().slice(0, 4000);
   if (!text) return null;
   const at = new Date().toISOString();
-  const history = chatHistory();
-  addChat({ role: 'user', text, at });
+  const who = persona();
+  const history = chatHistoryFor(who.id);
+  addChat({ role: 'user', text, at, cast: who.id });
   push('assistant', { thinking: true });
   let msg;
   try {
     const st = store.get('settings', {});
-    msg = await assistant.chat(secrets.get('anthropic'), persona(), currentContext(), history, text, st.gmail ? { gmail: { server: st.gmailServer } } : {});
+    msg = await assistant.chat(secrets.get('anthropic'), who, currentContext(), history, text, st.gmail ? { gmail: { server: st.gmailServer } } : {});
   } catch (e) {
     console.error('[chat]', e);
-    msg = { text: assistant.friendlyError(e), source: 'local', name: persona().name, error: true };
+    msg = { text: assistant.friendlyError(e), source: 'local', name: who.name, error: true };
   }
   msg.at = new Date().toISOString();
-  addChat({ role: 'assistant', text: msg.text, at: msg.at, name: msg.name, ...(msg.source === 'claude' && !msg.error ? {} : { local: true }) });
+  addChat({ role: 'assistant', text: msg.text, at: msg.at, name: msg.name, cast: who.id, ...(msg.source === 'claude' && !msg.error ? {} : { local: true }) });
   store.set('lastAssistant', msg);
   push('assistant', msg);
   return msg;
@@ -649,7 +660,7 @@ function createTray() {
     { label: '다이어리 열기', click: showWindow },
     { label: '지금 확인해줘', click: () => runAssistant({ notify: true }) },
     { label: '노션 새로고침', click: () => sync(true) },
-    ...(store.get('settings', {}).claudeUrl ? [{ label: 'Claude 업무비서 채팅 열기', click: () => shell.openExternal(store.get('settings', {}).claudeUrl) }] : []),
+    ...(persona().claudeUrl ? [{ label: `Claude 채팅 열기 (${persona().name})`, click: () => shell.openExternal(persona().claudeUrl) }] : []),
     { type: 'separator' },
     {
       label: '매시간 체크', type: 'checkbox', checked: !!store.get('settings', {}).hourly,

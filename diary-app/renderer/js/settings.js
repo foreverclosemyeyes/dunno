@@ -452,19 +452,23 @@
     hl.append(hcb, h('span')); hc.append(h('label', 'ctl-label', '캐릭터 숨기기'), hl, h('span'));
     hide.body.append(hc, ckr, bkr, note('• 위쪽 HIDE 버튼이나 위에서 고른 키(기본 Option + H): 캐릭터만 숨기기/보이기<br>• 위 단축키: 어떤 프로그램을 쓰고 있든 업무다이어리 창 전체를 바로 숨기고, 한 번 더 누르면 다시 보여요.'));
 
-    const mdl = C.section('렌이 쓰는 Claude 모델', true);
+    // 아래 둘(모델, 지침·채팅 연결)은 지금 고른 비서에게만 적용됨. 비서를 바꾸면 그 비서의 값으로 바뀜
+    const asstName = state.theme.assistant.name || '비서';
+    const work = D.asstWork(state.theme, state.settings);
+    const setWork = (patch) => { Object.assign(state.theme.assistant, patch); commit(); D.renderAll(); };
+    const mdl = C.section(`${asstName} · 쓰는 Claude 모델`, true);
     const ms = h('select');
     [['opus', 'Opus 5.5 (가장 똑똑함 · 기본)'], ['sonnet', 'Sonnet 5.5 (빠르고 똑똑함)'], ['haiku', 'Haiku 5.5 (가장 빠르고 가벼움)']].forEach(([v, t]) => { const o = h('option', null, t); o.value = v; ms.append(o); });
-    ms.value = state.settings.aiModel || 'opus';
-    ms.onchange = async () => { state.settings = await window.diary.setSettings({ aiModel: ms.value }); D.toast('모델을 바꿨어요.'); };
+    ms.value = work.model;
+    ms.onchange = () => { setWork({ model: ms.value }); D.toast(`${asstName}의 모델을 바꿨어요.`); };
     const mr = h('div', 'ctl'); mr.append(h('label', 'ctl-label', '모델'), ms, h('span'));
     mdl.body.append(mr, note('Claude 구독으로 쓰면 고른 모델의 구독 사용량이 쓰여요. Opus는 대답이 조금 느릴 수 있어요(10~30초).'));
     body.append(mdl.el);
-    const cl = C.section('업무비서 지침 · Claude 채팅 연결', true);
-    const ins = h('textarea'); ins.value = state.settings.assistantInstructions || '';
+    const cl = C.section(`${asstName} · 업무 지침 · Claude 채팅 연결`, true);
+    const ins = h('textarea'); ins.value = work.instructions;
     ins.placeholder = 'Claude의 "업무비서" 프로젝트 지침(또는 채팅에서 정해 둔 규칙)을 그대로 붙여 넣으세요.\n예: 나는 경영지원 담당이고, 매주 월요일엔 자금일보를 먼저 챙긴다…';
     ins.style.minHeight = '140px';
-    const url = h('input'); url.type = 'text'; url.value = state.settings.claudeUrl || '';
+    const url = h('input'); url.type = 'text'; url.value = work.claudeUrl;
     url.placeholder = 'https://claude.ai/project/… 또는 https://claude.ai/chat/…';
     const r1 = h('div', 'ctl'); r1.append(h('label', 'ctl-label', '업무비서 지침'), ins, h('span'));
     const r2 = h('div', 'ctl'); r2.append(h('label', 'ctl-label', 'Claude 채팅 주소'), url, h('span'));
@@ -473,11 +477,12 @@
       btn('저장', 'primary', async () => {
         const u = url.value.trim();
         if (u && !/^https:\/\/claude\.ai\//.test(u)) return D.toast('주소는 https://claude.ai/ 로 시작해야 해요.');
-        state.settings = await window.diary.setSettings({ assistantInstructions: ins.value.trim(), claudeUrl: u });
-        D.toast('저장했어요. 다음 대화부터 이 지침을 따라요.'); D.renderAll();
+        setWork({ instructions: ins.value.trim(), claudeUrl: u });
+        D.toast(`저장했어요. ${asstName}는 다음 대화부터 이 지침을 따라요.`);
       }),
       btn('Claude 채팅 열기 ↗', '', () => url.value.trim() && window.diary.open(url.value.trim())),
     );
+    cl.body.append(note('<b>지침·채팅 주소·모델은 비서마다 따로</b> 저장돼요. 예를 들어 한 비서에는 GMEP 채팅의 지침과 주소를, 다른 비서에는 유연근무 채팅의 지침과 주소를 넣어 두고, 말풍선의 이름을 눌러 비서를 바꿔 가며 쓰면 돼요. 대화도 비서별로 따로 이어져요.'));
     cl.body.append(note('앱 안의 비서는 Claude(Haiku 5.5)가 이 지침과 오늘 노션 업무를 보고 대답해요. claude.ai 채팅방 자체와 대화 기록이 직접 이어지지는 않아요(Claude가 그걸 외부 앱에 열어 주지 않아요). 대신 지침을 똑같이 맞추고, "Claude에서 열기" 버튼으로 그 채팅방을 바로 열 수 있어요.'));
     body.append(a.el, img.el, hide.el, cl.el);
   }

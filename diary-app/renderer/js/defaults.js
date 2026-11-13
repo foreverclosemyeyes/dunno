@@ -187,7 +187,17 @@
   // 지금 있는 캐릭터 id 목록 (기본 4명 + 불러온 캐릭터)
   D.castIds = (t) => [...new Set([...D.CAST.map((c) => c[0]), ...Object.keys(t.cast || {}), t.castActive || 'ren'])];
   D.castName = (t, id) => ((t.castActive || 'ren') === id ? t.assistant.name : (t.cast && t.cast[id] && t.cast[id].name) || (D.CAST.find((c) => c[0] === id) || [])[1] || id);
-  const CAST_KEYS = ['name', 'tone', 'image', 'faces', 'size', 'x', 'y', 'flip', 'looks', 'look'];
+  // 비서마다 따로 저장하는 값. instructions·claudeUrl·model 은 비서별 '업무 지침 · 연결된 Claude 채팅 · 쓰는 모델'
+  const CAST_KEYS = ['name', 'tone', 'image', 'faces', 'size', 'x', 'y', 'flip', 'looks', 'look', 'instructions', 'claudeUrl', 'model'];
+  // 지금 비서의 지침·채팅 주소·모델. 그 비서에 따로 정한 게 없으면 예전에 한 번 정해 둔 공통 값을 씀
+  D.asstWork = (t, settings = {}) => {
+    const a = (t && t.assistant) || {};
+    return {
+      instructions: a.instructions != null ? a.instructions : settings.assistantInstructions || '',
+      claudeUrl: a.claudeUrl != null ? a.claudeUrl : settings.claudeUrl || '',
+      model: a.model || settings.aiModel || 'opus',
+    };
+  };
   // 모드(다른 모습): 그림 한 장씩. 자동일 땐 상황에 따라 바뀜
   D.LOOKS = [['glasses', '안경'], ['joker', '조커'], ['hurt', '다친 모습'], ['plain', '안경 벗음'], ['think', '생각 중'], ['glare', '안경 반사']];
   const emptyFaces = () => ({ base: null, talk: null, smile: null, wink: null, serious: null, closed: null });
