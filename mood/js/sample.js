@@ -14,7 +14,7 @@ export function sampleEntries() {
     out[date] = {
       date, mood: high ? 8 : 5 - (period ? 1 : 0), energy: high ? 9 : 4 + (i % 2), conf: high ? 8 : 5,
       sleepMin, tired: !high && sleepMin < 400, period, caffeine: caf ? 8 : 3, appetite: caf ? 3 : 6,
-      dep: high ? 0 : i >= 20 ? 3 : 1, anx: caf ? 3 : 1, psy: i < 3 ? 1 : null, psych: i < 3 ? { voices: true } : undefined, si: 0, signs: high ? { racing: true, projects: i % 2 === 0 } : {},
+      bed: high ? '23:30' : '00:40', dep: high ? 0 : i >= 20 ? 3 : 1, anx: caf ? 3 : 1, psy: i < 3 ? 1 : null, psych: i < 3 ? { voices: true } : undefined, si: 0, signs: high ? { racing: true, projects: i % 2 === 0 } : {},
     };
   }
   return out;

@@ -42,6 +42,18 @@ export function signals() {
 //  [7] Adult ADHD vs. bipolar disorder in the DSM-5 era (2014) J Psychiatr Pract: ADHD는 늘 이어지고 조울증은 삽화로 옴.
 //      잠을 덜 자도 피곤하지 않은 것과 부풀어 오른 자신감은 ADHD의 모습이 아님.
 //  [8] Birchwood 외 (1989, 2000), Eisner 외 (2013) Clin Psychol Rev: 정신병 재발 몇 주 전에 불안·불면 등이 먼저 나타남. 예측력은 보통 수준이고, 자기 평소와 견줄 때 더 나음.
+//      Gleeson 외 (2023~24) 체계적 고찰(72편, 6,903명): 수면·기분·의심이 재발 전 신호로 다뤄짐. 스마트폰 기록 연구에서는 재발 전 100일에 걸쳐 서서히 늘어남.
+// 최근 자료 (같은 날 더 찾아 읽은 것. 정신과 연구는 새 자료가 중요하다고 사용자가 짚음):
+//  [9] Lim 외 (2024) npj Digital Medicine, 기분장애 168명의 수면·각성 기록: 다음 날 삽화를 가장 잘 예측한 것은 일주기 위상의 변화.
+//      위상이 당겨지면 조증·경조증, 늦어지면 우울 삽화. (한 집단의 관찰 연구라 원인이라고 할 수는 없음)
+//  [10] Esaki 외 (2023) Psychiatry Clin Neurosci, APPLE 코호트 조울증 외래 193명 2년 추적: 밤사이 총수면시간 변동이 클수록 재발까지의 기간이 짧음.
+//       2025년 재발 메타분석(34편, 33,500명): 수면 문제가 재발 위험 요인(OR 3.69).
+//  [11] Littlewood 외 (2018) Psychol Med, Brüdern 외 (2022) BMC Psychiatry, Kivelä 외 (2024) J Psychiatr Res: 잠이 짧거나 나빴던 다음 날 자살 생각이 더 심함 (반대 방향은 아님).
+//       그래서 "죽고 싶은 생각이 있던 날의 전날 밤 잠" 비교는 흔한 예상대로 나와도 숨기지 않는다.
+//  [12] Rhee 외 (2023) Psychol Med 스웨덴 전국 자료: 우울증에서 조울증으로 진단이 바뀌는 것을 가장 잘 예측한 것은 조울증 가족력, 입원 치료, 정신병적 증상.
+//       Kessing 외 (2017) 메타분석: 진단이 바뀌는 비율은 첫해 3.9%, 5~10년째 연 0.8%. 일관된 예측 요인은 찾지 못함.
+//  [13] Schiweck 외 (2021) 메타분석 (2023년 리뷰에서 인용): ADHD가 있는 성인 13명 중 1명쯤이 조울증도 있고, 조울증이 있는 사람 6명 중 1명쯤이 ADHD도 있음.
+//  참고: 스마트폰으로 기분을 적는 것 자체가 경과를 좋게 한다는 증거는 아직 없다 (ISBD Big Data Task Force 2022). 이 앱은 진료 때 보여 줄 기록을 남기는 도구로 쓴다.
 // 진단이 아니라, 그런 때 흔히 보이는 모습과 기록이 겹치는 점을 세어서 보여 주는 것이다. 문장도 "겹친다"까지만 말한다.
 
 // 들뜬 날 / 가라앉은 날로 보는 기준
@@ -130,6 +142,17 @@ export function recentState(entries = db.entries) {
   // 하루 사이에 잠이 3시간 넘게 달라진 날: 큰 기분 변화에 하루쯤 앞서 나타나기도 한다 [근거 5]
   const withSleep = span(8, 0).filter((e) => e.sleepMin != null);
   add(withSleep.filter((e, i) => i && dayGap(withSleep[i - 1].date, e.date) === 1 && Math.abs(e.sleepMin - withSleep[i - 1].sleepMin) > 180).length, 1, '하루 사이에 잠이 3시간 넘게 달라진 날 {0}일');
+  // 잠자는 시간대(잠든 시각과 깬 시각의 한가운데)가 평소보다 당겨지거나 늦어졌는지:
+  // 시간대가 당겨지면 조증·경조증, 늦어지면 우울 삽화가 뒤따르는 경우가 많았다 [근거 9]. "한 시간 이상"이라는 기준은 내가 정했다.
+  const mid = (e) => { const [h, m] = e.bed.split(':').map(Number), bed = h * 60 + m + (h < 12 ? 1440 : 0); return bed + e.sleepMin / 2; };
+  const timed = (list) => list.filter((e) => e.bed && e.sleepMin != null).map(mid), midNow = timed(now), midBase = timed(prior);
+  if (midNow.length >= 3 && midBase.length >= 5) {
+    const shift = Math.round(avg(midNow) - avg(midBase));
+    if (Math.abs(shift) >= 60) also.push(F(shift < 0 ? '잠자는 시간대가 평소보다 {0} 당겨짐 (들뜬 시기 앞에 나타나기도 해요)' : '잠자는 시간대가 평소보다 {0} 늦어짐 (가라앉은 시기 앞에 나타나기도 해요)', durText(Math.abs(shift))));
+  }
+  // 밤마다 잠자는 시간이 들쭉날쭉한지: 밤사이 수면 시간의 변동이 큰 사람이 더 빨리 재발했다 [근거 10]. "90분 이상이고 평소의 1.5배"는 내가 정했다.
+  const spread = (v) => { const m = avg(v); return Math.sqrt(avg(v.map((x) => (x - m) ** 2))); }, sleepNow = vals(now, 'sleepMin');
+  if (sleepNow.length >= 4 && base.length >= 7 && spread(sleepNow) >= 90 && spread(sleepNow) >= spread(base) * 1.5) also.push(T('밤마다 잠자는 시간이 평소보다 들쭉날쭉함'));
   if (mine && db.meds.length) add(n((e) => !medsFor(e.date).length), 2, '약을 안 먹은 날 {0}일');
 
   const psyAlso = psyDays ? T(' 정신병적 증상도 함께 적혀 있어요.') : '';
@@ -175,7 +198,7 @@ export function recentState(entries = db.entries) {
   if (up && (dx.includes('adhd') || !dx.includes('bipolar'))) {
     const clues = [started && prior.filter(upDay).length <= prior.length / 4 ? T('어느 날부터 시작됨') : '', lessNeed ? T('잠이 줄었는데 피곤하지 않음') : '', grand ? T('자신감이 크게 높아짐') : ''].filter(Boolean);
     notes.push(clues.length >= 2
-      ? F('산만함이나 충동은 ADHD에서도 흔하지만, 이번에는 {0}이 함께 보여요. 이런 점은 ADHD보다 들뜬 시기에서 흔한 모습이에요.', clues.join(' · '))
+      ? F('산만함이나 충동은 ADHD에서도 흔하지만, 이번에는 {0}이 함께 보여요. 이런 점은 ADHD보다 들뜬 시기에서 흔한 모습이에요. 둘이 함께 있는 경우도 드물지 않아요.', clues.join(' · '))
       : T('산만함이나 충동만 있고 잠과 자신감이 평소와 비슷하다면, ADHD에서도 흔한 모습이에요.'));
   }
   // 가라앉은 시기에 잠·식욕이 늘거나 정신병적 증상이 있는 것은 조울증의 우울에서 조금 더 흔하다. 그것만으로 가를 수는 없다 [근거 6]
@@ -335,7 +358,7 @@ export function insights(entries = db.entries) {
   compare('sleepMin', ...split(sl.filter(has('dep')), isDep), days, { ...sleep, dx: ['depression', 'bipolar'] }, ['우울이 보통 이상인 날은 전날 밤에 {0} 덜 잤어요.', '우울이 보통 이상인 날은 전날 밤에 {0} 더 잤어요.']);
   compare('sleepMin', ...split(sl.filter(has('anx')), isAnx), days, { ...sleep, dx: ['anxiety'] }, ['불안이 보통 이상인 날은 전날 밤에 {0} 덜 잤어요.', '불안이 보통 이상인 날은 전날 밤에 {0} 더 잤어요.', 0]);
   compare('sleepMin', ...split(sl, isPsy), days, { ...sleep, dx: ['psychosis'] }, ['정신병적 증상이 있던 날은 전날 밤에 {0} 덜 잤어요.', '정신병적 증상이 있던 날은 전날 밤에 {0} 더 잤어요.', 0]);
-  compare('sleepMin', ...split(sl.filter(has('si')), isSi), days, sleep, ['죽고 싶은 생각이 있던 날은 전날 밤에 {0} 덜 잤어요.', '죽고 싶은 생각이 있던 날은 전날 밤에 {0} 더 잤어요.', 0]);
+  compare('sleepMin', ...split(sl.filter(has('si')), isSi), days, sleep, ['죽고 싶은 생각이 있던 날은 전날 밤에 {0} 덜 잤어요.', '죽고 싶은 생각이 있던 날은 전날 밤에 {0} 더 잤어요.']);
   const both = (a, b) => all.filter((e) => e[a] != null && e[b] != null);
   compare('energy', ...split(all.filter(has('energy')), isPsy), days, { ...score, dx: ['psychosis'] }, ['정신병적 증상이 있던 날은 에너지가 {0} 낮았어요.', '정신병적 증상이 있던 날은 에너지가 {0} 높았어요.']);
   compare('mood', ...split(withMood, isPsy), days, { ...score, dx: ['psychosis'] }, ['정신병적 증상이 있던 날은 기분이 {0} 낮았어요.', '정신병적 증상이 있던 날은 기분이 {0} 높았어요.']);
