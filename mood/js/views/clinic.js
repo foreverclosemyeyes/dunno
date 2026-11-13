@@ -154,7 +154,7 @@ function figures(s, width, SH, show) {
     s.dates.forEach((d, i) => {
       const v = vals[i], x = cx(i) - sq / 2, top = y + 13;
       out += `<rect x="${x.toFixed(1)}" y="${top}" width="${sq.toFixed(1)}" height="${sq.toFixed(1)}" rx="${(sq * 0.28).toFixed(1)}" ${v ? `style="fill:var(--ink)" fill-opacity="${[0, 0.3, 0.5, 0.75, 1][v]}"` : 'class="c0"'}/>`;
-      out += `<text x="${cx(i).toFixed(1)}" y="${(top + sq / 2 + 3.7).toFixed(1)}" text-anchor="middle" font-size="10.5" style="fill:${v >= 3 ? 'var(--ink-inv)' : v ? 'var(--text)' : 'var(--faint)'}">${'SMTWTFS'[parse(d).getDay()]}</text>`;
+      out += `<text x="${cx(i).toFixed(1)}" y="${(top + sq / 2 + 4.6).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="600" style="fill:${v >= 3 ? 'var(--ink-inv)' : v ? 'var(--text)' : 'var(--faint)'}">${'SMTWTFS'[parse(d).getDay()]}</text>`;
     });
     y += 13 + sq + 22;
   };
