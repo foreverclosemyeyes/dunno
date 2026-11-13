@@ -1,6 +1,6 @@
 // 진료 화면: 다음 진료일, 진료 때 말할 것, 진료용 요약 (최근 2주/4주를 한 장으로)
 import { SHORT_SLEEP, summary } from '../analysis.js';
-import { DISCLAIMER, LEVELS } from '../constants.js';
+import { DISCLAIMER, LEVELS, SYMPTOMS } from '../constants.js';
 import { WD, durText, md, parse, today } from '../dates.js';
 import { app, esc } from '../dom.js';
 import { F, T } from '../i18n.js';
@@ -46,8 +46,8 @@ function dateRanges(list) {
   return runs.map(([a, b]) => (a === b ? shortDate(a) : `${shortDate(a)}–${shortDate(b)}`)).join(', ');
 }
 
-// 요약에 들어가는 그림 세 장: 큰 그래프(켜 둔 선들, 선 끝에 이름) · 수면(곡선) · 약과 생리(먹은 날 ○, 안 먹은 날 ×).
-// 카드는 따로지만 셋 다 같은 너비와 여백으로 그려서 날짜가 세로로 맞는다.
+// 요약에 들어가는 그림 세 장: 큰 그래프(켜 둔 선들, 선 끝에 이름) · 수면(곡선) · 줄들(증상 네모, 약 ○×, 생리 ○).
+// 셋 다 같은 너비와 여백으로 그려서, 위아래로 같은 자리가 같은 날이다 (약을 안 먹은 날의 기분·증상이 한 줄로 이어져 보인다).
 // 선은 전부 부드러운 실선이다. 색은 CSS 변수를 따라가서 다크·라이트·인쇄에서 그대로 읽힌다.
 function figures(s, width) {
   // 오른쪽에는 선 끝 이름이 들어갈 자리를 둔다 (이름이 긴 "죽고 싶은 생각"을 켰을 때만 넓게)
@@ -117,7 +117,21 @@ function figures(s, width) {
   }
   const sleep = take('sum-sleep', y);
 
-  // 3. 약 · 생리: 얇은 선으로 먹은 날 ○, 안 먹은 날 ×
+  // 3. 증상: 날마다 요일이 적힌 네모 한 칸, 그런 날은 색칠 (단계가 높을수록 진하게). 위 그래프와 같은 날짜 자리에 놓인다.
+  //    칸이 좁으면(4주) 요일 글자는 뺀다.
+  const sq = Math.max(4, Math.min(col - 2, 19)), wd = WD();
+  SYMPTOMS.filter(([k]) => itemOn(k)).forEach(([k, name]) => {
+    const count = s.days.filter((e) => e && e[k]).length;
+    head(name, count ? F('{0}일', count) : T('없음'));
+    s.dates.forEach((d, i) => {
+      const v = (s.days[i] && s.days[i][k]) || 0, x = cx(i) - sq / 2, top = y + 8;
+      out += `<rect x="${x.toFixed(1)}" y="${top}" width="${sq.toFixed(1)}" height="${sq.toFixed(1)}" rx="${(sq * 0.28).toFixed(1)}" ${v ? `style="fill:var(--l-${k})" fill-opacity="${[0, 0.4, 0.6, 0.8, 1][v]}"` : 'class="c0"'}/>`;
+      if (sq >= 13) out += `<text x="${cx(i).toFixed(1)}" y="${(top + sq / 2 + 3.2).toFixed(1)}" text-anchor="middle" font-size="9" style="fill:${v >= 3 ? '#fff' : v ? 'var(--text)' : 'var(--faint)'}">${wd[parse(d).getDay()][0]}</text>`;
+    });
+    y += 8 + sq + 22;
+  });
+
+  // 4. 약 · 생리: 얇은 선으로 먹은 날 ○, 안 먹은 날 ×
   const r = Math.max(2, Math.min(col / 2 - 1.5, 4.2));
   const marksRow = (has, cross) => {
     s.dates.forEach((d, i) => {
@@ -139,9 +153,9 @@ function figures(s, width) {
     head(T('생리'), F('{0}일', s.period.length));
     marksRow((d, e) => e && e.period, false);
   }
-  if (!meds.length && !period) return { chart, sleep, marks: '' };
+  if (!out) return { chart, sleep, rows: '' };
   dateLabels(y - 10);
-  return { chart, sleep, marks: take('sum-meds', y - 4) };
+  return { chart, sleep, rows: take('sum-rows', y - 4) };
 }
 
 // 요약에 들어갈 줄들: [이름, 내용]. 화면과 복사용 글이 같은 줄을 쓴다.
@@ -161,48 +175,23 @@ function summaryRows(s) {
   };
 }
 
-// 눈에 띄는 날: 항목마다 요일 칸을 놓고 그런 날을 색칠한다 (7일이 한 줄, 여러 주면 줄이 늘어난다).
-// 증상은 단계가 높을수록 진하게, "5시간 미만 수면"은 해당하는 밤만 칠한다. 인쇄에도 나오도록 SVG로 그린다.
-function dayGrids(s, width) {
-  const w = Math.floor((width - 14) / 2), rows = s.dates.length / 7, lab = rows > 1 ? 30 : 0, cell = (w - lab) / 7, sz = cell - 3, wd = WD();
-  const items = [
-    ...[['dep', T('우울')], ['anx', T('불안')], ['si', T('죽고 싶은 생각')]].filter(([k]) => itemOn(k)).map(([k, name]) => [name, `var(--l-${k})`, (e) => (e && e[k]) || 0]),
-    ...(itemOn('sleep') ? [[T('5시간 미만 수면'), 'var(--ink)', (e) => (e && e.sleepMin != null && e.sleepMin < SHORT_SLEEP ? 4 : 0)]] : []),
-  ];
-  return items.map(([name, color, level]) => {
-    const vals = s.days.map(level), count = vals.filter(Boolean).length;
-    let out = '';
-    for (let c = 0; c < 7; c++) out += `<text x="${(lab + cell * c + sz / 2).toFixed(1)}" y="9" text-anchor="middle" font-size="9.5" style="fill:var(--muted)">${wd[parse(s.dates[c]).getDay()]}</text>`;
-    vals.forEach((v, i) => {
-      const x = lab + cell * (i % 7), y = 15 + cell * Math.floor(i / 7);
-      if (lab && i % 7 === 0) out += `<text x="0" y="${(y + sz / 2 + 3.5).toFixed(1)}" font-size="9" style="fill:var(--faint)">${shortDate(s.dates[i])}</text>`;
-      out += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${sz.toFixed(1)}" height="${sz.toFixed(1)}" rx="${(sz * 0.28).toFixed(1)}" ${v ? `style="fill:${color}" fill-opacity="${[0, 0.4, 0.6, 0.8, 1][v]}"` : 'class="c0"'}/>`;
-    });
-    return `<div class="sum-grid"><div class="sg-h"><span>${name}</span><span>${count ? F('{0}일', count) : T('없음')}</span></div><svg width="${w}" height="${(15 + cell * rows).toFixed(1)}" role="img">${out}</svg></div>`;
-  }).join('');
-}
-
-// 요약 본문: 그림 세 장과 눈에 띄는 날·신호·메모를 카드로 나눠 놓는다 (인쇄하면 이 부분이 한 장으로 나간다)
+// 요약 본문: 그림 세 장을 한 카드에 쌓고, 체크 항목·신호·메모를 카드로 나눠 놓는다 (인쇄하면 이 부분이 한 장으로 나간다)
 function summaryHtml(weeks) {
   const s = summary(weeks);
   const width = Math.max(240, Math.min(app.clientWidth, 480) - 32 - 32);
   const fig = figures(s, width);
   // 큰 그래프의 선을 켜고 끄는 단추: 기분·에너지·자신감은 평균을 옆에 적는다
   const toggles = lineDefs().map(([key, name, max]) => `<button class="sum-tog" data-act="clinicLine" data-k="${key}" aria-pressed="${clinicView.lines.includes(key)}"><i style="background:${lineColor(key)}"></i>${name}${max === 10 && s[key] ? ` <b>${one(s[key].avg)}</b>` : ''}</button>`).join('');
-  const grids = dayGrids(s, width);
   const signs = s.signs.map(([name, c]) => li(esc(name), F('{0}일', c)));
   const says = (title, rows) => (rows.length ? `<div class="sec">${title}</div><section class="card list">${rows.join('')}</section>` : '');
   return `
     <div class="sec">${md(parse(s.dates[0]))} – ${md(parse(s.dates[s.dates.length - 1]))} · ${F('기록 {0}일 / {1}일', s.got.length, s.dates.length)}</div>
-    ${toggles ? `<section class="card">
-      <div class="sum-togs">${toggles}</div>
-      ${fig.chart}
-      <p class="sum-key">${T('증상은 맨 아래가 없음, 맨 위가 매우 높음')}</p>
-    </section>` : ''}
-    ${itemOn('sleep') ? `<section class="card">${fig.sleep}</section>` : ''}
-    ${fig.marks ? `<section class="card">${fig.marks}</section>` : ''}
-    ${grids ? `<div class="sec">${T('눈에 띄는 날')}</div><section class="card" id="sum-days"><div class="sum-grids">${grids}</div>
-      <p class="sum-key">${T('한 칸이 하루예요. 색이 진할수록 심한 날이에요.')}</p></section>` : ''}
+    <section class="card sum-stack">
+      ${toggles ? `<div class="sum-togs">${toggles}</div>${fig.chart}` : ''}
+      ${itemOn('sleep') ? fig.sleep : ''}
+      ${fig.rows}
+      <p class="sum-key">${T('위아래로 같은 자리가 같은 날이에요 · 네모는 색이 진할수록 심한 날 · 약은 먹은 날 ○, 안 먹은 날 ×')}</p>
+    </section>
     ${says(T('기분이 높았던 날 체크한 항목'), signs)}
     ${says(T('지금 떠 있는 신호'), s.signals.map((x) => `<div class="li say">${esc(x)}</div>`))}
     ${says(T('메모'), s.notes.map(([d, note]) => `<div class="li say note"><small>${shortDate(d)}</small> ${esc(note)}</div>`))}

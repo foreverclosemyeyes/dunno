@@ -385,10 +385,8 @@ input[type=date] { border: 0; outline: none; background: var(--card2); color: va
 #summary svg { display: block; overflow: visible; font-family: inherit; }
 .sum-key { color: var(--faint); font-size: calc(10.5px * var(--fs, 1.12)); margin: 8px 0 0; line-height: 1.45; }
 
-/* 진료용 요약: 눈에 띄는 날 (항목마다 요일 칸) */
-.sum-grids { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 14px; }
-.sg-h { display: flex; justify-content: space-between; gap: 6px; font-size: calc(12.5px * var(--fs, 1.12)); font-weight: 600; margin-bottom: 7px; white-space: nowrap; }
-.sg-h span:last-child { color: var(--muted); font-weight: 400; }
+/* 진료용 요약: 그림들을 한 카드에 위아래로 쌓는다. 증상 네모의 빈 칸 색 */
+.sum-stack svg + svg { margin-top: 22px; }
 .c0 { fill: var(--card2); }
 @media print { .c0 { fill: none; stroke: #ccc; } }
 
