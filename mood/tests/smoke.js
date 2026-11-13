@@ -356,13 +356,17 @@ function seed() {
 
   // 9. 쓰임새: 고르면 기록 항목이 거기에 맞게 바뀌고, 딸린 내 항목이 생긴다 (기록은 그대로)
   const entriesKept = JSON.stringify((await store()).entries);
-  await page.click('[data-act=preset][data-p=adhd]');
+  await page.click('[data-act=preset][data-p=bipolar]'); await page.click('[data-act=preset][data-p=adhd]');
   let st = (await store()).settings;
-  check('쓰임새를 ADHD로: 정신병적 증상·들뜸 체크리스트가 꺼지고 내 항목이 생김', st.use === 'adhd' && st.off.includes('psy') && st.off.includes('signs') && st.custom.some((c) => c.type === 'scale')
+  check('쓰임새를 ADHD로: 정신병적 증상·들뜸 체크리스트가 꺼지고 내 항목이 생김', st.use.join() === 'adhd' && st.off.includes('psy') && st.off.includes('signs') && st.custom.some((c) => c.type === 'scale')
     && (await page.getAttribute('[data-act=item][data-k=psy]', 'aria-pressed')) === 'false' && JSON.stringify((await store()).entries) === entriesKept);
+  await page.click('[data-act=preset][data-p=depression]');
+  st = (await store()).settings;
+  check('쓰임새를 여러 개 고름 (ADHD + 우울증): 둘 다의 내 항목이 생기고, 둘 다 안 쓰는 항목만 꺼짐', st.use.length === 2 && st.off.includes('psy') && !st.off.includes('si')
+    && st.custom.filter((c) => c.type === 'check').length >= 4 && (await page.$$('[data-act=preset][aria-pressed=true]')).length === 2);
   await page.click('[data-act=preset][data-p=bipolar]');
   st = (await store()).settings;
-  check('쓰임새를 조울증으로 되돌리면 항목이 다시 다 켜짐', st.use === 'bipolar' && st.off.length === 0);
+  check('조울증을 같이 고르면 조울증에 필요한 항목이 다시 켜짐', st.use.length === 3 && st.off.length === 0);
   await page.click('[data-act=close]');
 
   await page.click('.btn[data-act=record]');

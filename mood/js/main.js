@@ -1,6 +1,6 @@
 // 시작점: 누르기·입력 처리와 앱 시작
 import { aiSummary } from './analysis.js';
-import { PRESETS } from './constants.js';
+import { ITEMS, PRESETS } from './constants.js';
 import { addDays, today } from './dates.js';
 import { $, app, closeSheet, copyText, enterApp, sheet, sheetOpen, toTop, toast } from './dom.js';
 import { exportData, giveFile, hasAlarms, importData, makeIcs, remind, snoozeBackup } from './files.js';
@@ -10,7 +10,7 @@ import { addDose, medKey, medsFor, normDose, setMeds, sugHtml, toggleDoseTime } 
 import { render } from './render.js';
 import { onSwipe } from './swipe.js';
 import { clinicView, standalone, trend, ui } from './state.js';
-import { db, save } from './store.js';
+import { db, save, usesOn } from './store.js';
 import { applyFont, applyTheme, themeQuery } from './theme.js';
 import { clinicData, clinicWeeks, openLog, summaryText } from './views/clinic.js';
 import { notesListHtml, openNotes } from './views/notes.js';
@@ -64,15 +64,18 @@ const actions = {
   },
   // 설정: 쓰임새 고르기. 기록 항목을 그 쓰임새의 기본으로 맞추고, 딸린 내 항목 가운데 없는 것만 만든다.
   preset: (el) => {
-    const [key, name, off, items] = PRESETS.find(([k]) => k === el.dataset.p);
-    db.settings.use = key;
-    db.settings.off = off.slice();
+    // 여러 개를 같이 고를 수 있다 (우울증과 ADHD가 같이 있는 경우처럼). 누를 때마다 켜지고 꺼진다.
+    const key = el.dataset.p, was = usesOn(), now = was.includes(key) ? was.filter((k) => k !== key) : [...was, key];
+    const chosen = PRESETS.filter(([k]) => now.includes(k));
+    db.settings.use = now;
+    // 고른 쓰임새 모두가 필요 없다고 하는 항목만 끈다 (하나라도 쓰면 켜 둔다)
+    db.settings.off = chosen.length ? ITEMS.map(([k]) => k).filter((k) => chosen.every(([, , off]) => off.includes(k))) : [];
     const list = db.settings.custom || (db.settings.custom = []);
-    items.forEach(([label, type, unit], i) => {
+    chosen.flatMap(([, , , items]) => items).forEach(([label, type, unit], i) => {
       if (!list.some((c) => c.name === label)) list.push({ id: `u${Date.now().toString(36)}${i}`, name: label, type, unit: unit || '' });
     });
     save(); render(); redrawSettings();
-    toast(F('{0}에 맞춰 기록 항목을 바꿨어요', name));
+    toast(chosen.length ? F('{0}에 맞춰 기록 항목을 바꿨어요', chosen.map(([, name]) => name).join(' · ')) : T('기록 항목을 전부 켰어요'));
   },
   // 내 항목: 0~10 값을 다시 비우기 (기록 화면), 새 항목 종류 고르기 · 더하기 · 지우기 (설정)
   customClear: (el) => {
