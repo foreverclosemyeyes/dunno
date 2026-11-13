@@ -61,7 +61,7 @@ function seed() {
   await page.click('.btn[data-act=record]');
   await page.click('.savebar [data-act=save]');
   check('아무것도 안 적으면 저장하지 않음', !(await store()) || !(await store()).entries[today]);
-  check('처음에는 값이 비어 있음', (await text('#v-mood')) === '–');
+  check('처음에는 모든 칸이 기록 없음', (await text('#n-mood')) === '기록 없음' && (await text('#v-mood')) === '' && (await text('.tile .word')) === '기록 없음');
   check('보통 값에서는 체크리스트 숨김', await page.isHidden('#signs'));
   await page.fill('#f-mood', '8');
   check('기분 7 이상이면 체크리스트 표시', await page.isVisible('#signs'));
@@ -104,11 +104,11 @@ function seed() {
 
   // 4-1. 이어서 적기: 나중에 다른 항목만 더해도 먼저 적은 것은 그대로다
   await page.click('.tile[data-focus=energy]');
-  check('타일을 누르면 기록 화면이 열리고 먼저 적은 값이 보임', (await text('#v-mood')) === '3' && (await text('#v-energy')) === '–');
+  check('타일을 누르면 기록 화면이 열리고 먼저 적은 값이 보임', (await text('#v-mood')) === '3' && (await text('#n-energy')) === '기록 없음');
   await page.click('#f-energy');   // 빈 슬라이더는 누르기만 해도 값이 생긴다
-  check('빈 슬라이더를 누르면 값이 생김', (await text('#v-energy')) !== '–');
+  check('빈 슬라이더를 누르면 값이 생김', (await text('#v-energy')) !== '');
   await page.click('[data-act=clearField][data-k=energy]');
-  check('값 자리를 누르면 다시 비워짐', (await text('#v-energy')) === '–');
+  check('값 자리를 누르면 다시 기록 없음', (await text('#n-energy')) === '기록 없음');
   await page.fill('#f-energy', '6');
   await page.click('.savebar [data-act=save]');
   e = (await store()).entries[today];

@@ -314,3 +314,5 @@ input[type=range].unset { opacity: .45; }
 .top-note { margin: 0 16px 12px; }
 /* 날짜 동그라미: 기록은 있는데 기분은 안 적은 날 */
 .cdot.part { background: var(--card2); }
+.tile .word.unset { font-size: calc(15px * var(--fs, 1.12)); font-weight: 500; letter-spacing: 0; line-height: 1.75; }
+.slv .nm.unset { color: var(--faint); font-weight: 400; }

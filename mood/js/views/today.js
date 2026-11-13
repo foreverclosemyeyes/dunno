@@ -52,10 +52,10 @@ export const level = (pos) => {
   const p = Math.max(0, Math.min(1, pos)) * 100, lo = Math.min(50, p), w = Math.abs(p - 50);
   return `<div class="lvl" aria-hidden="true"><i style="left:${lo.toFixed(1)}%;width:${w.toFixed(1)}%"></i><b style="left:${p.toFixed(1)}%"></b></div>`;
 };
-// 타일을 누르면 기록 화면의 그 항목으로 바로 간다. 아직 안 적은 항목은 '–'로 보인다.
+// 타일을 누르면 기록 화면의 그 항목으로 바로 간다. 아직 안 적은 항목도 칸은 그대로 있고 '기록 없음'으로 보인다.
 export const tile = (focus, label, word, num, pos, sub, color) => `<button class="tile" data-act="record" data-focus="${focus}"${color ? ` style="--tone:${color}"` : ''}>
   <div class="tl"><span>${label}</span><span>${num == null ? '' : num}</span></div>
-  <div class="word${word ? '' : ' unset'}">${word || '–'}</div>${pos == null ? '' : level(pos)}${sub ? `<div class="ts">${sub}</div>` : ''}</button>`;
+  <div class="word${word ? '' : ' unset'}">${word || T('기록 없음')}</div>${pos == null ? '' : level(pos)}${sub ? `<div class="ts">${sub}</div>` : ''}</button>`;
 const scoreTile = (key, label, v) => tile(key, label, nameOf(key, v), v, v == null ? null : v / 10, '', tone(key, v));
 export const bars = (v) => `<span class="bars">${[1, 2, 3, 4].map((i) => `<i class="${i <= v ? 'on' : ''}"></i>`).join('')}</span>`;
 

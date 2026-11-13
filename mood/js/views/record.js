@@ -130,8 +130,9 @@ export function syncForm() {
   if (!d) return;
   SLIDERS.forEach((k) => {
     const v = d[k], input = $(`#f-${k}`), col = tone(k, v);
-    $(`#v-${k}`).textContent = v == null ? '–' : v;
-    $(`#n-${k}`).textContent = nameOf(k, v);
+    $(`#v-${k}`).textContent = v == null ? '' : v;
+    $(`#n-${k}`).textContent = v == null ? T('기록 없음') : nameOf(k, v);
+    $(`#n-${k}`).classList.toggle('unset', v == null);
     input.classList.toggle('unset', v == null);
     input.style.setProperty('--v', (v == null ? SLIDER_START : v) / 10);
     if (col) input.style.setProperty('--tone', col); else input.style.removeProperty('--tone');
