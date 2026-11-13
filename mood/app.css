@@ -340,17 +340,11 @@ button.li .lv { margin-left: auto; }
 /* 진료 탭 · 진료용 요약 */
 input[type=date] { border: 0; outline: none; background: var(--card2); color: var(--text); border-radius: 8px; padding: 6px 10px; font-size: calc(16px * var(--fs, 1.12)); -webkit-appearance: none; appearance: none; min-width: 0; }
 .talk { white-space: normal; overflow-wrap: anywhere; }
-.sum-top { padding: 16px 16px 4px; }
-.sum-top b { display: block; font-size: calc(18px * var(--fs, 1.12)); letter-spacing: -0.02em; }
-.sum-top span { color: var(--muted); font-size: calc(12.5px * var(--fs, 1.12)); }
-.sum-h { color: var(--muted); font-size: calc(12px * var(--fs, 1.12)); font-weight: 600; padding: 16px 16px 2px; }
-.sum-h + .li::before { display: none; }
-#summary .li { min-height: 38px; padding: 6px 16px; font-size: calc(14px * var(--fs, 1.12)); }
-#summary .li .lv { max-width: 62%; overflow-wrap: anywhere; }
+.sum-top { display: none; font-size: 20px; font-weight: 700; margin: 0 16px 4px; }
 #summary .li.say small { color: var(--muted); margin-right: 4px; }
-.sum-foot { color: var(--faint); font-size: calc(11px * var(--fs, 1.12)); padding: 14px 16px 16px; margin: 0; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-/* 인쇄·PDF: 요약 한 장만, 흰 바탕에 검은 글씨로 */
+/* 인쇄·PDF: 요약 부분만, 흰 바탕에 검은 글씨로 (누르는 것들은 뺀다) */
 @media print {
   :root, :root[data-theme=light] { --bg: #fff; --text: #000; --ink: #000; --muted: #444; --faint: #777; --line: #ccc; --card: transparent; --card2: transparent; --shadow: none;
     --l-energy: #d19a00; --l-conf: #1e96d1; --l-dep: #5856d6; --l-elev: #f07800; --l-anx: #af52de; --l-si: #e6294f; }
@@ -358,7 +352,10 @@ input[type=date] { border: 0; outline: none; background: var(--card2); color: va
   body * { visibility: hidden; }
   #summary, #summary * { visibility: visible; }
   #app { padding: 0; max-width: none; }
-  #summary { position: absolute; left: 0; right: 0; top: 0; margin: 0; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
+  #summary { position: absolute; left: 0; right: 0; top: 0; margin: 0; }
+  #summary .card { -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; margin-bottom: 0; }
+  .sum-top { display: block; }
+  .noprint, .sum-togs { display: none !important; }
 }
 
 /* 메모 모아 보기 */
@@ -378,17 +375,20 @@ input[type=date] { border: 0; outline: none; background: var(--card2); color: va
 .lock-pad button:active { background: var(--fill); }
 .lock-pad .lock-txt { background: none; font-family: inherit; font-size: calc(14px * var(--fs, 1.12)); color: var(--muted); }
 
-/* 진료용 요약: 숫자 네 칸, 한눈에 보는 그림, 딱지 */
-.sum-togs { display: flex; flex-wrap: wrap; gap: 6px; padding: 16px 16px 0; }
+/* 진료용 요약: 선을 켜고 끄는 단추와 그림 */
+.sum-togs { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 16px; }
 .sum-tog { background: var(--card2); border-radius: 999px; padding: 6px 12px; font-size: calc(12.5px * var(--fs, 1.12)); color: var(--faint); }
 .sum-tog b { font-family: var(--round); font-weight: 600; }
 .sum-tog i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; opacity: .35; }
 .sum-tog[aria-pressed=true] i { opacity: 1; }
 .sum-tog[aria-pressed=true] { background: var(--sel); color: var(--text); font-weight: 600; }
-.sum-fig { padding: 18px 16px 0; }
-.sum-fig svg { display: block; overflow: visible; font-family: inherit; }
-.sum-key { color: var(--faint); font-size: calc(10.5px * var(--fs, 1.12)); margin: 6px 16px 0; line-height: 1.45; }
-.sum-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 16px 2px; }
-.sum-chip { background: var(--card2); border-radius: 999px; padding: 5px 11px; font-size: calc(12.5px * var(--fs, 1.12)); color: var(--muted); }
-.sum-chip b { color: var(--text); font-weight: 600; }
-@media print { .sum-chip { border: 1px solid #ccc; } .sum-togs { display: none; } }
+#summary svg { display: block; overflow: visible; font-family: inherit; }
+.sum-key { color: var(--faint); font-size: calc(10.5px * var(--fs, 1.12)); margin: 8px 0 0; line-height: 1.45; }
+
+/* 인사이트: 두 숫자를 나란히 놓은 비교 줄 */
+.li.cmp { display: block; padding: 13px 16px 14px; }
+.cmp-t { color: var(--muted); font-size: calc(12.5px * var(--fs, 1.12)); }
+.cmp-v { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 7px; }
+.cmp-v b { display: block; font-family: var(--round); font-size: calc(19px * var(--fs, 1.12)); font-weight: 600; letter-spacing: -0.02em; }
+.cmp-v span { display: block; color: var(--faint); font-size: calc(11.5px * var(--fs, 1.12)); margin-top: 1px; }
+.cmp-v .other b { color: var(--muted); font-weight: 500; }

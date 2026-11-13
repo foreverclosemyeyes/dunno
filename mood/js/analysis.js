@@ -1,7 +1,7 @@
 // 초기 신호 · 인사이트 · 진료용 요약 계산 (전부 이 폰 안에서)
 import { SIGNS, cafMg, drinkText } from './constants.js';
 import { addDays, durText, today } from './dates.js';
-import { F, T } from './i18n.js';
+import { T } from './i18n.js';
 import { aided, medsFor, medsText } from './meds.js';
 import { db } from './store.js';
 
@@ -26,56 +26,40 @@ export function signals() {
   return out;
 }
 
+// 인사이트: 두 묶음의 평균을 나란히 놓은 비교들. { title, a: [이름, 값], b: [이름, 값] }
+// 화면은 문장 대신 두 숫자를 크게 보여 준다. 차이가 뚜렷할 때만 넣는다.
 export function insights() {
   const all = sortedEntries(), out = [];
   if (all.length < 7) return out;
-  const sl = all.filter((e) => e.sleepMin != null);
-  const sleepOf = (list) => avg(list.map((e) => e.sleepMin));
-  // 두 묶음의 수면 차이를 문장으로 (각 3일 이상, 20분 이상 차이 날 때만)
-  const sleepGap = (a, b, less, more) => {
-    if (a.length < 3 || b.length < 3) return;
-    const d = Math.round(sleepOf(a) - sleepOf(b));
-    if (Math.abs(d) >= 20) out.push(F(d < 0 ? less : more, durText(Math.abs(d))));
+  const mean = (list, key) => avg(list.map((e) => e[key]));
+  const dur = (m) => durText(Math.round(m)), num = (x) => x.toFixed(1);
+  // 두 묶음(각 min일 이상)의 평균이 gap 이상 차이 나면 넣는다
+  const compare = (title, key, a, b, labels, { min = 3, gap, fmt }) => {
+    if (a.length < min || b.length < min) return;
+    const x = mean(a, key), y = mean(b, key);
+    if (Math.abs(x - y) >= gap) out.push({ title, a: [labels[0], fmt(x)], b: [labels[1], fmt(y)] });
   };
+  const sleep = { gap: 20, fmt: dur }, days = [T('그런 날'), T('다른 날')];
   // 항목을 따로따로 적을 수 있어서 빈 값(null)이 섞여 있다. null은 비교에서 0처럼 굴기 때문에, 값이 있는 날만 골라서 나눈다.
   const has = (key) => (e) => e[key] != null;
-  const slE = sl.filter(has('energy')), slM = sl.filter(has('mood'));
-  sleepGap(slE.filter((e) => e.energy >= 7), slE.filter((e) => e.energy < 7),
-    '에너지가 높았던 날 전날 밤에는 다른 날보다 {0} 덜 잤어요.', '에너지가 높았던 날 전날 밤에는 다른 날보다 {0} 더 잤어요.');
-  sleepGap(slM.filter((e) => e.mood <= 3), slM.filter((e) => e.mood > 3),
-    '기분이 가라앉은 날 전날 밤에는 다른 날보다 {0} 덜 잤어요.', '기분이 가라앉은 날 전날 밤에는 다른 날보다 {0} 더 잤어요.');
-  sleepGap(sl.filter((e) => e.tired), sl.filter((e) => !e.tired),
-    '일어났을 때 피곤했던 날은 다른 날보다 {0} 덜 잤어요.', '일어났을 때 피곤했던 날은 다른 날보다 {0} 더 잤어요.');
+  const sl = all.filter(has('sleepMin')), slE = sl.filter(has('energy')), slM = sl.filter(has('mood'));
+  compare(T('에너지가 높았던 날, 전날 밤 잠'), 'sleepMin', slE.filter((e) => e.energy >= 7), slE.filter((e) => e.energy < 7), days, sleep);
+  compare(T('기분이 가라앉은 날, 전날 밤 잠'), 'sleepMin', slM.filter((e) => e.mood <= 3), slM.filter((e) => e.mood > 3), days, sleep);
+  compare(T('일어났을 때 피곤했던 날의 잠'), 'sleepMin', sl.filter((e) => e.tired), sl.filter((e) => !e.tired), days, sleep);
   // 카페인 많이 마신 날 → 그날 밤 잠 (다음 날 기록의 수면)
   const night = (e) => db.entries[addDays(e.date, 1)];
   const caf = all.filter((e) => e.caffeine != null && night(e) && night(e).sleepMin != null);
-  sleepGap(caf.filter((e) => e.caffeine >= 7).map(night), caf.filter((e) => e.caffeine < 7).map(night),
-    '카페인을 많이 마신 날 밤에는 다른 날보다 {0} 덜 잤어요.', '카페인을 많이 마신 날 밤에는 다른 날보다 {0} 더 잤어요.');
-  const ap = all.filter((e) => e.caffeine != null && e.appetite != null), apHi = ap.filter((e) => e.caffeine >= 7), apLo = ap.filter((e) => e.caffeine < 7);
-  if (apHi.length >= 3 && apLo.length >= 3) {
-    const d = avg(apHi.map((e) => e.appetite)) - avg(apLo.map((e) => e.appetite));
-    if (Math.abs(d) >= 1) out.push(T(d < 0 ? '카페인을 많이 마신 날은 식욕이 낮은 편이에요.' : '카페인을 많이 마신 날은 식욕이 높은 편이에요.'));
-  }
-  const withMood = all.filter(has('mood')), per = withMood.filter((e) => e.period), non = withMood.filter((e) => !e.period);
-  if (per.length >= 3 && non.length >= 3) {
-    const d = avg(per.map((e) => e.mood)) - avg(non.map((e) => e.mood));
-    if (Math.abs(d) >= 0.8) out.push(F(d < 0 ? '생리 중인 날은 기분 평균이 다른 날보다 {0} 낮아요.' : '생리 중인 날은 기분 평균이 다른 날보다 {0} 높아요.', Math.abs(d).toFixed(1)));
-  }
-  const aid = sl.filter(aided), noAid = sl.filter((e) => !aided(e));
-  if (aid.length >= 2 && noAid.length >= 2) out.push(F('안정제·수면제를 체크한 날 밤에는 평균 {0}, 아닌 날 밤에는 평균 {1} 잤어요.', durText(Math.round(sleepOf(aid))), durText(Math.round(sleepOf(noAid)))));
+  compare(T('카페인을 많이 마신 날 밤의 잠'), 'sleepMin', caf.filter((e) => e.caffeine >= 7).map(night), caf.filter((e) => e.caffeine < 7).map(night), days, sleep);
+  const ap = all.filter((e) => e.caffeine != null && e.appetite != null);
+  compare(T('카페인을 많이 마신 날의 식욕'), 'appetite', ap.filter((e) => e.caffeine >= 7), ap.filter((e) => e.caffeine < 7), days, { gap: 1, fmt: num });
+  const withMood = all.filter(has('mood'));
+  compare(T('생리 중인 날의 기분'), 'mood', withMood.filter((e) => e.period), withMood.filter((e) => !e.period), [T('생리 중'), T('다른 날')], { gap: 0.8, fmt: num });
+  compare(T('안정제·수면제를 먹은 날 밤의 잠'), 'sleepMin', sl.filter(aided), sl.filter((e) => !aided(e)), [T('먹은 날'), T('안 먹은 날')], { min: 2, gap: 0, fmt: dur });
   // 최근 7일과 그 전 7일
   const t = today(), span = (from, to) => all.filter((e) => e.date > addDays(t, -from) && e.date <= addDays(t, -to));
-  const now = span(7, 0), was = span(14, 7);
-  const moodNow = now.filter(has('mood')), moodWas = was.filter(has('mood'));
-  if (moodNow.length >= 3 && moodWas.length >= 3) {
-    const d = avg(moodNow.map((e) => e.mood)) - avg(moodWas.map((e) => e.mood));
-    if (Math.abs(d) >= 1) out.push(F(d > 0 ? '최근 7일 기분 평균이 그 전 7일보다 {0} 높아요.' : '최근 7일 기분 평균이 그 전 7일보다 {0} 낮아요.', Math.abs(d).toFixed(1)));
-  }
-  const sleepNow = now.filter(has('sleepMin')), sleepWas = was.filter(has('sleepMin'));
-  if (sleepNow.length >= 3 && sleepWas.length >= 3) {
-    const gap = Math.round(sleepOf(sleepNow) - sleepOf(sleepWas));
-    if (Math.abs(gap) >= 30) out.push(F(gap < 0 ? '최근 7일은 그 전 7일보다 하루 평균 {0} 덜 잤어요.' : '최근 7일은 그 전 7일보다 하루 평균 {0} 더 잤어요.', durText(Math.abs(gap))));
-  }
+  const now = span(7, 0), was = span(14, 7), weeks = [T('최근 7일'), T('그 전 7일')];
+  compare(T('기분 평균'), 'mood', now.filter(has('mood')), was.filter(has('mood')), weeks, { gap: 1, fmt: num });
+  compare(T('하루 평균 잠'), 'sleepMin', now.filter(has('sleepMin')), was.filter(has('sleepMin')), weeks, { gap: 30, fmt: dur });
   return out;
 }
 

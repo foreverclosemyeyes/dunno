@@ -168,9 +168,8 @@ function seed() {
   await put(seed());
   check('오늘 화면에 초기 신호 배너', (await page.$$('.signal')).length >= 1);
   await page.click('[data-tab=insight]');
-  const says = await page.$$eval('.li.say', (x) => x.map((el) => el.textContent));
-  check('인사이트 문장', says.some((s) => s.includes('에너지가 높았던 날')), says.join(' / '));
-  check('약 체크 집계', (await text('#app')).includes('14일 중'));
+  const says = await page.$$eval('.li.cmp', (x) => x.map((el) => el.textContent));
+  check('인사이트: 두 숫자 비교', says.some((s) => s.includes('에너지가 높았던 날') && s.includes('그런 날') && s.includes('다른 날')), says.join(' / '));
   await page.click('[data-tab=trend]');
   check('주 그래프', (await page.$$('.plot svg')).length >= 4);
   await page.click('[data-mode=month]');
@@ -199,13 +198,13 @@ function seed() {
 
   // 5-2. 진료 탭: 다음 진료일, 말할 것, 요약
   await page.click('[data-tab=clinic]');
-  check('진료용 요약에 그림과 눈에 띄는 날, 약이 나옴', (await page.$$('#sum-fig circle')).length > 3 && (await page.$$('#sum-fig path')).length >= 4 && (await page.$$('#sum-fig rect')).length === 0
-    && (await text('#summary')).includes('고조 높음 이상') && (await text('#sum-fig')).includes('브린텔릭스') && (await text('#sum-fig')).includes('5시간 미만'));
+  check('진료용 요약에 그림과 눈에 띄는 날, 약이 나옴', (await page.$$('#sum-meds circle')).length > 3 && (await page.$$('#sum-fig path')).length >= 3 && (await page.$$('#summary rect')).length === 0
+    && (await text('#summary')).includes('고조 높음 이상') && (await text('#sum-meds')).includes('브린텔릭스') && (await text('#sum-sleep')).includes('5시간 미만'));
   const anxOff = !(await text('#sum-fig')).includes('불안');
   await page.click('.sum-tog[data-k=anx]');
   check('큰 그래프에서 선을 켜고 끔', anxOff && (await text('#sum-fig')).includes('불안') && (await page.getAttribute('.sum-tog[data-k=anx]', 'aria-pressed')) === 'true');
   await page.click('.sum-tog[data-k=anx]');
-  check('요약 그림이 카드 밖으로 안 넘침', await page.evaluate(() => document.querySelector('#sum-fig').getBoundingClientRect().right <= document.querySelector('#summary').getBoundingClientRect().right));
+  check('요약 그림이 카드 밖으로 안 넘침', await page.evaluate(() => [...document.querySelectorAll('#summary svg')].every((el) => el.getBoundingClientRect().right <= el.closest('.card').getBoundingClientRect().right)));
   await page.fill('#c-note', '약 먹으면 오후에 졸림'); await page.press('#c-note', 'Enter');
   check('말할 것 추가 (엔터)', (await store()).clinic.notes[0] === '약 먹으면 오후에 졸림' && (await text('#summary')).includes('약 먹으면 오후에 졸림'));
   await page.fill('#c-next', dayAgo(-3));

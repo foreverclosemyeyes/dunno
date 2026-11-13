@@ -8,6 +8,7 @@ import { medKey, medsFor } from '../meds.js';
 import { clinicView } from '../state.js';
 import { db } from '../store.js';
 import { tone } from '../theme.js';
+import { li } from './today.js';
 import { smoothPath } from './trend.js';
 
 // 다음 진료일과 말할 것 목록. { next: 'YYYY-MM-DD' 또는 '', notes: ['…', …] }
@@ -44,10 +45,10 @@ function dateRanges(list) {
   return runs.map(([a, b]) => (a === b ? shortDate(a) : `${shortDate(a)}–${shortDate(b)}`)).join(', ');
 }
 
-// 한눈에 보는 그림: 날짜를 가로로 맞춰 놓고
-//   큰 그래프 하나(켜 둔 선들, 선 끝에 이름) → 수면(곡선) → 약(먹은 날 ○, 안 먹은 날 ×) → 생리(○)
-// 를 위에서 아래로 쌓는다. 선은 전부 부드러운 실선이다. 색은 CSS 변수를 따라가서 다크·라이트·인쇄에서 그대로 읽힌다.
-function figure(s, width) {
+// 요약에 들어가는 그림 세 장: 큰 그래프(켜 둔 선들, 선 끝에 이름) · 수면(곡선) · 약과 생리(먹은 날 ○, 안 먹은 날 ×).
+// 카드는 따로지만 셋 다 같은 너비와 여백으로 그려서 날짜가 세로로 맞는다.
+// 선은 전부 부드러운 실선이다. 색은 CSS 변수를 따라가서 다크·라이트·인쇄에서 그대로 읽힌다.
+function figures(s, width) {
   // 오른쪽에는 선 끝 이름이 들어갈 자리를 둔다 (이름이 긴 "죽고 싶은 생각"을 켰을 때만 넓게)
   const n = s.dates.length, L = 18, R = clinicView.lines.includes('si') ? 80 : 44, pw = width - L - R, col = pw / n;
   const cx = (i) => L + col * (i + 0.5);
@@ -55,6 +56,12 @@ function figure(s, width) {
   const marks = s.dates.map((d, i) => (i === 0 || parse(d).getDay() === 1 ? i : -1)).filter((i) => i >= 0);
   let out = '', y = 6;
 
+  // 지금까지 그린 것을 그림 한 장으로 마무리하고 다음 장을 시작한다
+  const take = (id, height) => {
+    const svg = `<svg id="${id}" width="${width}" height="${height}" role="img">${out}</svg>`;
+    out = ''; y = 12;
+    return svg;
+  };
   const head = (left, right) => {
     out += `<text x="${L}" y="${y}" font-size="12.5" font-weight="600" ${ink}>${left}</text>`;
     if (right) out += `<text x="${width}" y="${y}" font-size="11.5" text-anchor="end" ${mutedText}>${right}</text>`;
@@ -92,7 +99,7 @@ function figure(s, width) {
     out += `<text x="${e.x.toFixed(1)}" y="${e.y.toFixed(1)}" font-size="10.5" font-weight="${e.bold ? 700 : 500}" style="fill:${e.color}">${e.name}</text>`;
   });
   dateLabels(top + SH + 13);
-  y = top + SH + 42;
+  const chart = take('sum-fig', top + SH + 18);
 
   // 2. 수면 (0~12시간): 5시간 높이에 기준선을 그어서 그 아래로 내려간 밤이 보이게 하고, 그 날짜를 글로도 적는다
   head(`${T('수면')}${s.sleep ? ` ${durText(Math.round(s.sleep.avg))}` : ''}`, s.shortSleep.length ? F('5시간 미만 {0}일', s.shortSleep.length) : '');
@@ -101,12 +108,13 @@ function figure(s, width) {
   weekLines(sTop, base);
   curve(points('sleepMin', slY), 'var(--ink)', 2, base);
   out += `<line x1="${L}" x2="${L + pw}" y1="${slY(SHORT_SLEEP)}" y2="${slY(SHORT_SLEEP)}" style="stroke:var(--muted)"/><text x="${L + pw + 7}" y="${slY(SHORT_SLEEP) + 3.5}" font-size="10.5" ${mutedText}>${T('5시간')}</text>`;
-  y = base + 16;
+  y = base + 6;
   if (s.shortSleep.length) {
+    y += 12;
     out += `<text x="${L}" y="${y}" font-size="11" ${mutedText}>${T('5시간 미만인 밤')} ${dateRanges(s.shortSleep)}</text>`;
-    y += 14;
+    y += 4;
   }
-  y += 14;
+  const sleep = take('sum-sleep', y);
 
   // 3. 약 · 생리: 얇은 선으로 먹은 날 ○, 안 먹은 날 ×
   const r = Math.max(2, Math.min(col / 2 - 1.5, 4.2));
@@ -129,8 +137,9 @@ function figure(s, width) {
     head(T('생리'), F('{0}일', s.period.length));
     marksRow((d, e) => e && e.period, false);
   }
-  dateLabels(y - 6);
-  return `<svg id="sum-fig" width="${width}" height="${y}" role="img" aria-label="${T('진료용 요약')}">${out}</svg>`;
+  if (!s.meds.length && !s.period.length) return { chart, sleep, marks: '' };
+  dateLabels(y - 10);
+  return { chart, sleep, marks: take('sum-meds', y - 4) };
 }
 
 // 요약에 들어갈 줄들: [이름, 내용]. 화면과 복사용 글이 같은 줄을 쓴다.
@@ -150,26 +159,31 @@ function summaryRows(s) {
   };
 }
 
-export function summaryHtml(weeks) {
-  const s = summary(weeks), talk = clinicData().notes;
+// 요약 본문: 그림 세 장과 눈에 띄는 날·신호·메모를 카드로 나눠 놓는다 (인쇄하면 이 부분이 한 장으로 나간다)
+function summaryHtml(weeks) {
+  const s = summary(weeks);
   const width = Math.max(240, Math.min(app.clientWidth, 480) - 32 - 32);
+  const fig = figures(s, width);
   // 큰 그래프의 선을 켜고 끄는 단추: 기분·에너지·자신감은 평균을 옆에 적는다
   const toggles = lineDefs().map(([key, name, max]) => `<button class="sum-tog" data-act="clinicLine" data-k="${key}" aria-pressed="${clinicView.lines.includes(key)}"><i style="background:${lineColor(key)}"></i>${name}${max === 10 && s[key] ? ` <b>${one(s[key].avg)}</b>` : ''}</button>`).join('');
-  // 눈에 띄는 것은 짧은 딱지로: 며칠인지만 적는다
-  const chips = [
+  const flags = [
     [T('우울 높음 이상'), s.high.dep.length], [T('고조 높음 이상'), s.high.elev.length], [T('불안 높음 이상'), s.high.anx.length],
     [T('죽고 싶은 생각'), s.high.si.length], ...s.signs,
-  ].filter(([, c]) => c).map(([name, c]) => `<span class="sum-chip">${esc(name)} <b>${F('{0}일', c)}</b></span>`).join('');
+  ].filter(([, c]) => c).map(([name, c]) => li(esc(name), F('{0}일', c))).join('');
+  const says = (title, rows) => (rows.length ? `<div class="sec">${title}</div><section class="card list">${rows.join('')}</section>` : '');
   return `
-    <div class="sum-top"><b>${T('진료용 요약')}</b><span>${md(parse(s.dates[0]))} – ${md(parse(s.dates[s.dates.length - 1]))} · ${F('기록 {0}일 / {1}일', s.got.length, s.dates.length)}</span></div>
-    ${talk.length ? `<div class="sum-h">${T('진료 때 말할 것')}</div>${talk.map((x) => `<div class="li say">${esc(x)}</div>`).join('')}` : ''}
-    <div class="sum-togs">${toggles}</div>
-    <div class="sum-fig">${figure(s, width)}</div>
-    <p class="sum-key">${T('위 이름을 누르면 선이 켜지고 꺼져요 · 이름 옆 숫자는 평균 · 증상은 맨 아래가 없음, 맨 위가 매우 높음 · 수면은 시간 · 약은 먹은 날 ○, 안 먹은 날 ×')}</p>
-    ${chips ? `<div class="sum-chips">${chips}</div>` : ''}
-    ${s.signals.length ? `<div class="sum-h">${T('지금 떠 있는 신호')}</div>${s.signals.map((x) => `<div class="li say">${esc(x)}</div>`).join('')}` : ''}
-    ${s.notes.length ? `<div class="sum-h">${T('메모')}</div>${s.notes.map(([d, note]) => `<div class="li say note"><small>${shortDate(d)}</small> ${esc(note)}</div>`).join('')}` : ''}
-    <p class="sum-foot">${DISCLAIMER}</p>`;
+    <div class="sec">${md(parse(s.dates[0]))} – ${md(parse(s.dates[s.dates.length - 1]))} · ${F('기록 {0}일 / {1}일', s.got.length, s.dates.length)}</div>
+    <section class="card">
+      <div class="sum-togs">${toggles}</div>
+      ${fig.chart}
+      <p class="sum-key">${T('증상은 맨 아래가 없음, 맨 위가 매우 높음')}</p>
+    </section>
+    <section class="card">${fig.sleep}</section>
+    ${fig.marks ? `<section class="card">${fig.marks}</section>` : ''}
+    ${flags ? `<div class="sec">${T('눈에 띄는 날')}</div><section class="card list">${flags}</section>` : ''}
+    ${says(T('지금 떠 있는 신호'), s.signals.map((x) => `<div class="li say">${esc(x)}</div>`))}
+    ${says(T('메모'), s.notes.map(([d, note]) => `<div class="li say note"><small>${shortDate(d)}</small> ${esc(note)}</div>`))}
+    <p class="foot">${DISCLAIMER}</p>`;
 }
 
 // 메신저나 메모 앱에 붙여 넣을 수 있는 글
@@ -198,15 +212,20 @@ export function viewClinic() {
       <label class="li"><span class="lk">${T('다음 진료일')}</span><input type="date" id="c-next" value="${esc(c.next || '')}"></label>
     </section>
 
-    <div class="sec">${T('진료 때 말할 것')}</div>
-    <section class="card list">
-      ${c.notes.map((x, i) => `<div class="li"><span class="lk talk">${esc(x)}</span><button class="txt dim" data-act="clinicNoteDel" data-i="${i}" aria-label="${T('삭제')}">✕</button></div>`).join('')}
-      <div class="li"><input type="text" id="c-note" maxlength="200" placeholder="${T('생각날 때 한 줄씩 적어 두기')}" autocomplete="off">
-        <button class="mini" data-act="clinicNoteAdd">${T('추가')}</button></div>
-    </section>
+    <div id="summary">
+      <div class="sum-top">${T('진료용 요약')}</div>
+      <div class="sec">${T('진료 때 말할 것')}</div>
+      <section class="card list">
+        ${c.notes.map((x, i) => `<div class="li"><span class="lk talk">${esc(x)}</span><button class="txt dim noprint" data-act="clinicNoteDel" data-i="${i}" aria-label="${T('삭제')}">✕</button></div>`).join('')}
+        <div class="li noprint"><input type="text" id="c-note" maxlength="200" placeholder="${T('생각날 때 한 줄씩 적어 두기')}" autocomplete="off">
+          <button class="mini" data-act="clinicNoteAdd">${T('추가')}</button></div>
+      </section>
+      ${summaryHtml(weeks)}
+    </div>
 
-    <section class="card list" id="summary">${summaryHtml(weeks)}</section>
-    <button class="btn" data-act="printSummary">${T('PDF로 저장 · 인쇄')}</button>
-    <button class="btn gray" data-act="copySummary">${T('글로 복사')}</button>
-    <p class="secnote" style="margin-top:12px">${T('“PDF로 저장 · 인쇄”를 누르면 아이폰 인쇄 화면이 떠요. 미리보기를 두 손가락으로 벌린 뒤 공유 버튼을 누르면 PDF로 저장하거나 보낼 수 있어요.')}</p>`;
+    <div class="pair">
+      <button class="btn" data-act="printSummary">${T('PDF · 인쇄')}</button>
+      <button class="btn gray" data-act="copySummary">${T('글로 복사')}</button>
+    </div>
+    <p class="secnote" style="margin-top:12px">${T('“PDF · 인쇄”를 누르면 아이폰 인쇄 화면이 떠요. 미리보기를 두 손가락으로 벌린 뒤 공유 버튼을 누르면 PDF로 저장하거나 보낼 수 있어요.')}</p>`;
 }
