@@ -827,7 +827,7 @@ body.layout-bigcal .prank { font-size: 13px; letter-spacing: .02em; color: #0b0b
 .pu-note { position: absolute; left: 50%; top: 50%; width: 22vh; height: auto; translate: -50% -50%; opacity: 0; overflow: visible; }
 /* 음표가 닿을 때마다 금색 별이 움찔 */
 @keyframes puHit { 50% { scale: 1.12; } }
-.pu.gold .pu-gold { animation: puHit .17s .2s 3; }
+.pu.gold .pu-gold { animation: puHit .17s 0s var(--hits, 1); }
 /* 앞머리: 캐릭터 머리 위의 작은 음표들 */
 .nt { position: fixed; inset: 0; z-index: 185; pointer-events: none; overflow: hidden; }
 .nt-note { position: absolute; height: auto; overflow: visible; translate: -50% -100%; rotate: var(--r); transform-origin: 35% 80%; animation: ntPop .22s var(--d) cubic-bezier(.2,1.7,.4,1) both, ntJig .3s calc(var(--d) + .22s) ease-in-out infinite alternate; transition: translate .62s cubic-bezier(.5,0,.9,.6), scale .62s cubic-bezier(.5,0,.9,.6); }

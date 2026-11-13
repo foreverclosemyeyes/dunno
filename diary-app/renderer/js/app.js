@@ -704,16 +704,23 @@
     );
     return n;
   }
+  // 음표 수는 이번에 오른 양을 따름 (게임과 같이 조금 오르면 1개, 많이 오르면 3개까지): 1점 → 1개, 2점 → 2개, 3점 이상 → 3개
+  const noteCount = (ups) => Math.max(1, Math.min(3, ups.reduce((n, c) => n + (c.delta || 1), 0)));
   // 포인트업·랭크업 앞머리: 캐릭터 머리 위에서 작은 음표들이 까딱거리다가 화면 밖으로 크게 튀어나감
-  function noteIntro() {
+  function noteIntro(count) {
     return new Promise((resolve) => {
       const fig = $('#asst-figure img'), r = fig && !$('#assistant').hidden ? fig.getBoundingClientRect() : null;
       const on = r && r.width > 0, vh = innerHeight / 100;
       // 머리 위 한 점. 캐릭터가 없거나 숨겨져 있으면 화면 왼쪽 가운데쯤
-      const hx = on ? r.left + r.width * 0.5 : innerWidth * 0.3, hy = on ? r.top + r.height * 0.1 : innerHeight * 0.5;
+      const hx = on ? r.left + r.width * 0.5 : innerWidth * 0.3, hy = on ? r.top + r.height * 0.2 : innerHeight * 0.5;
       const layer = h('div', 'nt');
-      // [머리에서 x·y(vh), 크기(vh), 기울기, 날아갈 곳 x·y(vh), 커지는 배율]
-      [[-7, -2, 9, -14, -70, 62, 4.6], [0, -8, 11, 6, 40, -90, 3.8], [7, -1, 8, 18, 100, 30, 5], [-2, 2, 7, -4, -100, -30, 4.2]].forEach(([x, y, w, rot, fx, fy, fs], k) => {
+      // 음표 수별 자리: [머리에서 x·y(vh), 크기(vh), 기울기, 날아갈 곳 x·y(vh), 커지는 배율]
+      const SPOTS = {
+        1: [[0, -6, 11, 4, 40, -90, 3.8]],
+        2: [[-5, -3, 10, -12, -70, 62, 4.6], [5, -6, 10, 10, 100, 30, 4.4]],
+        3: [[-7, -2, 9, -14, -70, 62, 4.6], [0, -8, 11, 6, 40, -90, 3.8], [7, -1, 8, 18, 100, 30, 5]],
+      };
+      SPOTS[count].forEach(([x, y, w, rot, fx, fy, fs], k) => {
         const n = noteSvg('nt-note');
         Object.assign(n.style, { left: `${hx + x * vh}px`, top: `${hy + y * vh}px`, width: `${w}vh` });
         [['--r', rot + 'deg'], ['--d', k * 90 + 'ms'], ['--fx', fx + 'vh'], ['--fy', fy + 'vh'], ['--fs', fs]].forEach(([prop, v]) => n.style.setProperty(prop, v));
@@ -761,7 +768,9 @@
       stage.append(lab);
     });
     // 음표들이 화면 밖에서 크게 날아와 별 가운데에 납작하게 꽂힘 (첫 음표가 닿는 순간 별이 금색으로)
-    [[-120, 70, -28], [-115, -45, 22], [25, -125, -10], [120, 65, 30]].forEach(([x, y, r], k) => {
+    const notes = noteCount(ups);
+    svg.style.setProperty('--hits', notes);
+    [[-120, 70, -28], [-115, -45, 22], [25, -125, -10]].slice(0, notes).forEach(([x, y, r], k) => {
       const n = noteSvg('pu-note');
       [['--x', x + 'vh'], ['--y', y + 'vh'], ['--r', r + 'deg'], ['--d', 400 + k * 170 + 'ms']].forEach(([prop, v]) => n.style.setProperty(prop, v));
       stage.append(n);
@@ -788,8 +797,9 @@
     const at = (ms, cls) => timers.push(setTimeout(() => box.classList.add(cls), ms));
     void box.offsetWidth; // 처음 상태를 한 번 그린 뒤에 시작
     box.classList.add('in');
-    at(780, 'gold'); at(1500, 't1'); at(1730, 't2'); at(2000, 't3'); at(3550, 'tout');
-    timers.push(setTimeout(close, 4450));
+    const t = 1000 + (notes - 1) * 170; // 마지막 음표가 꽂힌 뒤에 글자가 나옴
+    at(780, 'gold'); at(t, 't1'); at(t + 230, 't2'); at(t + 500, 't3'); at(t + 2050, 'tout');
+    timers.push(setTimeout(close, t + 2950));
   }
 
   let introUps = null; // 음표 앞머리가 도는 동안 들어온 포인트업을 모아 뒀다가 한 번에 보여 줌
@@ -798,7 +808,8 @@
     if (!afterIntro && D.fx && D.fx.on()) {
       if (introUps) { introUps.push(...ups); return; }
       introUps = [...ups];
-      noteIntro().then(() => { const all = introUps; introUps = null; pointUp(all, true); });
+      // 앞머리가 도는 동안 더 들어오면 별 화면의 음표 수에는 반영됨
+      noteIntro(noteCount(ups)).then(() => { const all = introUps; introUps = null; pointUp(all, true); });
       return;
     }
     const before = monthTotals(state.today);
