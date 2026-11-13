@@ -45,7 +45,7 @@ export function openSettings() {
 
     <div class="sec">${T('진단명')}</div>
     <section class="card list">${DIAGNOSES.map(([k, label]) => pick('dx', `data-p="${k}"`, usesOn().includes(k), label)).join('')}</section>
-    <p class="secnote">${T('해당하는 것을 여러 개 골라도 돼요. 인사이트에서 무엇을 먼저 보여 주고 어떻게 말할지에만 참고해요. 기록 항목이나 적어 둔 기록은 바뀌지 않아요.')}</p>
+    <p class="secnote">${T('해당하는 것을 여러 개 골라도 돼요. 인사이트에서 무엇을 먼저 보여 줄지에만 참고해요. 진단명에 없는 모습이 기록에 보이면 그것도 그대로 알려 줘요. 기록 항목이나 적어 둔 기록은 바뀌지 않아요.')}</p>
 
     <div class="sec">${T('기록 항목')}</div>
     <section class="card list">${ITEMS.map(([k, label]) => `<button type="button" class="li sw" data-act="item" data-k="${k}" aria-pressed="${itemOn(k)}"><span class="lk">${label}</span><i></i></button>`).join('')}</section>

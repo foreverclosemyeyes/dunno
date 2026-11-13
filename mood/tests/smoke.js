@@ -362,6 +362,15 @@ function seed() {
   check('진단명을 골라도 기록 항목·내 항목·기록은 그대로', JSON.stringify([(await store()).entries, st.off || [], st.custom || []]) === before9);
   await page.click('[data-act=dx][data-p=bipolar]');
   check('진단명을 다시 누르면 꺼짐', (await store()).settings.use.join() === 'depression,adhd');
+  // 진단명은 참고일 뿐: 우울증·ADHD만 골랐어도 기록에 들뜬 시기가 보이면 그대로 말하고, 진단명에 없는 모습이라고 짚어 준다
+  await page.click('[data-act=close]');
+  await put(seed());
+  await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('tide.v1')); d.settings.use = ['depression', 'adhd']; localStorage.setItem('tide.v1', JSON.stringify(d)); });
+  await page.reload(); await page.waitForSelector('h1');
+  await page.click('[data-tab=insight]');
+  const stateText = await page.textContent('.state');
+  check('우울증만 골랐어도 들뜬 모습을 걸러 내지 않고, 진단명에 없는 모습이라고 짚어 줌', /hypomania|경조증/.test(stateText) && /not among the chosen diagnoses|고른 진단명에는 조울증이 없지만/.test(stateText));
+  await page.click('[data-tab=today]'); await page.click('[data-act=settings]');
   await page.click('[data-act=close]');
 
   await page.click('.btn[data-act=record]');

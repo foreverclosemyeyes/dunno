@@ -108,9 +108,7 @@ export function recentState(entries = db.entries) {
   const isHigh = high.length >= 3, isLow = low.length >= 3, kind = isHigh && isLow ? 'mixed' : isHigh ? 'high' : isLow ? 'low' : 'even';
   const title = {
     mixed: T('최근 7일은 들뜬 모습과 가라앉은 모습이 함께 보여요.'),
-    // 조울증을 고르지 않았으면 '경조증'이라는 말은 쓰지 않고 보이는 것만 말한다
-    high: !usesOn().includes('bipolar') ? (psyDays ? T('최근 7일은 기분과 에너지가 높은 날이 많고, 정신병적 증상도 함께 적혀 있어요.') : T('최근 7일은 기분과 에너지가 높은 날이 많아요. 평소와 다르다면 진료 때 이야기해 보세요.'))
-      : psyDays ? T('최근 7일은 경조증·조증 때 흔히 보이는 모습과 겹치는 점이 많고, 정신병적 증상도 함께 적혀 있어요.') : T('최근 7일은 경조증 때 흔히 보이는 모습과 겹치는 점이 많아요.'),
+    high: psyDays ? T('최근 7일은 경조증·조증 때 흔히 보이는 모습과 겹치는 점이 많고, 정신병적 증상도 함께 적혀 있어요.') : T('최근 7일은 경조증 때 흔히 보이는 모습과 겹치는 점이 많아요.'),
     low: psyDays ? T('최근 7일은 우울 삽화 때 흔히 보이는 모습과 겹치는 점이 많고, 정신병적 증상도 함께 적혀 있어요.') : T('최근 7일은 우울 삽화 때 흔히 보이는 모습과 겹치는 점이 많아요.'),
     even: psyDays ? T('최근 7일은 기분이 한쪽으로 뚜렷하게 기울지는 않았지만, 정신병적 증상이 적혀 있어요.')
       : anxDays >= 4 ? T('최근 7일은 기분이 한쪽으로 뚜렷하게 기울지는 않았지만, 불안이 높은 날이 많아요.') : T('최근 7일은 한쪽으로 뚜렷하게 기운 모습이 보이지 않아요.'),
@@ -132,7 +130,14 @@ export function recentState(entries = db.entries) {
       if (b.points.length || pastText) lead = { title: kind === 'high' ? T('들뜬 흐름이 시작되기 전 사흘') : T('가라앉은 흐름이 시작되기 전 사흘'), points: b.points, past: pastText };
     }
   }
-  return { kind, title, flow, groups, lead };
+  // 고른 진단명은 참고일 뿐이다 (진단이 틀렸을 수도 있다: 조울증이 우울증으로, ADHD가 조울증으로 진단되는 일이 있다).
+  // 그래서 기록에 보이는 모습을 진단명으로 걸러 내지 않고, 고른 진단명에 없는 모습이 보이면 그 점을 따로 짚어 준다.
+  const dx = usesOn();
+  const beyond = (kind === 'high' || kind === 'mixed') && dx.length && !dx.includes('bipolar')
+    ? T('고른 진단명에는 조울증이 없지만, 기록에는 들뜬 시기에 가까운 모습이 보여요. 진단이 틀렸다는 뜻은 아니에요. 진료 때 이 기록을 보여 주며 이야기해 볼 만해요.')
+    : kind === 'low' && dx.length && !dx.includes('depression') && !dx.includes('bipolar')
+      ? T('고른 진단명에는 우울증이나 조울증이 없지만, 기록에는 가라앉은 시기에 가까운 모습이 보여요. 진료 때 이 기록을 보여 주며 이야기해 볼 만해요.') : '';
+  return { kind, title, flow, groups, lead, beyond };
 }
 
 // ---------- 내 시기들 · 시기별 내 평균 · 약을 바꾼 앞뒤 ----------
@@ -141,7 +146,11 @@ export function episodes(entries = db.entries) {
   const list = [...runs(entries, upDay).map((r) => ({ ...r, kind: 'high' })), ...runs(entries, downDay).map((r) => ({ ...r, kind: 'low' }))]
     .map((r) => ({ ...r, days: dayGap(r.start, r.end) + 1 })).sort((a, b) => (a.start < b.start ? 1 : -1));
   const stat = (kind) => { const l = list.filter((r) => r.kind === kind); return l.length ? { n: l.length, avg: Math.round(avg(l.map((r) => r.days))) } : null; };
-  return { list, high: stat('high'), low: stat('low') };
+  // 들뜬 시기와 가라앉은 시기가 둘 다 있었는데 조울증을 고르지 않았으면 짚어 준다 (진단명은 참고일 뿐이라 걸러 내지 않는다)
+  const dx = usesOn(), cycle = list.some((r) => r.kind === 'high') && list.some((r) => r.kind === 'low');
+  const beyond = cycle && dx.length && !dx.includes('bipolar')
+    ? T('들뜬 시기와 가라앉은 시기가 둘 다 있었어요. 고른 진단명에는 조울증이 없으니, 진료 때 이 흐름을 보여 주며 이야기해 볼 만해요.') : '';
+  return { list, high: stat('high'), low: stat('low'), beyond };
 }
 
 // 평소 / 들뜬 시기 / 가라앉은 시기에 내 잠·기분·에너지·불안이 각각 어땠는지.
