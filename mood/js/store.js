@@ -45,7 +45,7 @@ export const db = load();
 // 내 항목: 사용자가 설정에서 직접 만든 기록 항목들 [{ id, name, type, unit }]
 export const customDefs = () => db.settings.custom || [];
 
-// 고른 쓰임새들 (여러 개 가능. 한 번도 안 골랐으면 조울증. 예전에는 하나만 글자로 저장했다)
+// 고른 진단명들 (여러 개 가능. 한 번도 안 골랐으면 조울증. 예전에는 하나만 글자로 저장했다)
 export const usesOn = () => { const u = db.settings.use; return Array.isArray(u) ? u : [u || 'bipolar']; };
 
 // 설정에서 꺼 둔 기록 항목인지 (settings.off에 열쇠가 있으면 꺼진 것. 없으면 전부 켜짐)

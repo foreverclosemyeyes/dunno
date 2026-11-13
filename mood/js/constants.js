@@ -18,15 +18,11 @@ export const ITEMS = [
   ['period', T('생리')], ['appetite', T('식욕')], ['caffeine', T('카페인')], ['meds', T('약')],
   ['fx', T('부작용')], ['signs', T('들뜸 체크리스트')], ['note', T('메모')],
 ];
-// 쓰임새: 해당하는 것을 여러 개 고를 수 있다. 고른 것에 맞게 기록 항목을 켜고 끄고(모두가 안 쓰는 항목만 끈다), 자주 적는 "내 항목"을 만들어 준다. 그 뒤에는 하나씩 바꿀 수 있다.
-// [열쇠, 이름, 꺼 둘 항목들, 만들어 줄 내 항목들 [이름, 종류, 단위]]
-export const PRESETS = [
-  ['bipolar', T('조울증'), [], []],
-  ['depression', T('우울증'), ['conf', 'signs', 'psy'], [[T('밖에 나감'), 'check'], [T('즐거웠던 일이 있음'), 'check']]],
-  ['anxiety', T('불안장애'), ['conf', 'signs', 'psy'], [[T('공황'), 'number', T('회')], [T('피한 일이 있음'), 'check']]],
-  ['psychosis', T('조현병'), ['conf', 'signs'], [[T('의욕'), 'scale'], [T('사람을 만남'), 'check']]],
-  ['adhd', 'ADHD', ['conf', 'signs', 'psy'], [[T('집중'), 'scale'], [T('할 일을 끝냄'), 'check'], [T('충동적으로 한 일'), 'check']]],
-];
+// 진단명: 해당하는 것을 여러 개 고를 수 있다 (settings.use). 인사이트에서 무엇을 먼저 보여 주고 어떻게 말할지에만 참고한다.
+// 기록 항목을 켜고 끄는 데에는 쓰지 않는다 (그렇게 만들었다가 사용자가 뺐다, 2026-11-13).
+export const DIAGNOSES = [['bipolar', T('조울증')], ['depression', T('우울증')], ['anxiety', T('불안장애')], ['psychosis', T('조현병')], ['adhd', 'ADHD']];
+// 각성제 (ADHD 약). ADHD를 골랐을 때 먹은 날과 안 먹은 날을 견준다.
+export const STIMULANTS = ['콘서타', '메디키넷', '페니드', '비스펜틴'];
 // 부작용: 그날 겪은 것을 눌러서 적는다 (entry.fx = { 열쇠: true })
 // 목록에 없는 것은 직접 적어 넣을 수 있다: 열쇠가 'c:이름'이고, 적어 넣은 이름들은 settings.fxCustom에 남아 다음에도 딱지로 뜬다.
 export const SIDE_EFFECTS = [

@@ -354,19 +354,14 @@ function seed() {
   await page.click('[data-act=pinOff]');
   check('잠금 끄기', !(await store()).settings.pin);
 
-  // 9. 쓰임새: 고르면 기록 항목이 거기에 맞게 바뀌고, 딸린 내 항목이 생긴다 (기록은 그대로)
-  const entriesKept = JSON.stringify((await store()).entries);
-  await page.click('[data-act=preset][data-p=bipolar]'); await page.click('[data-act=preset][data-p=adhd]');
+  // 9. 진단명: 여러 개 고를 수 있고, 고르기만 할 뿐 기록 항목·내 항목·기록은 건드리지 않는다
+  const before9 = JSON.stringify([(await store()).entries, (await store()).settings.off || [], (await store()).settings.custom || []]);
+  await page.click('[data-act=dx][data-p=depression]'); await page.click('[data-act=dx][data-p=adhd]');
   let st = (await store()).settings;
-  check('쓰임새를 ADHD로: 정신병적 증상·들뜸 체크리스트가 꺼지고 내 항목이 생김', st.use.join() === 'adhd' && st.off.includes('psy') && st.off.includes('signs') && st.custom.some((c) => c.type === 'scale')
-    && (await page.getAttribute('[data-act=item][data-k=psy]', 'aria-pressed')) === 'false' && JSON.stringify((await store()).entries) === entriesKept);
-  await page.click('[data-act=preset][data-p=depression]');
-  st = (await store()).settings;
-  check('쓰임새를 여러 개 고름 (ADHD + 우울증): 둘 다의 내 항목이 생기고, 둘 다 안 쓰는 항목만 꺼짐', st.use.length === 2 && st.off.includes('psy') && !st.off.includes('si')
-    && st.custom.filter((c) => c.type === 'check').length >= 4 && (await page.$$('[data-act=preset][aria-pressed=true]')).length === 2);
-  await page.click('[data-act=preset][data-p=bipolar]');
-  st = (await store()).settings;
-  check('조울증을 같이 고르면 조울증에 필요한 항목이 다시 켜짐', st.use.length === 3 && st.off.length === 0);
+  check('진단명을 여러 개 고름 (처음부터 켜져 있는 조울증 + 우울증 + ADHD)', st.use.join() === 'bipolar,depression,adhd' && (await page.$$('[data-act=dx][aria-pressed=true]')).length === 3);
+  check('진단명을 골라도 기록 항목·내 항목·기록은 그대로', JSON.stringify([(await store()).entries, st.off || [], st.custom || []]) === before9);
+  await page.click('[data-act=dx][data-p=bipolar]');
+  check('진단명을 다시 누르면 꺼짐', (await store()).settings.use.join() === 'depression,adhd');
   await page.click('[data-act=close]');
 
   await page.click('.btn[data-act=record]');
