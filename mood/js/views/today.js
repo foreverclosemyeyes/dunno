@@ -1,6 +1,6 @@
 // 오늘 화면
 import { signals } from '../analysis.js';
-import { DISCLAIMER, HELPLINE, LEVELS, SIGNS, SI_CARE_FROM, SYMPTOMS, cafMg, drinkText, nameOf } from '../constants.js';
+import { DISCLAIMER, HELPLINE, LEVELS, SIDE_EFFECTS, SIGNS, SI_CARE_FROM, SYMPTOMS, TAGS, cafMg, drinkText, nameOf } from '../constants.js';
 import { WD, addDays, durText, longDate, parse, today, weekStart } from '../dates.js';
 import { app, esc } from '../dom.js';
 import { backupDue, daysSinceBackup } from '../files.js';
@@ -100,6 +100,7 @@ export function detailHtml(e) {
   // 저장된 약 목록에 없는 약(목록에서 지운 약)만 여기 글로 보여 준다. 나머지는 위 약 카드에 있다.
   const extra = db.meds.length ? '' : esc(medsText(e.meds || []));
   const ten = (key, v) => `${nameOf(key, v)}<span class="of"> ${v}</span>`;
+  const named = (list, on) => list.filter(([k]) => on[k]).map(([, label]) => label).join(' · ');
   // 줄을 누르면 그 항목만 고치는 화면이 열린다. 설정에서 꺼 둔 항목은 줄을 만들지 않는다.
   const rows = [
     ...SYMPTOMS.map(([k, label]) => (e[k] && itemOn(k) ? li(label, `${LEVELS[e[k]]}${bars(e[k])}`, 'symptoms') : '')),
@@ -109,6 +110,8 @@ export function detailHtml(e) {
     !itemOn('caffeine') ? '' : e.drinks ? li(`${IC.coffee}${T('카페인')}`, cafMg(e.drinks) ? `${drinkText(e.drinks)}<span class="of"> · ${F('약 {0}mg', cafMg(e.drinks))}</span>` : nameOf('caffeine', 0), 'body')
       : e.caffeine != null ? li(`${IC.coffee}${T('카페인')}`, ten('caffeine', e.caffeine), 'body') : '',
     extra && itemOn('meds') ? li(`${IC.pill}${T('약')}`, extra) : '',
+    e.fx && itemOn('fx') ? li(T('부작용'), named(SIDE_EFFECTS, e.fx), 'fx') : '',
+    e.tags && itemOn('tags') ? li(T('오늘 한 것'), named(TAGS, e.tags), 'tags') : '',
     signs.length ? li(T('체크'), signs.map(esc).join('<br>')) : '',
     e.note && itemOn('note') ? `<button class="li say note" data-act="record" data-focus="note">${esc(e.note)}</button>` : '',
   ].join('');

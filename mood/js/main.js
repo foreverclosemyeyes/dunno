@@ -11,7 +11,7 @@ import { onSwipe } from './swipe.js';
 import { clinicView, standalone, trend, ui } from './state.js';
 import { db, save } from './store.js';
 import { applyFont, applyTheme, themeQuery } from './theme.js';
-import { clinicData, summaryText } from './views/clinic.js';
+import { clinicData, clinicWeeks, openLog, summaryText } from './views/clinic.js';
 import { notesListHtml, openNotes } from './views/notes.js';
 import { SLIDERS, cafHead, medsHtml, openRecord, saveEntry, sleepHtml, syncForm } from './views/record.js';
 import { openSettings } from './views/settings.js';
@@ -57,7 +57,23 @@ const actions = {
   alarmDel: (el) => { db.meds[Number(el.dataset.m)].alarms.splice(Number(el.dataset.i), 1); save(); redrawSettings(); },
   copyAi: async () => { await copyText(aiSummary()); toast(T('복사했어요. AI 앱에 붙여 넣으세요')); },
   // 진료 탭
-  clinicWeeks: (el) => { clinicView.weeks = Number(el.dataset.w); render(); },
+  clinicWeeks: (el) => { clinicView.weeks = el.dataset.w === 'since' ? 'since' : Number(el.dataset.w); render(); },
+  // 진료 메모 · 약 바꾼 날: 적는 화면 열기, 저장(날짜순으로 끼워 넣음), 지우기
+  logAdd: (el) => openLog(el.dataset.kind),
+  logSave: (el) => {
+    const date = $('#l-date').value, text = $('#l-text').value.trim(), kind = el.dataset.kind;
+    if (!date) return;
+    if (kind === 'med' && !text) { toast(T('무엇이 바뀌었는지 적어 주세요')); return; }
+    const log = clinicData().log;
+    log.push({ date, kind, text });
+    log.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    save(); closeSheet(); render();
+  },
+  logDel: (el) => {
+    clinicData().log.splice(Number(el.dataset.i), 1);
+    if (clinicView.weeks === 'since') clinicView.weeks = 2;
+    save(); render();
+  },
   clinicLine: (el) => {
     const k = el.dataset.k, on = clinicView.lines;
     clinicView.lines = on.includes(k) ? on.filter((x) => x !== k) : [...on, k];
@@ -72,7 +88,7 @@ const actions = {
   },
   clinicNoteDel: (el) => { clinicData().notes.splice(Number(el.dataset.i), 1); save(); render(); },
   printSummary: () => window.print(),
-  copySummary: async () => { await copyText(summaryText(clinicView.weeks)); toast(T('복사했어요')); },
+  copySummary: async () => { await copyText(summaryText(clinicWeeks())); toast(T('복사했어요')); },
   lang: (el) => { db.settings.lang = el.dataset.lang; if (save()) location.reload(); },
   size: (el) => { db.settings.size = el.dataset.size; save(); applyFont(); render(); openSettings(); },
   font: (el) => { db.settings.font = el.dataset.font; save(); applyFont(); openSettings(); },
@@ -152,6 +168,10 @@ document.addEventListener('click', (ev) => {
   } else if (t.dataset.sign) {                   // 조건부 체크리스트
     d.signs[t.dataset.sign] = !d.signs[t.dataset.sign];
     t.setAttribute('aria-pressed', String(!!d.signs[t.dataset.sign]));
+  } else if (t.dataset.fx || t.dataset.tag) {    // 딱지 (부작용, 술·운동)
+    const bag = t.dataset.fx ? d.fx : d.tags, k = t.dataset.fx || t.dataset.tag;
+    bag[k] = !bag[k];
+    t.setAttribute('aria-pressed', String(!!bag[k]));
   }
 });
 

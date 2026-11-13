@@ -219,6 +219,26 @@ function seed() {
   await page.click('[data-act=clinicNoteDel]');
   check('말할 것 지우기', (await store()).clinic.notes.length === 0);
 
+  // 5-2-0. 약 바꾼 날 · 진료 메모 · "진료 후" 기간 · 부작용과 술·운동
+  await page.click('[data-act=clinicWeeks][data-w="1"]');
+  await page.click('[data-act=logAdd][data-kind=med]');
+  await page.fill('#l-text', '브린텔릭스 10mg → 15mg');
+  await page.click('[data-act=logSave]');
+  check('약 바꾼 날이 기록되고 그래프에 표시됨', (await store()).clinic.log[0].kind === 'med' && (await text('.sum-fig')).includes('약 변경') && (await text('#summary')).includes('10mg → 15mg'));
+  check('진료 메모가 없으면 "진료 후" 단추가 없음', (await page.$$('[data-act=clinicWeeks][data-w=since]')).length === 0);
+  await page.click('[data-act=logAdd][data-kind=visit]');
+  await page.fill('#l-date', dayAgo(9)); await page.fill('#l-text', '2주 뒤에 다시');
+  await page.click('[data-act=logSave]');
+  await page.click('[data-act=clinicWeeks][data-w=since]');
+  check('"진료 후"는 지난 진료일이 들어가는 주 단위 (9일 전 → 2주)', (await text('#summary')).includes('/ 14일') && (await store()).clinic.log[0].kind === 'visit');
+  await page.click('[data-tab=today]'); await page.click('.btn[data-act=record]');
+  await page.click('[data-fx=sleepy]'); await page.click('[data-tag=alcohol]');
+  await page.click('.savebar [data-act=save]');
+  e = (await store()).entries[today];
+  check('부작용과 술·운동이 저장되고 오늘 화면에 보임', e.fx.sleepy === true && e.tags.alcohol === true && !e.tags.exercise && (await text('#app')).includes('졸림'));
+  await page.click('[data-tab=clinic]');
+  check('진료 화면에 부작용과 술이 네모 줄로 나옴', (await text('#summary')).includes('부작용') && (await page.$$eval('.sum-rows', (x) => x.map((el) => el.textContent).join(' '))).includes('술'));
+
   // 5-2-1. 설정에서 기록 항목 끄기: 화면에서만 빠지고 적어 둔 값은 남는다
   await page.click('[data-tab=today]'); await page.click('[data-act=settings]');
   await page.click('[data-act=item][data-k=conf]'); await page.click('[data-act=item][data-k=anx]');

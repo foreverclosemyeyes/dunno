@@ -1,8 +1,8 @@
 // 진료 화면: 다음 진료일, 진료 때 말할 것, 진료용 요약 (최근 2주/4주를 한 장으로)
 import { SHORT_SLEEP, summary } from '../analysis.js';
-import { DISCLAIMER, LEVELS, SYMPTOMS } from '../constants.js';
+import { DISCLAIMER, LEVELS, SYMPTOMS, TAGS, onlyOn } from '../constants.js';
 import { durText, md, parse, today } from '../dates.js';
-import { app, esc } from '../dom.js';
+import { app, esc, sheet, showSheet } from '../dom.js';
 import { F, T } from '../i18n.js';
 import { medKey, medsFor } from '../meds.js';
 import { clinicView } from '../state.js';
@@ -11,8 +11,22 @@ import { tone } from '../theme.js';
 import { li } from './today.js';
 import { smoothPath } from './trend.js';
 
-// 다음 진료일과 말할 것 목록. { next: 'YYYY-MM-DD' 또는 '', notes: ['…', …] }
-export const clinicData = () => (db.clinic || (db.clinic = { next: '', notes: [] }));
+// 다음 진료일, 말할 것 목록, 진료·약 변경 기록.
+// { next: 'YYYY-MM-DD' 또는 '', notes: ['…', …], log: [{ date, kind: 'visit'(진료 메모) | 'med'(약 바꾼 날), text }, …] (날짜순) }
+export function clinicData() {
+  const c = db.clinic || (db.clinic = { next: '', notes: [] });
+  if (!c.log) c.log = [];
+  return c;
+}
+const kindName = (kind) => (kind === 'med' ? T('약 변경') : T('진료'));
+// 가장 최근에 다녀온 진료일 (없으면 '')
+const lastVisit = () => { const v = clinicData().log.filter((x) => x.kind === 'visit' && x.date <= today()); return v.length ? v[v.length - 1].date : ''; };
+// 요약 기간(주). "진료 후"를 골랐으면 지난 진료일이 들어가도록 주 단위로 올림한다 (최대 8주).
+export function clinicWeeks() {
+  if (clinicView.weeks !== 'since') return clinicView.weeks;
+  const from = lastVisit();
+  return from ? Math.max(1, Math.min(8, Math.ceil((1 - daysUntil(from)) / 7))) : 2;
+}
 
 const shortDate = (s) => { const d = parse(s); return `${d.getMonth() + 1}/${d.getDate()}`; };
 const dateList = (list) => list.map(shortDate).join(', ');
@@ -56,7 +70,8 @@ function dateRanges(list) {
 // 요약에 들어가는 그림 세 장: 큰 그래프(켜 둔 선들, 선 끝에 이름) · 수면(곡선) · 줄들(증상 네모, 약 ○×, 생리 ○).
 // 셋 다 같은 너비와 여백으로 그려서, 위아래로 같은 자리가 같은 날이다 (약을 안 먹은 날의 기분·증상이 한 줄로 이어져 보인다).
 // 선은 전부 부드러운 실선이다. 색은 CSS 변수를 따라가서 다크·라이트·인쇄에서 그대로 읽힌다.
-function figures(s, width, SH) {
+// show: 기간 전체에서 한 번이라도 있었던 것만 줄을 만든다 { fx: 부작용이 있었는지, tags: [있었던 생활 열쇠] }
+function figures(s, width, SH, show) {
   // 오른쪽에는 선 끝 이름이 들어갈 자리를 둔다 (이름이 긴 "죽고 싶은 생각"을 켰을 때만 넓게)
   const n = s.dates.length, L = 18, R = clinicView.lines.includes('si') ? 80 : 44, pw = width - L - R, col = pw / n;
   const cx = (i) => L + col * (i + 0.5);
@@ -106,6 +121,13 @@ function figures(s, width, SH) {
     if (i && e.y < ends[i - 1].y + 12) e.y = ends[i - 1].y + 12;
     out += `<text x="${e.x.toFixed(1)}" y="${e.y.toFixed(1)}" font-size="10.5" font-weight="${e.bold ? 700 : 500}" style="fill:${e.color}">${e.name}</text>`;
   });
+  // 진료일과 약 바꾼 날: 그날 자리에 세로선과 이름
+  clinicData().log.forEach((x) => {
+    const i = s.dates.indexOf(x.date);
+    if (i < 0) return;
+    out += `<line x1="${cx(i).toFixed(1)}" x2="${cx(i).toFixed(1)}" y1="${top}" y2="${top + SH}" style="stroke:var(--${x.kind === 'med' ? 'ink' : 'muted'})"/>
+      <text x="${(cx(i) + 4).toFixed(1)}" y="${top + 9}" font-size="9.5" ${x.kind === 'med' ? ink : mutedText}>${kindName(x.kind)}</text>`;
+  });
   dateLabels(top + SH + 13);
   const chart = take('sum-fig', top + SH + 18);
 
@@ -126,16 +148,20 @@ function figures(s, width, SH) {
 
   // 3. 증상: 날마다 요일(영어 한 글자, 사용자가 고름)이 적힌 네모 한 칸, 그런 날은 색칠 (단계가 높을수록 진하게). 위 그래프와 같은 날짜 자리에 놓인다.
   const sq = Math.max(4, Math.min(col - 2, 19));
-  SYMPTOMS.filter(([k]) => itemOn(k)).forEach(([k, name]) => {
-    const count = s.days.filter((e) => e && e[k]).length;
+  const squares = (name, levelOf) => {
+    const vals = s.days.map((e) => (e ? levelOf(e) : 0)), count = vals.filter(Boolean).length;
     head(name, count ? F('{0}일', count) : T('없음'));
     s.dates.forEach((d, i) => {
-      const v = (s.days[i] && s.days[i][k]) || 0, x = cx(i) - sq / 2, top = y + 13;
+      const v = vals[i], x = cx(i) - sq / 2, top = y + 13;
       out += `<rect x="${x.toFixed(1)}" y="${top}" width="${sq.toFixed(1)}" height="${sq.toFixed(1)}" rx="${(sq * 0.28).toFixed(1)}" ${v ? `style="fill:var(--ink)" fill-opacity="${[0, 0.3, 0.5, 0.75, 1][v]}"` : 'class="c0"'}/>`;
       out += `<text x="${cx(i).toFixed(1)}" y="${(top + sq / 2 + 3.2).toFixed(1)}" text-anchor="middle" font-size="9" style="fill:${v >= 3 ? 'var(--ink-inv)' : v ? 'var(--text)' : 'var(--faint)'}">${'SMTWTFS'[parse(d).getDay()]}</text>`;
     });
     y += 13 + sq + 22;
-  });
+  };
+  SYMPTOMS.filter(([k]) => itemOn(k)).forEach(([k, name]) => squares(name, (e) => e[k] || 0));
+  // 부작용(하나라도 있던 날)과 술·운동도 같은 네모 줄로
+  if (itemOn('fx') && show.fx) squares(T('부작용'), (e) => (onlyOn(e.fx) ? 3 : 0));
+  if (itemOn('tags')) TAGS.filter(([k]) => show.tags.includes(k)).forEach(([k, name]) => squares(name, (e) => (e.tags && e.tags[k] ? 3 : 0)));
 
   // 4. 약 · 생리: 얇은 선으로 먹은 날 ○, 안 먹은 날 ×
   const r = Math.max(2, Math.min(col / 2 - 1.5, 4.2));
@@ -187,13 +213,15 @@ function summaryHtml(weeks) {
   const width = Math.max(240, Math.min(app.clientWidth, 480) - 32 - 32);
   // 그림은 한 주에 한 장씩 그린다 (하루 칸이 넓어야 읽힌다). 2주·4주는 같은 모양의 카드가 오래된 주부터 차례로 쌓인다.
   const stack = (b) => {
-    const fig = figures(b, width, weeks > 1 ? 104 : 150);
+    const fig = figures(b, width, weeks > 1 ? 104 : 150, show);
     return `<section class="card sum-stack">
       ${weeks > 1 ? `<div class="sum-week">${md(parse(b.dates[0]))} – ${md(parse(b.dates[6]))}</div>` : ''}
       ${toggles ? fig.chart : ''}${itemOn('sleep') ? fig.sleep : ''}${fig.rows}</section>`;
   };
   // 큰 그래프의 선을 켜고 끄는 단추: 기분·에너지·자신감은 평균을 옆에 적는다
   const toggles = lineDefs().map(([key, name, max]) => `<button class="sum-tog" data-act="clinicLine" data-k="${key}" aria-pressed="${clinicView.lines.includes(key)}">${lineSample(key)}${name}${max === 10 && s[key] ? ` <b>${one(s[key].avg)}</b>` : ''}</button>`).join('');
+  const show = { fx: s.fx.length > 0, tags: TAGS.filter(([k]) => s.got.some((e) => e.tags && e.tags[k])).map(([k]) => k) };
+  const count = ([name, c]) => li(esc(name), F('{0}일', c));
   const signs = s.signs.map(([name, c]) => li(esc(name), F('{0}일', c)));
   const says = (title, rows) => (rows.length ? `<div class="sec">${title}</div><section class="card list">${rows.join('')}</section>` : '');
   return `
@@ -202,6 +230,7 @@ function summaryHtml(weeks) {
     ${Array.from({ length: weeks }, (_, i) => stack(summary(1, (weeks - 1 - i) * 7))).join('')}
     <p class="secnote">${T('위아래로 같은 자리가 같은 날이에요 · 네모는 진할수록 심한 날 · 약은 먹은 날 ○, 안 먹은 날 ×')}</p>
     ${says(T('기분이 높았던 날 체크한 항목'), signs)}
+    ${itemOn('fx') ? says(T('부작용'), s.fx.map(count)) : ''}
     ${says(T('지금 떠 있는 신호'), s.signals.map((x) => `<div class="li say">${esc(x)}</div>`))}
     ${says(T('메모'), s.notes.map(([d, note]) => `<div class="li say note"><small>${shortDate(d)}</small> ${esc(note)}</div>`))}
     <p class="foot">${DISCLAIMER}</p>`;
@@ -216,19 +245,19 @@ export function summaryText(weeks) {
     ...(talk.length ? [`\n[${T('진료 때 말할 것')}]`, ...talk.map((x) => `- ${x}`)] : []),
     ...part(T('평균 (가장 낮은 날–가장 높은 날)'), r.averages), ...part(T('눈에 띄는 날'), r.flags),
     ...(s.signals.length ? [`\n[${T('지금 떠 있는 신호')}]`, ...s.signals.map((x) => `- ${x}`)] : []),
-    ...part(T('기분이 높았던 날 체크한 항목'), r.signs), ...part(T('약 먹은 날'), r.meds),
+    ...part(T('기분이 높았던 날 체크한 항목'), r.signs), ...part(T('부작용'), s.fx.map(([name, c]) => [name, F('{0}일', c)])), ...part(T('약 먹은 날'), r.meds),
+    ...part(T('진료 · 약 변경 기록'), clinicData().log.filter((x) => x.date >= s.dates[0]).map((x) => [`${shortDate(x.date)} ${kindName(x.kind)}`, x.text || '–'])),
     ...(s.notes.length ? [`\n[${T('메모')}]`, ...s.notes.map(([d, note]) => `${shortDate(d)} ${note}`)] : []),
     `\n${F('증상은 {0}~{1} 다섯 단계로 적은 것', LEVELS[0], LEVELS[4])}. ${DISCLAIMER}`,
   ].join('\n');
 }
 
 export function viewClinic() {
-  const c = clinicData(), weeks = clinicView.weeks;
+  const c = clinicData(), weeks = clinicWeeks(), pick = clinicView.weeks;
+  const range = (w, label) => `<button data-act="clinicWeeks" data-w="${w}" aria-pressed="${pick === w}">${label}</button>`;
   app.innerHTML = `
     <header class="top"><div><div class="over">${nextText() || T('의사에게 보여 줄 것들')}</div><h1>${T('진료')}</h1></div>
-      <div class="segc"><button data-act="clinicWeeks" data-w="1" aria-pressed="${weeks === 1}">${T('1주')}</button>
-        <button data-act="clinicWeeks" data-w="2" aria-pressed="${weeks === 2}">${T('2주')}</button>
-        <button data-act="clinicWeeks" data-w="4" aria-pressed="${weeks === 4}">${T('4주')}</button></div></header>
+      <div class="segc">${range(1, T('1주'))}${range(2, T('2주'))}${range(4, T('4주'))}${lastVisit() ? range('since', T('진료 후')) : ''}</div></header>
 
     <section class="card list">
       <label class="li"><span class="lk">${T('다음 진료일')}</span><input type="date" id="c-next" value="${esc(c.next || '')}"></label>
@@ -242,6 +271,13 @@ export function viewClinic() {
         <div class="li noprint"><input type="text" id="c-note" maxlength="200" placeholder="${T('생각날 때 한 줄씩 적어 두기')}" autocomplete="off">
           <button class="mini" data-act="clinicNoteAdd">${T('추가')}</button></div>
       </section>
+      <div class="sec">${T('진료 · 약 변경 기록')}</div>
+      <section class="card list">
+        ${c.log.map((x, i) => `<div class="li"><span class="lk talk"><small>${shortDate(x.date)} · ${kindName(x.kind)}</small>${esc(x.text)}</span>
+          <button class="txt dim noprint" data-act="logDel" data-i="${i}" aria-label="${T('삭제')}">✕</button></div>`).reverse().join('')}
+        <div class="li noprint logadd"><button class="mini" data-act="logAdd" data-kind="visit">${T('+ 진료 메모')}</button>
+          <button class="mini" data-act="logAdd" data-kind="med">${T('+ 약 바꾼 날')}</button></div>
+      </section>
       ${summaryHtml(weeks)}
     </div>
 
@@ -250,4 +286,21 @@ export function viewClinic() {
       <button class="btn gray" data-act="copySummary">${T('글로 복사')}</button>
     </div>
     <p class="secnote" style="margin-top:12px">${T('“PDF · 인쇄”를 누르면 아이폰 인쇄 화면이 떠요. 미리보기를 두 손가락으로 벌린 뒤 공유 버튼을 누르면 PDF로 저장하거나 보낼 수 있어요.')}</p>`;
+}
+
+// 진료 메모 / 약 바꾼 날을 적는 화면
+export function openLog(kind) {
+  sheet.innerHTML = `<div class="sheet-in">
+    <div class="sheet-top">
+      <button class="txt" data-act="close">${T('취소')}</button>
+      <div class="st"><b>${kind === 'med' ? T('약 바꾼 날') : T('진료 메모')}</b></div>
+      <button class="txt strong" data-act="logSave" data-kind="${kind}">${T('저장')}</button>
+    </div>
+    <section class="card list">
+      <label class="li"><span class="lk">${T('날짜')}</span><input type="date" id="l-date" value="${today()}" max="${today()}"></label>
+      <div class="li"><textarea id="l-text" rows="4" maxlength="500" placeholder="${kind === 'med' ? T('예: 브린텔릭스 10mg → 15mg') : T('의사가 한 말, 바뀐 처방, 다음에 할 것')}"></textarea></div>
+    </section>
+    <p class="secnote">${kind === 'med' ? T('진료 화면 그래프의 그날 자리에 세로선으로 표시돼요.') : T('적어 두면 “진료 후” 기간으로 지난 진료부터의 흐름을 볼 수 있어요.')}</p>
+  </div>`;
+  showSheet();
 }

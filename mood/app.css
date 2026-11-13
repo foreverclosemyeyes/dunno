@@ -327,6 +327,8 @@ button.li .lv { margin-left: auto; }
 /* 진료 탭 · 진료용 요약 */
 input[type=date] { border: 0; outline: none; background: var(--card2); color: var(--text); border-radius: 8px; padding: 6px 10px; font-size: calc(16px * var(--fs, 1.12)); -webkit-appearance: none; appearance: none; min-width: 0; }
 .talk { white-space: normal; overflow-wrap: anywhere; }
+.talk small { display: block; margin: 0 0 2px; font-size: calc(12px * var(--fs, 1.12)); }
+.logadd { justify-content: flex-start; gap: 8px; }
 .sum-top { display: none; font-size: 20px; font-weight: 700; margin: 0 16px 4px; }
 #summary .li.say small { color: var(--muted); margin-right: 4px; }
 .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -375,6 +377,11 @@ input[type=date] { border: 0; outline: none; background: var(--card2); color: va
 .sum-stack svg + svg { margin-top: 22px; }
 .c0 { fill: var(--card2); }
 @media print { .c0 { fill: none; stroke: #ccc; } }
+
+/* 기록 화면: 여러 개를 누를 수 있는 딱지 (부작용, 술·운동) */
+.li.chips { flex-wrap: wrap; justify-content: flex-start; gap: 8px; padding: 13px 16px; }
+.chip { background: var(--card2); border-radius: 999px; padding: 8px 15px; font-size: calc(14px * var(--fs, 1.12)); color: var(--muted); }
+.chip[aria-pressed=true] { background: var(--ink); color: var(--ink-inv); font-weight: 600; }
 
 /* 인사이트: 두 숫자를 나란히 놓은 비교 줄 */
 .li.cmp { display: block; padding: 13px 16px 14px; }

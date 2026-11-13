@@ -9,8 +9,20 @@ export const SYMPTOMS = [['dep', T('우울')], ['anx', T('불안')], ['si', T('�
 export const ITEMS = [
   ['mood', T('기분')], ['energy', T('에너지')], ['conf', T('자신감')], ['sleep', T('수면')],
   ['dep', T('우울')], ['anx', T('불안')], ['si', T('죽고 싶은 생각')],
-  ['period', T('생리')], ['appetite', T('식욕')], ['caffeine', T('카페인')], ['meds', T('약')], ['note', T('메모')],
+  ['period', T('생리')], ['appetite', T('식욕')], ['caffeine', T('카페인')], ['meds', T('약')],
+  ['fx', T('부작용')], ['tags', T('술 · 운동')], ['note', T('메모')],
 ];
+// 부작용: 그날 겪은 것을 눌러서 적는다 (entry.fx = { 열쇠: true })
+export const SIDE_EFFECTS = [
+  ['sleepy', T('졸림')], ['nausea', T('메스꺼움')], ['dizzy', T('어지러움')], ['tremor', T('손 떨림')], ['drymouth', T('입 마름')], ['headache', T('두통')],
+];
+// 생활: 그날 있었던 것 (entry.tags = { 열쇠: true }). 인사이트에서 그런 날과 다른 날을 견준다.
+export const TAGS = [['alcohol', T('술')], ['exercise', T('운동')]];
+// 켜진 열쇠만 남긴다. 하나도 없으면 undefined (저장할 때 빈 칸을 남기지 않으려고)
+export const onlyOn = (obj) => {
+  const keys = Object.keys(obj || {}).filter((k) => obj[k]);
+  return keys.length ? Object.fromEntries(keys.map((k) => [k, true])) : undefined;
+};
 // 죽고 싶은 생각이 이 단계(높음) 이상이면 오늘 화면에 상담전화를 조용히 보여 준다
 export const SI_CARE_FROM = 3;
 export const HELPLINE = '109';   // 자살예방상담전화 (한국, 24시간)

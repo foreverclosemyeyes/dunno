@@ -1,7 +1,7 @@
 // 기록 화면
 // 한 번에 다 적지 않아도 된다: 만진 항목만 저장되고, 안 만진 항목은 빈 값(null)으로 남는다.
 // 아침에 수면만 적고 밤에 기분을 적는 식으로 같은 날을 여러 번 열어 이어 적을 수 있다.
-import { DRINKS, LEVELS, SIGNS, SYMPTOMS, cafMg, cafScore, isHigh, nameOf } from '../constants.js';
+import { DRINKS, LEVELS, SIDE_EFFECTS, SIGNS, SYMPTOMS, TAGS, cafMg, cafScore, isHigh, nameOf, onlyOn } from '../constants.js';
 import { durText, longDate, sleepMinutes } from '../dates.js';
 import { $, closeSheet, esc, sheet, showSheet, toast } from '../dom.js';
 import { F, T } from '../i18n.js';
@@ -24,7 +24,7 @@ export function newDraft(date) {
   const blank = {
     date, mood: null, energy: null, conf: null, appetite: null, dep: null, anx: null, si: null,
     sleepSet: false, bed: last ? last.bed : '23:30', wake: last ? last.wake : '07:00', tired: false,
-    period: false, drinks: {}, meds: (db.taken[date] || []).slice(), note: '', signs: {},
+    period: false, drinks: {}, meds: (db.taken[date] || []).slice(), note: '', signs: {}, fx: {}, tags: {},
   };
   if (!old) return blank;
   const d = Object.assign(blank, JSON.parse(JSON.stringify(old)));
@@ -32,6 +32,8 @@ export function newDraft(date) {
   if (!d.sleepSet) { d.bed = blank.bed; d.wake = blank.wake; }
   d.drinks = d.drinks || {};
   d.signs = d.signs || {};
+  d.fx = d.fx || {};
+  d.tags = d.tags || {};
   d.meds = d.meds || [];
   return d;
 }
@@ -52,7 +54,10 @@ export const slider = (id, icon, label, v, lo, hi) => `<div class="li sl" id="ro
   <div class="ends"><span>${lo}</span><span>${hi}</span></div></div>`;
 export const sw = (attr, on, label, icon) => `<button type="button" class="li sw" ${attr} aria-pressed="${!!on}"><span class="lk">${icon || ''}${label}</span><i></i></button>`;
 
-export const medsHtml = () => doseRowsHtml(ui.draft.meds) + medAddHtml();
+// 여러 개를 누를 수 있는 딱지들 (부작용, 술·운동). attr는 data-fx / data-tag
+const chips = (attr, list, on) => `<div class="li chips">${list.map(([k, label]) => `<button type="button" class="chip" data-${attr}="${k}" aria-pressed="${!!on[k]}">${label}</button>`).join('')}</div>`;
+
+export const medsHtml =() => doseRowsHtml(ui.draft.meds) + medAddHtml();
 export const signsHtml = () => SIGNS.map(([k, label]) => sw(`data-sign="${k}"`, ui.draft.signs[k], label)).join('');
 
 // 수면: 적겠다고 누르기 전에는 한 줄짜리 버튼만 보인다
@@ -75,9 +80,11 @@ const FOCUS = {
   sleep: () => [T('지난밤 수면'), ['sleep']],
   symptoms: () => [T('증상'), ['symptoms']],
   body: () => [T('몸'), ['body']],
+  fx: () => [T('부작용'), ['fx']],
+  tags: () => [T('오늘 한 것'), ['tags']],
   note: () => [T('메모'), ['note']],
 };
-const ALL = ['mood', 'energy', 'conf', 'signs', 'symptoms', 'sleep', 'body', 'meds', 'note'];
+const ALL = ['mood', 'energy', 'conf', 'signs', 'symptoms', 'sleep', 'body', 'meds', 'fx', 'tags', 'note'];
 
 // focus가 있으면 그 항목만 뜨고(다른 값은 그대로 보존), 없으면 전체가 뜬다.
 export function openRecord(date, focus) {
@@ -107,6 +114,8 @@ export function openRecord(date, focus) {
       itemOn('caffeine') ? drinksHtml(d) : '',
     ].join('')),
     meds: group(T('오늘 먹은 약'), itemOn('meds') ? medsHtml() : '', 'meds'),
+    fx: group(T('부작용'), itemOn('fx') ? chips('fx', SIDE_EFFECTS, d.fx) : ''),
+    tags: group(T('오늘 한 것'), itemOn('tags') ? chips('tag', TAGS, d.tags) : ''),
     note: group(T('메모'), itemOn('note') ? `<div class="li"><textarea id="f-note" rows="4" maxlength="1000" placeholder="${T('오늘 있었던 일이나 느낀 점')}">${esc(d.note || '')}</textarea></div>` : ''),
   };
 
@@ -150,7 +159,7 @@ export function syncForm() {
 
 // 적은 것이 하나라도 있는지
 const hasContent = (d) => SLIDERS.some((k) => d[k] != null) || SYMPTOMS.some(([k]) => d[k] != null) || d.sleepSet || d.period
-  || cafMg(d.drinks) > 0 || d.meds.length > 0 || !!(d.note || '').trim();
+  || cafMg(d.drinks) > 0 || d.meds.length > 0 || !!onlyOn(d.fx) || !!onlyOn(d.tags) || !!(d.note || '').trim();
 
 export function saveEntry() {
   const d = ui.draft, prev = db.entries[d.date];
@@ -168,7 +177,7 @@ export function saveEntry() {
     sleepMin: d.sleepSet ? sleepMinutes(d.bed, d.wake) : keepOldSleep ? prev.sleepMin : null,
     tired: d.sleepSet && !!d.tired, period: !!d.period, appetite: d.appetite,
     caffeine: keepOldCaf ? prev.caffeine : hasDrinks ? cafScore(d.drinks) : null, drinks: hasDrinks ? d.drinks : undefined,
-    meds: d.meds, note: (d.note || '').trim(), signs, updatedAt: new Date().toISOString(),
+    meds: d.meds, fx: onlyOn(d.fx), tags: onlyOn(d.tags), note: (d.note || '').trim(), signs, updatedAt: new Date().toISOString(),
   };
   delete db.taken[d.date];
   if (!save()) return;

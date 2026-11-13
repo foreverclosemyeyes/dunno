@@ -92,6 +92,14 @@ export function importData(file) {
       const mine = db.clinic || (db.clinic = { next: '', notes: [] });
       (Array.isArray(inc.clinic.notes) ? inc.clinic.notes : []).forEach((x) => { if (typeof x === 'string' && !mine.notes.includes(x)) mine.notes.push(x); });
       if (!mine.next && /^\d{4}-\d{2}-\d{2}$/.test(inc.clinic.next || '')) mine.next = inc.clinic.next;
+      // 진료·약 변경 기록: 똑같은 줄이 없을 때만 더하고 날짜순으로 둔다
+      const log = mine.log || (mine.log = []);
+      (Array.isArray(inc.clinic.log) ? inc.clinic.log : []).forEach((x) => {
+        if (!x || !/^\d{4}-\d{2}-\d{2}$/.test(x.date || '') || !['visit', 'med'].includes(x.kind)) return;
+        const item = { date: x.date, kind: x.kind, text: String(x.text || '') };
+        if (!log.some((y) => y.date === item.date && y.kind === item.kind && y.text === item.text)) log.push(item);
+      });
+      log.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
     }
     if (!save()) return;
     render();
