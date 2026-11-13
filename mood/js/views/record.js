@@ -176,7 +176,7 @@ export function openRecord(date, focus) {
     <div class="sheet-top">
       <button class="txt" data-act="close">${T('취소')}</button>
       <div class="st"><b>${title}</b><span>${longDate(date)}</span></div>
-      <button class="txt strong" data-act="save">${T('저장')}</button>
+      <span class="txt"></span>
     </div>
     ${only ? '' : `<p class="secnote top-note">${T('적고 싶은 것만 적으면 돼요. 나머지는 나중에 이어서 적을 수 있어요.')}</p>`}
     ${scores.length ? `<section class="card list">${scores.map((k) => sliders[k]).join('')}</section>` : ''}

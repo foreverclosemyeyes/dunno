@@ -365,6 +365,9 @@ function seed() {
   check('쓰임새를 조울증으로 되돌리면 항목이 다시 다 켜짐', st.use === 'bipolar' && st.off.length === 0);
   await page.click('[data-act=close]');
 
+  await page.click('.btn[data-act=record]');
+  check('기록 화면의 저장 단추는 아래 하나뿐', (await page.$$('#sheet [data-act=save]')).length === 1);
+  await page.click('.sheet-top [data-act=close]');
   check('화면 오류 없음', errors.length === 0, errors.join(' | '));
   await browser.close();
   server.close();
