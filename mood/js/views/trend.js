@@ -132,8 +132,8 @@ export function viewTrend() {
     const cells = Array.from({ length: lead }, () => '<span></span>').concat(days.map((e, i) => {
       const d = addDays(r.start, i);
       return `<button class="cday${pick === i ? ' sel' : ''}${d === t ? ' now' : ''}" data-act="pickDay" data-i="${i}" ${d > t ? 'disabled' : ''}
-        aria-label="${longDate(d)}, ${e ? `${T('기분')} ${e.mood}` : T('기록 없음')}">
-        <span class="cdot" ${e ? `style="${moodFill(e.mood)}"` : ''}>${parse(d).getDate()}</span>${e && e.period ? '<i></i>' : ''}</button>`;
+        aria-label="${longDate(d)}, ${e ? `${T('기분')} ${e.mood == null ? '–' : e.mood}` : T('기록 없음')}">
+        <span class="cdot${e && e.mood == null ? ' part' : ''}" ${e && e.mood != null ? `style="${moodFill(e.mood)}"` : ''}>${parse(d).getDate()}</span>${e && e.period ? '<i></i>' : ''}</button>`;
     })).join('');
     const scale = [0, 2.5, 5, 7.5, 10].map((v) => `<i style="${moodFill(v)}"></i>`).join('');
     return `<section class="card mcard"><div class="mt">${IC.today}${T('기분 달력')}</div>
@@ -144,7 +144,7 @@ export function viewTrend() {
   // 증상(우울·고조·불안)은 기분과 같은 선 그래프로, 0(없음)~4(매우 높음)
   // 평소에는 이름만 보이고, 날짜를 누르면 그날 단계가 나온다
   const symCard = (key, name) => lineCard(key, name, 4, [[0, ''], [2, ''], [4, '']],
-    `<div class="mt">${name}</div>${pickDate ? `<div class="mv"><b>${pickE ? LEVELS[pickE[key] || 0] : '–'}</b><span>${pickLabel}</span></div>` : '<div class="mv"></div>'}`);
+    `<div class="mt">${name}</div>${pickDate ? `<div class="mv"><b>${pickE && pickE[key] != null ? LEVELS[pickE[key]] : '–'}</b><span>${pickLabel}</span></div>` : '<div class="mv"></div>'}`);
 
   // 생리: 이어진 날들을 하나의 띠로
   const guide = (h) => (pick == null ? '' : `<line x1="${cx(pick).toFixed(1)}" x2="${cx(pick).toFixed(1)}" y1="0" y2="${h}" stroke="${C.muted}"/>`);

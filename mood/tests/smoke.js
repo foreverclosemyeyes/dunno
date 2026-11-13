@@ -57,14 +57,18 @@ function seed() {
   check('처음 열면 오늘 화면', (await text('h1')) === '오늘');
   check('빈 날에 기록하기 버튼', await page.isVisible('[data-act=record]'));
 
-  // 2. 기록하기
-  await page.click('[data-act=record]');
+  // 2. 기록하기: 만진 항목만 저장된다
+  await page.click('.btn[data-act=record]');
+  await page.click('.savebar [data-act=save]');
+  check('아무것도 안 적으면 저장하지 않음', !(await store()) || !(await store()).entries[today]);
+  check('처음에는 값이 비어 있음', (await text('#v-mood')) === '–');
   check('보통 값에서는 체크리스트 숨김', await page.isHidden('#signs'));
   await page.fill('#f-mood', '8');
   check('기분 7 이상이면 체크리스트 표시', await page.isVisible('#signs'));
   check('기분 값에 이름이 붙음', (await text('#n-mood')) === '신남');
   await page.click('[data-sign=racing]');
   await page.click('[data-field=elev] [data-v="3"]');
+  await page.click('[data-act=sleepOn]');
   await page.fill('#f-bed', '01:20'); await page.fill('#f-wake', '06:45');
   check('수면 시간 자동 계산', (await text('#v-sleep')) === '5시간 25분');
   await page.click('[data-drink=monster][data-d="1"]'); await page.click('[data-drink=coffee][data-d="1"]');
@@ -78,6 +82,7 @@ function seed() {
   await page.click('.savebar [data-act=save]');
   let e = (await store()).entries[today];
   check('기록 저장', e && e.mood === 8 && e.elev === 3 && e.sleepMin === 325 && e.signs.racing === true && e.caffeine === 6 && e.meds[0].name === '알프람', JSON.stringify(e));
+  check('안 만진 항목은 빈 값으로 남음', e.energy === null && e.conf === null && e.appetite === null && e.dep === null && e.anx === null, JSON.stringify(e));
   check('약을 체크하면 시각이 찍힘', /^\d\d:\d\d$/.test(e.meds[0].at), JSON.stringify(e.meds));
   check('메모는 여러 줄, 글자 그대로 표시', e.note === '<b>메모</b>\n둘째 줄' && (await page.$$('#app b >> text=메모')).length === 0 && (await text('#app .note')).includes('<b>메모</b>'));
   check('오늘 타일에 이름 표시', (await text('.tile .word')) === '신남');
@@ -93,25 +98,37 @@ function seed() {
   check('먹은 기록 지우기', e.meds.length === 1 && e.meds[0].at === '', JSON.stringify(e.meds));
 
   // 4. 수정: 값을 낮추면 체크리스트 내용은 버림
-  await page.click('[data-act=record]'); await page.fill('#f-mood', '3'); await page.click('.savebar [data-act=save]');
+  await page.click('.btn[data-act=record]'); await page.fill('#f-mood', '3'); await page.click('.savebar [data-act=save]');
   e = (await store()).entries[today];
   check('낮춘 뒤 체크리스트 비움', e.mood === 3 && Object.keys(e.signs).length === 0);
 
-  // 4-1. 수면은 안 적을 수 있다
-  await page.click('[data-act=record]'); await page.click('[data-flag=sleepOff]');
-  check('수면을 끄면 시각 칸이 숨음', await page.isHidden('#f-bed'));
+  // 4-1. 이어서 적기: 나중에 다른 항목만 더해도 먼저 적은 것은 그대로다
+  await page.click('.tile[data-focus=energy]');
+  check('타일을 누르면 기록 화면이 열리고 먼저 적은 값이 보임', (await text('#v-mood')) === '3' && (await text('#v-energy')) === '–');
+  await page.click('#f-energy');   // 빈 슬라이더는 누르기만 해도 값이 생긴다
+  check('빈 슬라이더를 누르면 값이 생김', (await text('#v-energy')) !== '–');
+  await page.click('[data-act=clearField][data-k=energy]');
+  check('값 자리를 누르면 다시 비워짐', (await text('#v-energy')) === '–');
+  await page.fill('#f-energy', '6');
   await page.click('.savebar [data-act=save]');
   e = (await store()).entries[today];
-  check('수면 없이 저장', e.bed === null && e.wake === null && e.sleepMin === null, JSON.stringify([e.bed, e.wake, e.sleepMin]));
-  await page.click('[data-act=record]');
-  check('다시 열면 수면이 꺼진 채', (await page.getAttribute('[data-flag=sleepOff]', 'aria-pressed')) === 'true');
+  check('이어서 적은 것만 더해짐', e.mood === 3 && e.energy === 6 && e.sleepMin === 325 && e.elev === 3, JSON.stringify(e));
+
+  // 4-1-1. 수면 지우기, 수면 타일로 바로 적기
+  await page.click('.btn[data-act=record]'); await page.click('[data-act=sleepOff]');
+  check('수면을 지우면 시각 칸이 사라짐', (await page.$$('#f-bed')).length === 0);
+  await page.click('.savebar [data-act=save]');
+  e = (await store()).entries[today];
+  check('수면 없이 저장', e.bed === null && e.wake === null && e.sleepMin === null && e.mood === 3, JSON.stringify([e.bed, e.wake, e.sleepMin]));
+  await page.click('.tile[data-focus=sleep]');
+  check('수면 타일을 누르면 시각 칸이 바로 열림', await page.isVisible('#f-bed'));
   await page.click('.sheet-top [data-act=close]');
 
   // 4-2. 기록을 쓰기 전에도 약을 체크할 수 있고, 기록할 때 이어진다
   await put({ version: 2, entries: {}, meds: [{ name: '콘서타', dose: '27mg' }], taken: {}, settings: { hintClosed: true } });
   await page.click('#app [data-act=doseAdd]'); await page.click('#app [data-act=doseAdd]');
   check('기록 전 약 체크는 따로 저장', (await store()).taken[today].length === 2);
-  await page.click('[data-act=record]'); await page.click('.savebar [data-act=save]');
+  await page.click('.btn[data-act=record]'); await page.click('.savebar [data-act=save]');
   const after = await store();
   check('기록하면 약 체크가 기록으로 옮겨짐', after.entries[today].meds.length === 2 && !after.taken[today]);
 

@@ -36,9 +36,12 @@ export function insights() {
     const d = Math.round(sleepOf(a) - sleepOf(b));
     if (Math.abs(d) >= 20) out.push(F(d < 0 ? less : more, durText(Math.abs(d))));
   };
-  sleepGap(sl.filter((e) => e.energy >= 7), sl.filter((e) => e.energy < 7),
+  // 항목을 따로따로 적을 수 있어서 빈 값(null)이 섞여 있다. null은 비교에서 0처럼 굴기 때문에, 값이 있는 날만 골라서 나눈다.
+  const has = (key) => (e) => e[key] != null;
+  const slE = sl.filter(has('energy')), slM = sl.filter(has('mood'));
+  sleepGap(slE.filter((e) => e.energy >= 7), slE.filter((e) => e.energy < 7),
     '에너지가 높았던 날 전날 밤에는 다른 날보다 {0} 덜 잤어요.', '에너지가 높았던 날 전날 밤에는 다른 날보다 {0} 더 잤어요.');
-  sleepGap(sl.filter((e) => e.mood <= 3), sl.filter((e) => e.mood > 3),
+  sleepGap(slM.filter((e) => e.mood <= 3), slM.filter((e) => e.mood > 3),
     '기분이 가라앉은 날 전날 밤에는 다른 날보다 {0} 덜 잤어요.', '기분이 가라앉은 날 전날 밤에는 다른 날보다 {0} 더 잤어요.');
   sleepGap(sl.filter((e) => e.tired), sl.filter((e) => !e.tired),
     '일어났을 때 피곤했던 날은 다른 날보다 {0} 덜 잤어요.', '일어났을 때 피곤했던 날은 다른 날보다 {0} 더 잤어요.');
@@ -52,7 +55,7 @@ export function insights() {
     const d = avg(apHi.map((e) => e.appetite)) - avg(apLo.map((e) => e.appetite));
     if (Math.abs(d) >= 1) out.push(T(d < 0 ? '카페인을 많이 마신 날은 식욕이 낮은 편이에요.' : '카페인을 많이 마신 날은 식욕이 높은 편이에요.'));
   }
-  const per = all.filter((e) => e.period), non = all.filter((e) => !e.period);
+  const withMood = all.filter(has('mood')), per = withMood.filter((e) => e.period), non = withMood.filter((e) => !e.period);
   if (per.length >= 3 && non.length >= 3) {
     const d = avg(per.map((e) => e.mood)) - avg(non.map((e) => e.mood));
     if (Math.abs(d) >= 0.8) out.push(F(d < 0 ? '생리 중인 날은 기분 평균이 다른 날보다 {0} 낮아요.' : '생리 중인 날은 기분 평균이 다른 날보다 {0} 높아요.', Math.abs(d).toFixed(1)));
@@ -62,14 +65,15 @@ export function insights() {
   // 최근 7일과 그 전 7일
   const t = today(), span = (from, to) => all.filter((e) => e.date > addDays(t, -from) && e.date <= addDays(t, -to));
   const now = span(7, 0), was = span(14, 7);
-  if (now.length >= 3 && was.length >= 3) {
-    const d = avg(now.map((e) => e.mood)) - avg(was.map((e) => e.mood));
+  const moodNow = now.filter(has('mood')), moodWas = was.filter(has('mood'));
+  if (moodNow.length >= 3 && moodWas.length >= 3) {
+    const d = avg(moodNow.map((e) => e.mood)) - avg(moodWas.map((e) => e.mood));
     if (Math.abs(d) >= 1) out.push(F(d > 0 ? '최근 7일 기분 평균이 그 전 7일보다 {0} 높아요.' : '최근 7일 기분 평균이 그 전 7일보다 {0} 낮아요.', Math.abs(d).toFixed(1)));
-    const a = now.filter((e) => e.sleepMin != null), b = was.filter((e) => e.sleepMin != null);
-    if (a.length >= 3 && b.length >= 3) {
-      const ds2 = Math.round(sleepOf(a) - sleepOf(b));
-      if (Math.abs(ds2) >= 30) out.push(F(ds2 < 0 ? '최근 7일은 그 전 7일보다 하루 평균 {0} 덜 잤어요.' : '최근 7일은 그 전 7일보다 하루 평균 {0} 더 잤어요.', durText(Math.abs(ds2))));
-    }
+  }
+  const sleepNow = now.filter(has('sleepMin')), sleepWas = was.filter(has('sleepMin'));
+  if (sleepNow.length >= 3 && sleepWas.length >= 3) {
+    const gap = Math.round(sleepOf(sleepNow) - sleepOf(sleepWas));
+    if (Math.abs(gap) >= 30) out.push(F(gap < 0 ? '최근 7일은 그 전 7일보다 하루 평균 {0} 덜 잤어요.' : '최근 7일은 그 전 7일보다 하루 평균 {0} 더 잤어요.', durText(Math.abs(gap))));
   }
   return out;
 }
@@ -81,7 +85,8 @@ export function aiSummary() {
     const d = addDays(t, -i), e = db.entries[d], meds = medsText(medsFor(d));
     if (!e) { if (meds) lines.push(`${d} | (기록 없음) | 약: ${meds}`); continue; }
     const signs = SIGNS.filter(([k]) => e.signs && e.signs[k]).map(([, l]) => l).join(', ');
-    lines.push([d, `기분 ${e.mood}`, `에너지 ${e.energy}`, e.conf != null ? `자신감 ${e.conf}` : '', `우울 ${e.dep}/4`, `고조 ${e.elev}/4`, `불안 ${e.anx}/4`,
+    const val = (label, v, unit) => (v == null ? '' : `${label} ${v}${unit || ''}`);   // 안 적은 항목은 줄에서 뺀다
+    lines.push([d, val('기분', e.mood), val('에너지', e.energy), val('자신감', e.conf), val('우울', e.dep, '/4'), val('고조', e.elev, '/4'), val('불안', e.anx, '/4'),
       e.sleepMin != null ? `수면 ${Math.floor(e.sleepMin / 60)}시간 ${e.sleepMin % 60}분${aided(e) ? '(전날 안정제·수면제 복용)' : ''}` : '', e.tired ? '기상 시 피곤' : '', e.period ? '생리 중' : '',
       e.appetite != null ? `식욕 ${e.appetite}` : '', e.drinks ? `카페인 약 ${cafMg(e.drinks)}mg(${drinkText(e.drinks) || '없음'})` : e.caffeine != null ? `카페인 ${e.caffeine}/10` : '', `약: ${meds || '없음'}`, signs ? `체크: ${signs}` : '', e.note ? `메모: ${e.note}` : '']
       .filter(Boolean).join(' | '));

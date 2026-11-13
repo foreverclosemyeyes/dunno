@@ -19,8 +19,8 @@ export function viewToday() {
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = addDays(ws, i), en = db.entries[d], dt = parse(d);
     return `<button class="cday${d === sel ? ' sel' : ''}${d === t ? ' now' : ''}" data-act="pick" data-date="${d}" ${d > t ? 'disabled' : ''}
-      aria-label="${longDate(d)}, ${en ? `${T('기분')} ${en.mood}` : T('기록 없음')}">
-      <span class="cw">${WD()[dt.getDay()]}</span><span class="cdot" ${en ? `style="${moodFill(en.mood)}"` : ''}>${dt.getDate()}</span></button>`;
+      aria-label="${longDate(d)}, ${en ? `${T('기분')} ${en.mood == null ? '–' : en.mood}` : T('기록 없음')}">
+      <span class="cw">${WD()[dt.getDay()]}</span><span class="cdot${en && en.mood == null ? ' part' : ''}" ${en && en.mood != null ? `style="${moodFill(en.mood)}"` : ''}>${dt.getDate()}</span></button>`;
   }).join('');
 
   const hint = (!standalone() && !db.settings.hintClosed)
@@ -39,17 +39,12 @@ export function viewToday() {
       <div class="days">${days}</div>
       <button class="nav" data-act="week" data-step="1" aria-label="${T('다음 주')}" ${addDays(ws, 7) > t ? 'disabled' : ''}>›</button>
     </div>
-    ${e ? tilesHtml(e) : emptyCard(sel === t)}
+    ${tilesHtml(e || {})}
     ${medCard(sel)}
     ${e ? detailHtml(e) : ''}
+    <button class="btn${e ? ' gray' : ''}" data-act="record">${e ? T('이어서 적기') : T('기록하기')}</button>
     ${sel !== t ? `<button class="btn plain" data-act="goToday">${T('오늘로 돌아가기')}</button>` : ''}
-          <p class="foot">${DISCLAIMER}</p>`;
-}
-
-export function emptyCard(isToday) {
-  return `<section class="card empty"><div class="e1">${isToday ? T('오늘 기록이 아직 없어요') : T('이 날은 기록이 없어요')}</div>
-    <div>${T('10초면 끝나요.')}</div>
-    <button class="btn" data-act="record">${T('기록하기')}</button></section>`;
+    <p class="foot">${DISCLAIMER}</p>`;
 }
 
 // 가운데(보통)에서 얼마나 위·아래인지 보여 주는 막대. pos는 0~1, 0.5가 가운데
@@ -57,8 +52,11 @@ export const level = (pos) => {
   const p = Math.max(0, Math.min(1, pos)) * 100, lo = Math.min(50, p), w = Math.abs(p - 50);
   return `<div class="lvl" aria-hidden="true"><i style="left:${lo.toFixed(1)}%;width:${w.toFixed(1)}%"></i><b style="left:${p.toFixed(1)}%"></b></div>`;
 };
-export const tile = (label, word, num, pos, sub, color) => `<div class="tile"${color ? ` style="--tone:${color}"` : ''}><div class="tl"><span>${label}</span><span>${num == null ? '' : num}</span></div>
-  <div class="word">${word}</div>${pos == null ? '' : level(pos)}${sub ? `<div class="ts">${sub}</div>` : ''}</div>`;
+// 타일을 누르면 기록 화면의 그 항목으로 바로 간다. 아직 안 적은 항목은 '–'로 보인다.
+export const tile = (focus, label, word, num, pos, sub, color) => `<button class="tile" data-act="record" data-focus="${focus}"${color ? ` style="--tone:${color}"` : ''}>
+  <div class="tl"><span>${label}</span><span>${num == null ? '' : num}</span></div>
+  <div class="word${word ? '' : ' unset'}">${word || '–'}</div>${pos == null ? '' : level(pos)}${sub ? `<div class="ts">${sub}</div>` : ''}</button>`;
+const scoreTile = (key, label, v) => tile(key, label, nameOf(key, v), v, v == null ? null : v / 10, '', tone(key, v));
 export const bars = (v) => `<span class="bars">${[1, 2, 3, 4].map((i) => `<i class="${i <= v ? 'on' : ''}"></i>`).join('')}</span>`;
 
 export function medCard(date) {
@@ -67,7 +65,7 @@ export function medCard(date) {
 }
 
 export function tilesHtml(e) {
-  const sleepBig = e.sleepMin == null ? '–'
+  const sleepBig = e.sleepMin == null ? ''
     : `${Math.floor(e.sleepMin / 60)}<small>${T('시간')}</small>${e.sleepMin % 60 ? ` ${e.sleepMin % 60}<small>${T('분')}</small>` : ''}`;
   // 수면은 내 평균과 비교 (기록이 3일 이상 쌓였을 때)
   const sleeps = Object.values(db.entries).map((x) => x.sleepMin).filter((x) => x != null);
@@ -78,10 +76,8 @@ export function tilesHtml(e) {
     sub = Math.abs(diff) < 10 ? T('평소와 비슷') : F(diff > 0 ? '평소보다 {0} 김' : '평소보다 {0} 짧음', durText(Math.abs(diff)));
   }
   return `<div class="tiles">
-      ${tile(T('기분'), nameOf('mood', e.mood), e.mood, e.mood / 10, '', tone('mood', e.mood))}
-      ${tile(T('에너지'), nameOf('energy', e.energy), e.energy, e.energy / 10, '', tone('energy', e.energy))}
-      ${e.conf == null ? tile(T('자신감'), '–') : tile(T('자신감'), nameOf('conf', e.conf), e.conf, e.conf / 10, '', tone('conf', e.conf))}
-      ${tile(T('수면'), sleepBig, null, pos, sub)}
+      ${scoreTile('mood', T('기분'), e.mood)}${scoreTile('energy', T('에너지'), e.energy)}${scoreTile('conf', T('자신감'), e.conf)}
+      ${tile('sleep', T('수면'), sleepBig, null, pos, sub)}
     </div>`;
 }
 
@@ -101,6 +97,5 @@ export function detailHtml(e) {
       ${extra ? li(`${IC.pill}${T('약')}`, extra) : ''}
       ${signs.length ? li(T('체크'), signs.map(esc).join('<br>')) : ''}
       ${e.note ? `<div class="li say note">${esc(e.note)}</div>` : ''}
-    </section>
-    <button class="btn gray" data-act="record">${T('수정하기')}</button>`;
+    </section>`;
 }

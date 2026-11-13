@@ -10,7 +10,7 @@ import { onSwipe } from './swipe.js';
 import { standalone, trend, ui } from './state.js';
 import { db, save } from './store.js';
 import { applyFont, applyTheme, themeQuery } from './theme.js';
-import { SLIDERS, cafHead, medsHtml, openRecord, saveEntry, syncForm } from './views/record.js';
+import { SLIDERS, cafHead, medsHtml, openRecord, saveEntry, sleepHtml, syncForm } from './views/record.js';
 import { openSettings } from './views/settings.js';
 import { shiftAnchor, shiftTrend, trendRange } from './views/trend.js';
 
@@ -63,7 +63,11 @@ const actions = {
   },
   goToday: () => { ui.selected = today(); render(); },
   closeHint: () => { db.settings.hintClosed = true; save(); render(); },
-  record: () => openRecord(ui.selected),
+  record: (el) => openRecord(ui.selected, el.dataset.focus),
+  // 기록 화면: 수면 칸 펼치기·지우기, 슬라이더 값 다시 비우기
+  sleepOn: () => { ui.draft.sleepSet = true; $('#sleep').innerHTML = sleepHtml(); syncForm(); },
+  sleepOff: () => { ui.draft.sleepSet = false; ui.draft.tired = false; $('#sleep').innerHTML = sleepHtml(); },
+  clearField: (el) => { ui.draft[el.dataset.k] = null; syncForm(); },
   settings: openSettings,
   close: closeSheet,
   save: saveEntry,
@@ -103,26 +107,30 @@ document.addEventListener('click', (ev) => {
   const d = ui.draft;
   if (!d) return;
   const segEl = t.closest('.seg');
-  if (segEl) {                                   // 단계 버튼
+  if (segEl) {                                   // 단계 버튼 (우울·고조·불안). 고른 것을 다시 누르면 빈 값으로 돌아간다
     const f = segEl.dataset.field, v = Number(t.dataset.v);
-    const required = f === 'dep' || f === 'elev' || f === 'anx';
-    const cur = f === 'tired' ? (d.tired == null ? null : +d.tired) : d[f];
-    const next = (cur === v && !required) ? null : v;   // 선택 항목은 다시 누르면 해제
-    d[f] = f === 'tired' ? (next == null ? null : !!next) : next;
-    segEl.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.v) === next)));
+    d[f] = d[f] === v ? null : v;
+    segEl.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.v) === d[f])));
   } else if (t.dataset.drink) {                  // 카페인 음료 개수
     const k = t.dataset.drink, n = Math.max(0, Math.min(9, (d.drinks[k] || 0) + Number(t.dataset.d)));
     if (n) d.drinks[k] = n; else delete d.drinks[k];
     $(`#c-${k}`).textContent = n;
     $('#v-caf').textContent = cafHead(d.drinks);
-  } else if (t.dataset.flag) {                   // 스위치 (생리 중, 피곤함, 수면 안 적기)
+  } else if (t.dataset.flag) {                   // 스위치 (생리 중, 일어났을 때 피곤함)
     d[t.dataset.flag] = !d[t.dataset.flag];
     t.setAttribute('aria-pressed', String(!!d[t.dataset.flag]));
-    syncForm();
   } else if (t.dataset.sign) {                   // 조건부 체크리스트
     d.signs[t.dataset.sign] = !d.signs[t.dataset.sign];
     t.setAttribute('aria-pressed', String(!!d.signs[t.dataset.sign]));
   }
+});
+
+// 빈 슬라이더는 손을 대는 순간 값이 생긴다 (지금 손잡이 자리 그대로 두고 싶을 때도 한 번 누르면 된다)
+sheet.addEventListener('pointerdown', (ev) => {
+  const d = ui.draft, el = ev.target, k = el.id ? el.id.slice(2) : '';
+  if (!d || el.type !== 'range' || !SLIDERS.includes(k) || d[k] != null) return;
+  d[k] = Number(el.value);
+  syncForm();
 });
 
 sheet.addEventListener('input', (ev) => {
