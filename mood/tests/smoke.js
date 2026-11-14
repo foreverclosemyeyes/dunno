@@ -436,7 +436,18 @@ function seed() {
   // 처음 쓰는 사람: 오늘 화면에 이 앱이 무엇인지 한 줄이 있고, 예시 요약을 볼 수 있다. 예시는 저장되지 않는다.
   const kept = await store();
   await put({ version: 3, entries: {}, meds: [], taken: {}, clinic: { notes: [] }, settings: {} });
-  check('기록이 없으면 오늘 화면에 소개가 보임', !!(await page.$('.intro [data-act=demoClinic]')));
+  check('처음 열면 어떻게 쓸지 물어봄', (await page.$$('[data-act=care][data-v]')).length === 2 && !(await page.$('[data-act=demoClinic]')));
+  await page.click('[data-act=care][data-v="0"]');
+  let mode = (await store()).settings;
+  check('"그냥 컨디션"을 고르면 증상·약 항목과 인사이트·진료 탭이 숨겨짐', mode.care === false && ['dep', 'si', 'meds'].every((k) => mode.off.includes(k))
+    && (await page.$$('.tabbar button')).length === 2 && !(await page.$('[data-act=panicAdd]')) && !(await page.$('[data-act=medSetup]')) && !(await page.$('.intro')));
+  await openSet();
+  check('설정에서 병원 · 상담용 기능이 꺼져 있고 진단명은 안 보임', (await page.getAttribute('#sheet [data-act=care]', 'aria-pressed')) === 'false' && !(await page.$('[data-act=dx]')));
+  await page.click('#sheet [data-act=care]');
+  mode = (await store()).settings;
+  check('설정에서 다시 켜면 항목과 탭이 돌아옴', mode.care === true && !mode.off.includes('dep') && (await page.$$('.tabbar button')).length === 4 && !!(await page.$('[data-act=dx]')));
+  await page.click('[data-act=close]');
+  check('병원 · 상담용으로 쓰면 기록이 없을 때 소개가 보임', !!(await page.$('.intro [data-act=demoClinic]')));
   await page.click('[data-act=demoClinic]');
   check('"예시 요약 보기"를 누르면 진료 화면이 예시 기록으로 열림', (await page.$$('#summary .sum-fig path')).length >= 2 && !!(await page.$('#summary svg.sum-rows')) && !(await page.$('#c-note')) && !(await page.$('[data-act=logAdd]')));
   check('예시는 저장되지 않음', Object.keys((await store()).entries).length === 0 && ((await store()).clinic.log || []).length === 0);

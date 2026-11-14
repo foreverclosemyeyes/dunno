@@ -3,6 +3,7 @@ import { app } from './dom.js';
 import { T } from './i18n.js';
 import { IC } from './icons.js';
 import { ui } from './state.js';
+import { careOn } from './store.js';
 import { viewClinic } from './views/clinic.js';
 import { viewInsight } from './views/insight.js';
 import { viewToday } from './views/today.js';
@@ -15,8 +16,12 @@ const TABS = [
   ['clinic', viewClinic, () => IC.doc, () => T('진료')],
 ];
 
+// 병원·상담용 기능을 꺼 두면 인사이트·진료 탭은 없다
+const CARE_TABS = ['insight', 'clinic'];
+
 export function render() {
-  (TABS.find(([key]) => key === ui.tab) || TABS[0])[1]();
-  app.insertAdjacentHTML('beforeend', `<nav class="tabbar">${TABS.map(([key, , icon, name]) =>
+  const tabs = TABS.filter(([key]) => careOn() || !CARE_TABS.includes(key));
+  (tabs.find(([key]) => key === ui.tab) || tabs[0])[1]();
+  app.insertAdjacentHTML('beforeend', `<nav class="tabbar">${tabs.map(([key, , icon, name]) =>
     `<button data-act="tab" data-tab="${key}" aria-pressed="${ui.tab === key}">${icon()}<span>${name()}</span></button>`).join('')}</nav>`);
 }

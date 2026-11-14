@@ -9,7 +9,8 @@ import { addDose, medKey, medsFor, normDose, setMeds, sugHtml, toggleDoseTime } 
 import { render } from './render.js';
 import { onSwipe } from './swipe.js';
 import { clinicView, standalone, trend, ui } from './state.js';
-import { db, save, usesOn } from './store.js';
+import { CARE_ITEMS } from './constants.js';
+import { careOn, db, save, usesOn } from './store.js';
 import { applyFont, applyTheme, themeQuery } from './theme.js';
 import { clinicData, clinicWeeks, openLog, summaryText } from './views/clinic.js';
 import { notesListHtml, openNotes } from './views/notes.js';
@@ -112,6 +113,15 @@ const actions = {
     e.updatedAt = new Date().toISOString();
     save(); render();
     toast(F('공황 {0}번째를 적었어요', e.panic));
+  },
+  // 병원·상담용 기능 켜고 끄기 (처음 화면의 물음, 설정의 스위치). 딸린 기록 항목도 한꺼번에 켜고 끈다.
+  care: (el) => {
+    const on = el.dataset.v ? el.dataset.v === '1' : !careOn(), off = (db.settings.off || []).filter((k) => !CARE_ITEMS.includes(k));
+    db.settings.care = on;
+    db.settings.off = on ? off : [...off, ...CARE_ITEMS];
+    if (!on) ui.tab = 'today';
+    save(); render();
+    if (sheetOpen()) redrawSettings();
   },
   demo: () => { ui.demo = !ui.demo; render(); },
   // 처음 화면의 "예시 요약 보기": 진료 화면을 예시 기록으로 연다

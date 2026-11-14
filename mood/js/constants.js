@@ -135,4 +135,7 @@ export const FONTS = {
 };
 export const SIZES = { s: [T('작게'), 1], m: [T('보통 '), 1.12], l: [T('크게'), 1.25], xl: [T('아주 크게'), 1.4] };
 
+// 병원·상담에 다니는 사람에게만 필요한 기록 항목들. "병원 · 상담용 기능"을 끄면 같이 꺼지고, 켜면 같이 켜진다.
+export const CARE_ITEMS = ['dep', 'anx', 'panic', 'psy', 'si', 'meds', 'fx', 'signs'];
+
 export const DISCLAIMER = T('이 앱은 진단 도구가 아니에요. 내 상태를 기록해 두는 참고용이에요.');
