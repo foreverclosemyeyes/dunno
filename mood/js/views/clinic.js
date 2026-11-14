@@ -18,7 +18,7 @@ export function clinicData() {
   if (!c.log) c.log = [];
   return c;
 }
-const kindName = (kind) => (kind === 'med' ? T('약 변경') : T('진료'));
+export const kindName = (kind) => (kind === 'med' ? T('약 변경') : T('진료'));
 // 가장 최근에 다녀온 진료일 (없으면 '')
 const lastVisit = () => { const v = clinicData().log.filter((x) => x.kind === 'visit' && x.date <= today()); return v.length ? v[v.length - 1].date : ''; };
 // 요약 기간(주). "진료 후"를 골랐으면 지난 진료일이 들어가도록 주 단위로 올림한다 (최대 8주).
@@ -28,7 +28,7 @@ export function clinicWeeks() {
   return from ? Math.max(1, Math.min(8, Math.ceil((1 - daysUntil(from)) / 7))) : 2;
 }
 
-const shortDate = (s) => { const d = parse(s); return `${d.getMonth() + 1}/${d.getDate()}`; };
+export const shortDate = (s) => { const d = parse(s); return `${d.getMonth() + 1}/${d.getDate()}`; };
 const dateList = (list) => list.map(shortDate).join(', ');
 const daysUntil = (date) => Math.round((parse(date) - parse(today())) / 86400000);
 const one = (x) => (Math.round(x * 10) / 10).toFixed(1);
@@ -43,14 +43,14 @@ function nextText() {
 // 큰 그래프에 켜고 끌 수 있는 선들: [열쇠, 이름, 가장 높은 값]. 증상(0~4)은 그래프 높이에 맞춰 늘려 그린다.
 // 0~10으로 적는 세 가지만 선으로 그린다. 증상(우울·불안 등)은 바로 아래 네모 줄에 있어서, 선으로 또 그리면 겹쳐서 난잡하다고 해서 뺐다 (2026-11-14).
 // 설정에서 꺼 둔 항목은 뺀다.
-const lineDefs = () => [['mood', T('기분'), 10], ['energy', T('에너지'), 10], ['conf', T('자신감'), 10]].filter(([key]) => itemOn(key));
+export const lineDefs = () => [['mood', T('기분'), 10], ['energy', T('에너지'), 10], ['conf', T('자신감'), 10]].filter(([key]) => itemOn(key));
 
 // 선은 색이 아니라 모양으로 구분한다: [굵기, 끊김 무늬]. 기분만 설정에서 고른 색의 굵은 실선이고, 나머지는 같은 색(--ink)이다.
 const LINE_STYLE = { mood: [3, ''], energy: [1.6, ''], conf: [1.8, '7 5'] };
 const lineColor = (key) => (key === 'mood' ? tone('mood', 10) || 'var(--ink)' : 'var(--ink)');
 const lineAttrs = (key) => `fill="none" stroke-linejoin="round" stroke-linecap="round" style="stroke:${lineColor(key)}" stroke-width="${LINE_STYLE[key][0]}"${LINE_STYLE[key][1] ? ` stroke-dasharray="${LINE_STYLE[key][1]}"` : ''}`;
 // 단추에 붙는 선 견본
-const lineSample = (key) => `<svg width="22" height="8" aria-hidden="true"><path d="M1.5,4H20.5" ${lineAttrs(key)}/></svg>`;
+export const lineSample = (key) => `<svg width="22" height="8" aria-hidden="true"><path d="M1.5,4H20.5" ${lineAttrs(key)}/></svg>`;
 
 // 이어진 날짜는 묶어서 적는다: 11/9–11/13, 11/20
 function dateRanges(list) {
@@ -66,7 +66,8 @@ function dateRanges(list) {
 // 셋 다 같은 너비와 여백으로 그려서, 위아래로 같은 자리가 같은 날이다 (약을 안 먹은 날의 기분·증상이 한 줄로 이어져 보인다).
 // 선은 전부 부드러운 실선이다. 색은 CSS 변수를 따라가서 다크·라이트·인쇄에서 그대로 읽힌다.
 // show: 기간 전체에서 한 번이라도 있었던 것만 줄을 만든다 { fx: 부작용이 있었는지, custom: [값이 있었던 내 항목들] }
-function figures(s, width, SH, show) {
+// flat: 종이용. 네모 대신 하루 너비를 꽉 채운 낮은 칸으로 그려서 줄이 촘촘한 띠처럼 보이고 한 장에 다 들어간다.
+export function figures(s, width, SH, show, flat = false) {
   // 오른쪽에는 선 끝 이름이 들어갈 자리를 둔다 (이름이 긴 "죽고 싶은 생각"을 켰을 때만 넓게)
   const n = s.dates.length, L = 18, R = 44, pw = width - L - R, col = pw / n;
   const cx = (i) => L + col * (i + 0.5);
@@ -78,7 +79,7 @@ function figures(s, width, SH, show) {
 
   // 지금까지 그린 것을 그림 한 장으로 마무리하고 다음 장을 시작한다
   const take = (id, height) => {
-    const svg = `<svg class="${id}" width="${width}" height="${height}" role="img">${out}</svg>`;
+    const svg = `<svg class="${id}" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img">${out}</svg>`;
     out = ''; y = 12;
     return svg;
   };
@@ -147,17 +148,18 @@ function figures(s, width, SH, show) {
   // 3. 증상: 날마다 요일(영어 한 글자, 사용자가 고름)이 적힌 네모 한 칸, 그런 날은 색칠 (단계가 높을수록 진하게). 위 그래프와 같은 날짜 자리에 놓인다.
   // 칸 크기는 하루 너비를 따라간다 (옆 칸과 살짝만 떨어지게). 1주는 30, 2주는 15쯤, 4주는 7쯤.
   // 요일 글자는 1주 보기처럼 칸이 넉넉할 때만 넣는다. 2주·4주는 색으로만 보이게 한다 (작은 글자가 지저분하다고 함).
-  const sq = Math.max(4, Math.min(col - Math.max(2, col * 0.18), 30)), letter = sq >= 24 ? 13 : 0;
+  const sq = Math.max(4, Math.min(col - Math.max(2, col * 0.18), 30)), letter = !flat && n <= 7 && sq >= 24 ? 13 : 0;
+  const bw = flat ? col - 3 : sq, bh = flat ? 12 : sq, br = flat ? 3.5 : sq * 0.28;
   // vals: 날마다의 정도(0~4), right: 오른쪽에 적을 글 (안 주면 며칠인지)
   const squaresOf = (name, vals, right) => {
     const count = vals.filter(Boolean).length;
     head(name, right || (count ? F('{0}일', count) : T('없음')));
     s.dates.forEach((d, i) => {
-      const v = vals[i], x = cx(i) - sq / 2, top = y + 13;
-      out += `<rect x="${x.toFixed(1)}" y="${top}" width="${sq.toFixed(1)}" height="${sq.toFixed(1)}" rx="${(sq * 0.28).toFixed(1)}" ${v ? `style="fill:var(--ink)" fill-opacity="${[0, 0.3, 0.5, 0.75, 1][v]}"` : 'class="c0"'}/>`;
+      const v = vals[i], x = cx(i) - bw / 2, top = y + (flat ? 8 : 13);
+      out += `<rect x="${x.toFixed(1)}" y="${top}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="${br.toFixed(1)}" ${v ? `style="fill:var(--ink)" fill-opacity="${[0, 0.3, 0.5, 0.75, 1][v]}"` : 'class="c0"'}/>`;
       if (letter) out += `<text x="${cx(i).toFixed(1)}" y="${(top + sq / 2 + letter * 0.36).toFixed(1)}" text-anchor="middle" font-size="${letter}" font-weight="600" style="fill:${v >= 3 ? 'var(--ink-inv)' : v ? 'var(--text)' : 'var(--faint)'}">${'SMTWTFS'[parse(d).getDay()]}</text>`;
     });
-    y += 13 + sq + 22;
+    y += flat ? 8 + bh + 17 : 13 + sq + 22;
   };
   const squares = (name, levelOf) => squaresOf(name, s.days.map((e) => (e ? levelOf(e) : 0)));
   SYMPTOMS.filter(([k]) => itemOn(k)).forEach(([k, name]) => squares(name, (e) => e[k] || 0));
@@ -178,7 +180,7 @@ function figures(s, width, SH, show) {
 }
 
 // 요약에 들어갈 줄들: [이름, 내용]. 화면과 복사용 글이 같은 줄을 쓴다.
-function summaryRows(s) {
+export function summaryRows(s) {
   const range = (st, fmt) => (st ? `${fmt(st.avg)} (${fmt(st.min)}–${fmt(st.max)})` : T('기록 없음'));
   const num = (x) => (Number.isInteger(x) ? String(x) : one(x));
   const dur = (m) => durText(Math.round(m));
@@ -194,7 +196,7 @@ function summaryRows(s) {
   };
 }
 
-// 요약 본문: 그림 세 장을 한 카드에 쌓고, 체크 항목·신호·메모를 카드로 나눠 놓는다 (인쇄하면 이 부분이 한 장으로 나간다)
+// 요약 본문: 그림 세 장을 한 카드에 쌓고, 체크 항목·신호·메모를 카드로 나눠 놓는다 (인쇄용 한 장은 printout.js가 따로 짠다)
 function summaryHtml(weeks) {
   const s = summary(weeks);
   const width = Math.max(240, Math.min(app.clientWidth, 480) - 32 - 32);
@@ -250,18 +252,17 @@ export function viewClinic() {
     </section>
 
     <div id="summary">
-      <div class="sum-top">${T('진료용 요약')}</div>
       <div class="sec">${T('진료 때 말할 것')}</div>
       <section class="card list">
-        ${c.notes.map((x, i) => `<div class="li"><span class="lk talk">${esc(x)}</span><button class="txt dim noprint" data-act="clinicNoteDel" data-i="${i}" aria-label="${T('삭제')}">✕</button></div>`).join('')}
-        <div class="li noprint"><input type="text" id="c-note" maxlength="200" placeholder="${T('생각날 때 한 줄씩 적어 두기')}" autocomplete="off">
+        ${c.notes.map((x, i) => `<div class="li"><span class="lk talk">${esc(x)}</span><button class="txt dim" data-act="clinicNoteDel" data-i="${i}" aria-label="${T('삭제')}">✕</button></div>`).join('')}
+        <div class="li"><input type="text" id="c-note" maxlength="200" placeholder="${T('생각날 때 한 줄씩 적어 두기')}" autocomplete="off">
           <button class="mini" data-act="clinicNoteAdd">${T('추가')}</button></div>
       </section>
       <div class="sec">${T('진료 · 약 변경 기록')}</div>
       <section class="card list">
         ${c.log.map((x, i) => `<div class="li"><span class="lk talk"><small>${shortDate(x.date)} · ${kindName(x.kind)}</small>${esc(x.text)}</span>
-          <button class="txt dim noprint" data-act="logDel" data-i="${i}" aria-label="${T('삭제')}">✕</button></div>`).reverse().join('')}
-        <div class="li noprint logadd"><button class="mini" data-act="logAdd" data-kind="visit">${T('+ 진료 메모')}</button>
+          <button class="txt dim" data-act="logDel" data-i="${i}" aria-label="${T('삭제')}">✕</button></div>`).reverse().join('')}
+        <div class="li logadd"><button class="mini" data-act="logAdd" data-kind="visit">${T('+ 진료 메모')}</button>
           <button class="mini" data-act="logAdd" data-kind="med">${T('+ 약 바꾼 날')}</button></div>
       </section>
       ${summaryHtml(weeks)}

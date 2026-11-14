@@ -421,6 +421,18 @@ function seed() {
   check('진료 기록의 날짜가 한 줄로 보임', dateBox[0] < dateBox[1] * 1.6 && dateBox[2] > 150, dateBox.join());
   await page.click('[data-tab=today]');
 
+  // 인쇄용 한 장: 종이 크기에 맞춘 배치가 따로 채워지고, 화면에서는 안 보인다
+  await page.click('[data-tab=clinic]');
+  await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
+  check('인쇄할 때 종이용 한 장이 채워짐 (머리말 · 숫자 칸 · 그림)', (await page.$$('#printout .po-stat')).length === 4 && !!(await page.$('#printout .po-head h1')) && !!(await page.$('#printout svg.sum-rows')));
+  check('종이용 한 장은 화면에서는 안 보임', await page.$eval('#printout', (x) => getComputedStyle(x).display === 'none'));
+  await page.emulateMedia({ media: 'print' });
+  check('인쇄에서는 종이용 한 장만 보임', await page.evaluate(() => getComputedStyle(document.querySelector('#printout')).display === 'block' && getComputedStyle(document.querySelector('#app')).display === 'none'));
+  await page.emulateMedia({ media: 'screen' });
+  await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
+  check('인쇄가 끝나면 종이용 한 장을 비움', (await page.innerHTML('#printout')) === '');
+  await page.click('[data-tab=today]');
+
   // 오늘 화면의 네 칸은 수면에 "평소 …"가 붙어도 높이가 같다
   const tileH = await page.$$eval('.tile', (els) => els.map((x) => Math.round(x.getBoundingClientRect().height)));
   check('오늘 화면의 네 칸 높이가 모두 같음', tileH.length === 4 && new Set(tileH).size === 1 && !(await page.$('.tile .ts')), tileH.join());

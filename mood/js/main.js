@@ -14,6 +14,7 @@ import { applyFont, applyTheme, themeQuery } from './theme.js';
 import { clinicData, clinicWeeks, openLog, summaryText } from './views/clinic.js';
 import { notesListHtml, openNotes } from './views/notes.js';
 import { SLIDERS, cafHead, fxHtml, medsHtml, psychHtml, openRecord, saveEntry, sleepHtml, syncForm } from './views/record.js';
+import { printoutHtml } from './views/printout.js';
 import { openSettings } from './views/settings.js';
 import { shiftAnchor, shiftTrend, trendRange } from './views/trend.js';
 
@@ -28,6 +29,11 @@ function commitDoses(list) {
 }
 
 // 설정 화면을 스크롤 자리를 지킨 채 다시 그린다
+// 인쇄할 한 장을 지금 기록으로 채운다 (단추를 누를 때와, 브라우저 메뉴로 인쇄할 때). 잠겨 있으면 비워 둔다.
+function fillPrintout() {
+  $('#printout').innerHTML = $('.lock') ? '' : printoutHtml(clinicWeeks());
+}
+
 function redrawSettings() {
   const y = sheet.scrollTop;
   openSettings();
@@ -149,7 +155,7 @@ const actions = {
     $('#c-note').focus();
   },
   clinicNoteDel: (el) => { clinicData().notes.splice(Number(el.dataset.i), 1); save(); render(); },
-  printSummary: () => window.print(),
+  printSummary: () => { fillPrintout(); window.print(); },
   copySummary: async () => { await copyText(summaryText(clinicWeeks())); toast(T('복사했어요')); },
   lang: (el) => { db.settings.lang = el.dataset.lang; if (save()) location.reload(); },
   size: (el) => { db.settings.size = el.dataset.size; save(); applyFont(); render(); openSettings(); },
@@ -317,6 +323,8 @@ app.addEventListener('click', (ev) => {
   trend.pick = trend.pick === i ? null : i;
   render();
 });
+window.addEventListener('beforeprint', fillPrintout);
+window.addEventListener('afterprint', () => { $('#printout').innerHTML = ''; });
 window.addEventListener('resize', () => { if (ui.tab === 'trend' && !sheetOpen()) render(); });
 
 $('#importFile').addEventListener('change', (ev) => {
