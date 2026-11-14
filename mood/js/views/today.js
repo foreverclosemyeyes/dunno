@@ -63,10 +63,11 @@ export const level = (pos) => {
   return `<div class="lvl" aria-hidden="true"><i style="left:${lo.toFixed(1)}%;width:${w.toFixed(1)}%"></i><b style="left:${p.toFixed(1)}%"></b></div>`;
 };
 // 타일을 누르면 기록 화면의 그 항목으로 바로 간다. 아직 안 적은 항목도 칸은 그대로 있고 '기록 없음'으로 보인다.
-export const tile = (focus, label, word, num, pos, sub, color) => `<button class="tile" data-act="record" data-focus="${focus}"${color ? ` style="--tone:${color}"` : ''}>
+// 네 칸의 높이가 늘 같도록 덧붙이는 말(수면의 "평소 −34분")은 줄을 더하지 않고 오른쪽 위 숫자 자리에 적는다.
+export const tile = (focus, label, word, num, pos, color) => `<button class="tile" data-act="record" data-focus="${focus}"${color ? ` style="--tone:${color}"` : ''}>
   <div class="tl"><span>${label}</span><span>${num == null ? '' : num}</span></div>
-  <div class="word${word ? '' : ' unset'}">${word || T('기록 없음')}</div>${pos == null ? '' : level(pos)}${sub ? `<div class="ts">${sub}</div>` : ''}</button>`;
-const scoreTile = (key, label, v) => tile(key, label, nameOf(key, v), v, v == null ? null : v / 10, '', tone(key, v));
+  <div class="word${word ? '' : ' unset'}">${word || T('기록 없음')}</div>${pos == null ? '' : level(pos)}</button>`;
+const scoreTile = (key, label, v) => tile(key, label, nameOf(key, v), v, v == null ? null : v / 10, tone(key, v));
 export const bars = (v) => `<span class="bars">${[1, 2, 3, 4].map((i) => `<i class="${i <= v ? 'on' : ''}"></i>`).join('')}</span>`;
 
 export function medCard(date) {
@@ -87,12 +88,12 @@ export function tilesHtml(e) {
   if (e.sleepMin != null && sleeps.length >= 3) {
     const avg = sleeps.reduce((a, b) => a + b, 0) / sleeps.length, diff = Math.round(e.sleepMin - avg);
     pos = 0.5 + diff / 360;   // 막대 끝에서 끝이 ±3시간
-    sub = Math.abs(diff) < 10 ? T('평소와 비슷') : F(diff > 0 ? '평소보다 {0} 김' : '평소보다 {0} 짧음', durText(Math.abs(diff)));
+    sub = Math.abs(diff) < 10 ? T('평소와 비슷') : F(diff > 0 ? '평소 +{0}' : '평소 −{0}', durText(Math.abs(diff)));
   }
   // 설정에서 꺼 둔 항목은 칸을 만들지 않는다
   const tiles = [
     ['mood', () => scoreTile('mood', T('기분'), e.mood)], ['energy', () => scoreTile('energy', T('에너지'), e.energy)],
-    ['conf', () => scoreTile('conf', T('자신감'), e.conf)], ['sleep', () => tile('sleep', T('수면'), sleepBig, null, pos, sub)],
+    ['conf', () => scoreTile('conf', T('자신감'), e.conf)], ['sleep', () => tile('sleep', T('수면'), sleepBig, sub || null, pos)],
   ].filter(([k]) => itemOn(k)).map(([, html]) => html()).join('');
   return tiles ? `<div class="tiles">${tiles}</div>` : '';
 }

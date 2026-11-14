@@ -414,6 +414,10 @@ function seed() {
   check('요일 글자는 1주 네모에만 있고 2주 네모에는 없음', one > 0 && (await letters()) === 0, one);
   await page.click('[data-tab=today]');
 
+  // 오늘 화면의 네 칸은 수면에 "평소 …"가 붙어도 높이가 같다
+  const tileH = await page.$$eval('.tile', (els) => els.map((x) => Math.round(x.getBoundingClientRect().height)));
+  check('오늘 화면의 네 칸 높이가 모두 같음', tileH.length === 4 && new Set(tileH).size === 1 && !(await page.$('.tile .ts')), tileH.join());
+
   await page.click('.btn[data-act=record]');
   check('기록 화면의 저장 단추는 아래 하나뿐', (await page.$$('#sheet [data-act=save]')).length === 1);
   await page.click('.sheet-top [data-act=close]');

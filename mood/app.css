@@ -206,10 +206,9 @@ textarea { display: block; font: inherit; font-size: calc(16px * var(--fs, 1.12)
 .tile:active { opacity: .8; }
 .tile .word.unset { color: var(--faint); }
 .lv .none { color: var(--faint); }
-.tile .tl { display: flex; justify-content: space-between; color: var(--muted); font-size: calc(13px * var(--fs, 1.12)); font-weight: 500; font-variant-numeric: tabular-nums; }
+.tile .tl { display: flex; justify-content: space-between; gap: 8px; white-space: nowrap; color: var(--muted); font-size: calc(13px * var(--fs, 1.12)); font-weight: 500; font-variant-numeric: tabular-nums; }
 .tile .word { font-size: calc(21px * min(var(--fs, 1.12), 1.25)); font-weight: 700; letter-spacing: -0.03em; line-height: 1.25; margin: 5px 0 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tile .word small { font-size: .68em; font-weight: 600; color: var(--muted); margin-left: 1px; }
-.tile .ts { color: var(--muted); font-size: calc(11.5px * var(--fs, 1.12)); margin-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lvl { position: relative; height: 4px; border-radius: 999px; background: var(--fill); margin: 0 4px; }
 .lvl::before { content: ""; position: absolute; left: 50%; top: -3px; width: 1.5px; height: 10px; margin-left: -0.75px; border-radius: 1px; background: var(--faint); }
 .lvl i { position: absolute; top: 0; height: 4px; border-radius: 999px; background: var(--tone, var(--ink)); }
