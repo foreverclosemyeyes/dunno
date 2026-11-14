@@ -337,8 +337,10 @@ button.li .lv { margin-left: auto; }
 
 /* 진료 탭 · 진료용 요약 */
 input[type=date] { border: 0; outline: none; background: var(--card2); color: var(--text); border-radius: 8px; padding: 6px 10px; font-size: calc(16px * var(--fs, 1.12)); -webkit-appearance: none; appearance: none; min-width: 0; }
-.talk { white-space: normal; overflow-wrap: anywhere; }
-.talk small { display: block; margin: 0 0 2px; font-size: calc(12px * var(--fs, 1.12)); }
+/* 긴 글이 들어가는 줄: 날짜는 글 위에 한 줄로 두고(옆에 두면 좁게 밀려 세로로 꺾인다), 위아래 여백을 넉넉히 */
+.lk.talk { display: block; flex: 1 1 auto; white-space: normal; overflow-wrap: anywhere; line-height: 1.45; }
+.li:has(> .talk) { padding-top: 14px; padding-bottom: 14px; }
+.talk small { display: block; margin: 0 0 4px; font-size: calc(12px * var(--fs, 1.12)); }
 .logadd { justify-content: flex-start; gap: 8px; }
 .sum-top { display: none; font-size: 20px; font-weight: 700; margin: 0 16px 4px; }
 #summary .li.say small { color: var(--muted); margin-right: 4px; }

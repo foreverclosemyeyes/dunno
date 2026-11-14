@@ -414,6 +414,13 @@ function seed() {
   check('요일 글자는 1주 네모에만 있고 2주 네모에는 없음', one > 0 && (await letters()) === 0, one);
   await page.click('[data-tab=today]');
 
+  // 진료 기록의 긴 글: 날짜가 글 옆에서 밀려 꺾이지 않고 글 위에 한 줄로 있다
+  await page.evaluate((k) => { const d = JSON.parse(localStorage.getItem(k)); d.clinic = { notes: [], ...d.clinic, log: [{ date: '2026-11-14', kind: 'visit', text: '긴 진료 메모 '.repeat(12) }] }; localStorage.setItem(k, JSON.stringify(d)); }, KEY);
+  await page.reload(); await page.waitForSelector('h1'); await page.click('[data-tab=clinic]');
+  const dateBox = await page.$eval('.talk small', (x) => [x.getBoundingClientRect().height, parseFloat(getComputedStyle(x).lineHeight) || 20, x.getBoundingClientRect().width]);
+  check('진료 기록의 날짜가 한 줄로 보임', dateBox[0] < dateBox[1] * 1.6 && dateBox[2] > 150, dateBox.join());
+  await page.click('[data-tab=today]');
+
   // 오늘 화면의 네 칸은 수면에 "평소 …"가 붙어도 높이가 같다
   const tileH = await page.$$eval('.tile', (els) => els.map((x) => Math.round(x.getBoundingClientRect().height)));
   check('오늘 화면의 네 칸 높이가 모두 같음', tileH.length === 4 && new Set(tileH).size === 1 && !(await page.$('.tile .ts')), tileH.join());
