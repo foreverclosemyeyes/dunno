@@ -65,7 +65,7 @@ export const level = (pos) => {
 // 타일을 누르면 기록 화면의 그 항목으로 바로 간다. 아직 안 적은 항목도 칸은 그대로 있고 '기록 없음'으로 보인다.
 // 네 칸의 높이가 늘 같도록 덧붙이는 말(수면의 "평소 −34분")은 줄을 더하지 않고 오른쪽 위 숫자 자리에 적는다.
 export const tile = (focus, label, word, num, pos, color) => `<button class="tile" data-act="record" data-focus="${focus}"${color ? ` style="--tone:${color}"` : ''}>
-  <div class="tl"><span>${label}</span><span>${num == null ? '' : num}</span></div>
+  <div class="tl"><span>${label}</span><span${typeof num === 'string' ? ' class="sub"' : ''}>${num == null ? '' : num}</span></div>
   <div class="word${word ? '' : ' unset'}">${word || T('기록 없음')}</div>${pos == null ? '' : level(pos)}</button>`;
 const scoreTile = (key, label, v) => tile(key, label, nameOf(key, v), v, v == null ? null : v / 10, tone(key, v));
 export const bars = (v) => `<span class="bars">${[1, 2, 3, 4].map((i) => `<i class="${i <= v ? 'on' : ''}"></i>`).join('')}</span>`;
