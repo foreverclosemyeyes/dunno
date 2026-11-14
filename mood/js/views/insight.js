@@ -1,6 +1,6 @@
 // 인사이트 화면: 최근 7일을 종합해서 읽은 것(짧게), 약을 바꾼 앞뒤, 메모·AI로 가는 줄.
 // 길게 늘어놓지 않는다: 평균끼리 견준 비교 목록은 뻔하거나 쓸모없다고 해서 뺐다 (사용자가 정함, 2026-11-13).
-// 기록이 아직 적으면 예시 기록으로 어떤 것이 나오는지 미리 볼 수 있다 (ui.insightDemo).
+// 기록이 아직 적으면 예시 기록으로 어떤 것이 나오는지 미리 볼 수 있다 (ui.demo).
 import { medChanges, recentState } from '../analysis.js';
 import { md, parse } from '../dates.js';
 import { app, esc } from '../dom.js';
@@ -16,7 +16,7 @@ const tr = (cells, head) => `<div class="tr${head ? ' th' : ''}">${cells.map((c)
 
 export function viewInsight() {
   const n = Object.keys(db.entries).length, mine = recentState();
-  const demo = ui.insightDemo && !mine, state = demo ? recentState(sampleEntries()) : mine, changes = demo ? [] : medChanges();
+  const demo = ui.demo && !mine, state = demo ? recentState(sampleEntries()) : mine, changes = demo ? [] : medChanges();
   app.innerHTML = `
     <header class="top"><div><div class="over">${F('기록 {0}일', n)}</div><h1>${T('인사이트')}</h1></div></header>
     <div class="sec">${demo ? T('예시 기록의 최근 7일') : T('최근 7일')}</div>
@@ -27,7 +27,7 @@ export function viewInsight() {
       ${state.notes.map((x) => `<div class="beyond">${x}</div>`).join('')}
       <p>${demo ? T('만들어 낸 예시 기록이에요. 내 기록이 아니고 저장되지 않아요.') : T('진단이 아니에요. 진료 때 보여 주며 이야기해 보세요.')}</p></section>`
     : `<section class="card list"><div class="li say mut">${T('최근 7일 중 4일 이상 적으면 여기에 그 주를 읽은 내용이 나와요.')}</div></section>`}
-    ${mine ? '' : `<section class="card list"><button class="li add${demo ? ' dim' : ''}" data-act="insightDemo">${demo ? T('예시 닫기') : `${IC.spark}&nbsp; ${T('예시로 미리 보기')}`}</button></section>`}
+    ${mine ? '' : `<section class="card list"><button class="li add${demo ? ' dim' : ''}" data-act="demo">${demo ? T('예시 닫기') : `${IC.spark}&nbsp; ${T('예시로 미리 보기')}`}</button></section>`}
     ${changes.map((c) => `<div class="sec">${F('약을 바꾼 뒤 · {0}', md(parse(c.date)))}</div>
     <section class="card tbl">${c.text ? `<div class="tbl-t">${esc(c.text)}</div>` : ''}${tr(['', T('앞 2주'), F('뒤 {0}일', c.after)], true)}${c.rows.map((r) => tr(r)).join('')}</section>`).join('')}
     <div class="sec">${T('더 보기')}</div>

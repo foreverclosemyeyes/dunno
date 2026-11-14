@@ -30,6 +30,11 @@ export function viewToday() {
     ? `<div class="card hint"><div><b>${T('홈 화면에 추가해서 쓰세요.')}</b><br>${T('사파리 아래쪽 공유 버튼(네모에 화살표) → “홈 화면에 추가”를 누르면 앱처럼 열려요.')}</div>
        <button class="x" data-act="closeHint" aria-label="${T('닫기')}">✕</button></div>` : '';
 
+  // 기록이 하나도 없을 때만: 이 앱이 무엇에 쓰는 것인지 한 줄과, 예시 요약으로 가는 단추
+  const intro = Object.keys(db.entries).length ? '' : `<section class="card intro"><b>${T('매일 10초 적어 두면, 진료 날 한 장으로 보여 드려요.')}</b>
+      <p>${T('기분 · 잠 · 약을 적어 두면 지난 몇 주가 그래프와 한 장짜리 요약으로 정리돼요. “그동안 어땠어요?”에 기억 대신 기록으로 답할 수 있어요.')}</p>
+      <button class="mini" data-act="demoClinic">${T('예시 요약 보기')}</button></section>`;
+
   const since = daysSinceBackup();
   const backup = backupDue()
     ? `<div class="card hint"><div><b>${since == null ? T('아직 백업한 적이 없어요.') : F('백업한 지 {0}일 됐어요.', since)}</b><br>${T('기록은 이 폰에만 있어요. 백업 파일을 만들어 두면 폰을 바꿔도 안전해요.')}
@@ -41,7 +46,7 @@ export function viewToday() {
       <div><div class="over">${sel === t ? longDate(sel) : T('지난 기록')}</div><h1>${sel === t ? T('오늘') : longDate(sel)}</h1></div>
       <button class="icon-btn" data-act="settings" aria-label="${T('설정과 백업')}">${IC.sliders}</button>
     </header>
-    ${hint}${sel === t ? backup : ''}
+    ${intro}${hint}${sel === t ? backup : ''}
     ${sel === t && e && e.si >= SI_CARE_FROM ? `<div class="card signal"><i></i><span>${F('죽고 싶은 생각이 강한 날이에요. 혼자 버티지 않아도 돼요. {0}에 전화하거나 다니는 병원에 연락해 보세요.',
     `<a href="tel:${HELPLINE}">${T('109 (자살예방상담전화, 24시간)')}</a>`)}</span></div>` : ''}
     <div class="weekbar">

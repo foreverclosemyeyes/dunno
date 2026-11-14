@@ -252,10 +252,14 @@ ${lines.join('\n') || '(기록 없음)'}`;
 
 // ---------- 진료용 요약: 최근 n주를 숫자로 정리 (화면·글·인쇄가 같이 쓴다) ----------
 export const SHORT_SLEEP = 300;   // 이 분(5시간)보다 짧게 잔 날을 따로 적는다
-export function summary(weeks) {
+// demo를 주면({ entries, meds, log }) 내 기록 대신 그 예시 기록으로 만든다 (진료 화면의 "예시로 미리 보기").
+export function summary(weeks, demo) {
   const n = weeks * 7, t = today();
   const dates = Array.from({ length: n }, (_, i) => addDays(t, i - n + 1));
-  const days = dates.map((d) => db.entries[d] || null), got = days.filter(Boolean);
+  const entries = demo ? demo.entries : db.entries;
+  const days = dates.map((d) => entries[d] || null), got = days.filter(Boolean);
+  const takenOn = (d) => (demo ? (entries[d] || {}).meds || [] : medsFor(d));
+  const same = (m) => (x) => x.name === m.name && (x.dose || '') === (m.dose || '');
   const stat = (key) => {
     const v = got.map((e) => e[key]).filter((x) => x != null);
     return v.length ? { avg: avg(v), min: Math.min(...v), max: Math.max(...v), n: v.length } : null;
@@ -270,9 +274,12 @@ export function summary(weeks) {
     signs: SIGNS.map(([k, label]) => [label, got.filter((e) => e.signs && e.signs[k]).length]).filter(([, c]) => c),
     psych: [...new Set(got.flatMap((e) => Object.keys(e.psych || {}).filter((k) => e.psych[k])))].map((k) => [psyName(k), got.filter((e) => e.psych && e.psych[k]).length]),
     fx: [...new Set(got.flatMap((e) => Object.keys(e.fx || {}).filter((k) => e.fx[k])))].map((k) => [fxName(k), got.filter((e) => e.fx && e.fx[k]).length]),
-    meds: db.meds.map((m) => [m, dates.filter((d) => medsFor(d).some((x) => x.name === m.name && (x.dose || '') === (m.dose || ''))).length]),
+    // 약마다 [약, 먹은 날 수, 날마다 먹었는지]
+    meds: (demo ? demo.meds : db.meds).map((m) => { const on = dates.map((d) => takenOn(d).some(same(m))); return [m, on.filter(Boolean).length, on]; }),
+    // 진료일과 약 바꾼 날
+    log: demo ? demo.log : (db.clinic || {}).log || [],
     period: got.filter((e) => e.period).map((e) => e.date),
     notes: got.filter((e) => e.note).map((e) => [e.date, e.note]),
-    signals: signals(),
+    signals: demo ? [] : signals(),
   };
 }

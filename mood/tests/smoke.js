@@ -176,9 +176,9 @@ function seed() {
   // 5. 쌓인 기록: 신호 · 인사이트 · 흐름
   await page.click('[data-tab=insight]');
   const mineBefore = JSON.stringify((await store()).entries);
-  await page.click('[data-act=insightDemo]');
+  await page.click('[data-act=demo]');
   check('기록이 적을 때 예시로 인사이트를 미리 봄 (내 기록은 그대로)', (await page.$$('.state li')).length >= 2 && (await text('#app')).includes('예시 기록') && JSON.stringify((await store()).entries) === mineBefore);
-  await page.click('[data-act=insightDemo]');
+  await page.click('[data-act=demo]');
   check('예시를 닫으면 원래 안내로 돌아옴', (await page.$$('.state')).length === 0 && (await text('#app')).includes('4일 이상 적으면'));
   await page.click('[data-tab=today]');
   await put(seed());
@@ -432,6 +432,18 @@ function seed() {
   await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
   check('인쇄가 끝나면 종이용 한 장을 비움', (await page.innerHTML('#printout')) === '');
   await page.click('[data-tab=today]');
+
+  // 처음 쓰는 사람: 오늘 화면에 이 앱이 무엇인지 한 줄이 있고, 예시 요약을 볼 수 있다. 예시는 저장되지 않는다.
+  const kept = await store();
+  await put({ version: 3, entries: {}, meds: [], taken: {}, clinic: { notes: [] }, settings: {} });
+  check('기록이 없으면 오늘 화면에 소개가 보임', !!(await page.$('.intro [data-act=demoClinic]')));
+  await page.click('[data-act=demoClinic]');
+  check('"예시 요약 보기"를 누르면 진료 화면이 예시 기록으로 열림', (await page.$$('#summary .sum-fig path')).length >= 2 && !!(await page.$('#summary svg.sum-rows')) && !(await page.$('#c-note')) && !(await page.$('[data-act=logAdd]')));
+  check('예시는 저장되지 않음', Object.keys((await store()).entries).length === 0 && ((await store()).clinic.log || []).length === 0);
+  await page.click('[data-act=demo]');
+  check('예시를 닫으면 내 진료 화면으로 돌아옴', !!(await page.$('#c-note')) && !!(await page.$('#c-next')));
+  await put(kept);
+  check('기록이 있으면 소개와 예시 단추가 안 보임', !(await page.$('.intro')) && !(await page.$('[data-act=demo]')));
 
   // 오늘 화면의 네 칸은 수면에 "평소 …"가 붙어도 높이가 같다
   const tileH = await page.$$eval('.tile', (els) => els.map((x) => Math.round(x.getBoundingClientRect().height)));

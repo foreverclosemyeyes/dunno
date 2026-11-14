@@ -113,7 +113,9 @@ const actions = {
     save(); render();
     toast(F('공황 {0}번째를 적었어요', e.panic));
   },
-  insightDemo: () => { ui.insightDemo = !ui.insightDemo; render(); },
+  demo: () => { ui.demo = !ui.demo; render(); },
+  // 처음 화면의 "예시 요약 보기": 진료 화면을 예시 기록으로 연다
+  demoClinic: () => { ui.demo = true; ui.tab = 'clinic'; toTop(); render(); enterApp(); },
   // 설정: 기록 항목 켜고 끄기 (꺼진 항목의 열쇠를 settings.off에 모아 둔다)
   item: (el) => {
     const k = el.dataset.k, off = db.settings.off || [];

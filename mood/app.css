@@ -95,6 +95,9 @@ button { border: 0; background: none; padding: 0; cursor: pointer; touch-action:
 
 /* 묶음 목록 */
 .sec { color: var(--muted); font-size: calc(12.5px * var(--fs, 1.12)); font-weight: 500; margin: 20px 16px 7px; }
+/* 오늘 화면: 기록이 없을 때의 소개 */
+.intro b { display: block; font-size: calc(16px * var(--fs, 1.12)); font-weight: 600; line-height: 1.4; }
+.intro p { margin: 6px 0 12px; color: var(--muted); font-size: calc(13.5px * var(--fs, 1.12)); line-height: 1.5; }
 .grp { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; text-align: left; padding: 15px 16px; }
 .grp b { display: block; font-weight: 600; font-size: calc(16px * var(--fs, 1.12)); }
 .grp small { display: block; color: var(--muted); font-size: calc(12.5px * var(--fs, 1.12)); margin-top: 3px; }

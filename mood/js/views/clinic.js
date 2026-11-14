@@ -4,8 +4,9 @@ import { DISCLAIMER, LEVELS, SYMPTOMS, customLevel, customText, onlyOn } from '.
 import { durText, md, parse, today } from '../dates.js';
 import { app, esc, sheet, showSheet } from '../dom.js';
 import { F, T } from '../i18n.js';
-import { medKey, medsFor } from '../meds.js';
-import { clinicView } from '../state.js';
+import { IC } from '../icons.js';
+import { sampleClinic } from '../sample.js';
+import { clinicView, ui } from '../state.js';
 import { customDefs, db, itemOn } from '../store.js';
 import { tone } from '../theme.js';
 import { li } from './today.js';
@@ -18,6 +19,10 @@ export function clinicData() {
   if (!c.log) c.log = [];
   return c;
 }
+// 기록이 아직 거의 없을 때(3일 미만) 예시 기록으로 미리 볼 수 있다. 보고 있으면 예시({ entries, meds, notes, log })를, 아니면 null을 준다.
+const FEW = 3;
+const few = () => Object.keys(db.entries).length < FEW;
+export const clinicDemo = () => (ui.demo && few() ? sampleClinic() : null);
 export const kindName = (kind) => (kind === 'med' ? T('약 변경') : T('진료'));
 // 가장 최근에 다녀온 진료일 (없으면 '')
 const lastVisit = () => { const v = clinicData().log.filter((x) => x.kind === 'visit' && x.date <= today()); return v.length ? v[v.length - 1].date : ''; };
@@ -121,7 +126,7 @@ export function figures(s, width, SH, show, flat = false) {
     out += `<text x="${e.x.toFixed(1)}" y="${e.y.toFixed(1)}" font-size="10.5" font-weight="${e.bold ? 700 : 500}" style="fill:${e.color}">${e.name}</text>`;
   });
   // 진료일과 약 바꾼 날: 그날 자리에 세로선과 이름
-  clinicData().log.forEach((x) => {
+  s.log.forEach((x) => {
     const i = s.dates.indexOf(x.date);
     if (i < 0) return;
     out += `<line x1="${cx(i).toFixed(1)}" x2="${cx(i).toFixed(1)}" y1="${top}" y2="${top + SH}" style="stroke:var(--${x.kind === 'med' ? 'ink' : 'muted'})"/>
@@ -170,8 +175,8 @@ export function figures(s, width, SH, show, flat = false) {
   show.custom.forEach((c) => squares(esc(c.name), (e) => customLevel(c, (e.custom || {})[c.id])));
 
   // 4. 약 · 생리도 같은 네모 줄: 먹은 날(생리 중인 날)만 칠한다. ○ ×로 그렸더니 ×가 줄줄이 늘어서 난잡하다고 해서 바꿨다 (2026-11-14).
-  if (itemOn('meds')) s.meds.forEach(([m, count]) => {
-    squaresOf(esc(`${m.name}${m.dose ? ` ${m.dose}` : ''}`), s.dates.map((d) => (medsFor(d).some((x) => medKey(x) === medKey(m)) ? 3 : 0)), F('{0}일 중 {1}일', n, count));
+  if (itemOn('meds')) s.meds.forEach(([m, count, on]) => {
+    squaresOf(esc(`${m.name}${m.dose ? ` ${m.dose}` : ''}`), on.map((took) => (took ? 3 : 0)), F('{0}일 중 {1}일', n, count));
   });
   if (itemOn('period') && s.period.length) squares(T('생리'), (e) => (e.period ? 3 : 0));
   if (!out) return { chart, sleep, rows: '' };
@@ -198,7 +203,7 @@ export function summaryRows(s) {
 
 // 요약 본문: 그림 세 장을 한 카드에 쌓고, 체크 항목·신호·메모를 카드로 나눠 놓는다 (인쇄용 한 장은 printout.js가 따로 짠다)
 function summaryHtml(weeks) {
-  const s = summary(weeks);
+  const s = summary(weeks, clinicDemo());
   const width = Math.max(240, Math.min(app.clientWidth, 480) - 32 - 32);
   // 큰 그래프의 선을 켜고 끄는 단추: 기분·에너지·자신감은 평균을 옆에 적는다
   const toggles = lineDefs().map(([key, name, max]) => `<button class="sum-tog" data-act="clinicLine" data-k="${key}" aria-pressed="${clinicView.lines.includes(key)}">${lineSample(key)}${name}${max === 10 && s[key] ? ` <b>${one(s[key].avg)}</b>` : ''}</button>`).join('');
@@ -225,7 +230,7 @@ function summaryHtml(weeks) {
 
 // 메신저나 메모 앱에 붙여 넣을 수 있는 글
 export function summaryText(weeks) {
-  const s = summary(weeks), r = summaryRows(s), talk = clinicData().notes;
+  const demo = clinicDemo(), s = summary(weeks, demo), r = summaryRows(s), talk = (demo || clinicData()).notes;
   const part = (title, rows) => (rows.length ? [`\n[${title}]`, ...rows.map(([k, v]) => `${k}: ${v}`)] : []);
   return [
     `${T('진료용 요약')} · ${md(parse(s.dates[0]))} – ${md(parse(s.dates[s.dates.length - 1]))} · ${F('기록 {0}일 / {1}일', s.got.length, s.dates.length)}`,
@@ -234,36 +239,40 @@ export function summaryText(weeks) {
     ...(s.signals.length ? [`\n[${T('지금 떠 있는 신호')}]`, ...s.signals.map((x) => `- ${x}`)] : []),
     ...part(T('기분이 높았던 날 체크한 항목'), r.signs), ...part(T('정신병적 증상'), s.psych.map(([name, c]) => [name, F('{0}일', c)])), ...part(T('부작용'), s.fx.map(([name, c]) => [name, F('{0}일', c)])), ...part(T('약 먹은 날'), r.meds),
     ...part(T('내 항목'), customDefs().map((c) => [c.name, s.got.filter((e) => customText(c, (e.custom || {})[c.id])).map((e) => `${shortDate(e.date)} ${customText(c, e.custom[c.id])}`).join(', ')]).filter(([, v]) => v)),
-    ...part(T('진료 · 약 변경 기록'), clinicData().log.filter((x) => x.date >= s.dates[0]).map((x) => [`${shortDate(x.date)} ${kindName(x.kind)}`, x.text || '–'])),
+    ...part(T('진료 · 약 변경 기록'), s.log.filter((x) => x.date >= s.dates[0]).map((x) => [`${shortDate(x.date)} ${kindName(x.kind)}`, x.text || '–'])),
     ...(s.notes.length ? [`\n[${T('메모')}]`, ...s.notes.map(([d, note]) => `${shortDate(d)} ${note}`)] : []),
     `\n${F('증상은 {0}~{1} 다섯 단계로 적은 것', LEVELS[0], LEVELS[4])}. ${DISCLAIMER}`,
   ].join('\n');
 }
 
 export function viewClinic() {
-  const c = clinicData(), weeks = clinicWeeks(), pick = clinicView.weeks;
+  const demo = clinicDemo(), c = demo || clinicData(), weeks = clinicWeeks(), pick = clinicView.weeks;
+  // 예시를 볼 때는 고치는 단추와 입력 칸을 빼고 보여 주기만 한다
+  const del = (act, i) => (demo ? '' : `<button class="txt dim" data-act="${act}" data-i="${i}" aria-label="${T('삭제')}">✕</button>`);
   const range = (w, label) => `<button data-act="clinicWeeks" data-w="${w}" aria-pressed="${pick === w}">${label}</button>`;
   app.innerHTML = `
     <header class="top"><div><div class="over">${nextText() || T('의사에게 보여 줄 것들')}</div><h1>${T('진료')}</h1></div>
       <div class="segc">${range(1, T('1주'))}${range(2, T('2주'))}${range(4, T('4주'))}${lastVisit() ? range('since', T('진료 후')) : ''}</div></header>
 
-    <section class="card list">
+    ${demo ? `<section class="card hint"><div><b>${T('예시 기록으로 만든 진료용 요약이에요.')}</b><br>${T('매일 적어 두면 내 기록으로 이렇게 정리돼요. 만들어 낸 예시라 저장되지 않아요.')}
+        <button class="mini" data-act="demo" style="display:block;margin-top:10px">${T('예시 닫기')}</button></div></section>`
+    : `<section class="card list">
       <label class="li"><span class="lk">${T('다음 진료일')}</span><input type="date" id="c-next" value="${esc(c.next || '')}"></label>
-    </section>
+      ${few() ? `<button class="li add" data-act="demo">${IC.spark}&nbsp; ${T('예시로 미리 보기')}</button>` : ''}
+    </section>`}
 
     <div id="summary">
       <div class="sec">${T('진료 때 말할 것')}</div>
       <section class="card list">
-        ${c.notes.map((x, i) => `<div class="li"><span class="lk talk">${esc(x)}</span><button class="txt dim" data-act="clinicNoteDel" data-i="${i}" aria-label="${T('삭제')}">✕</button></div>`).join('')}
-        <div class="li"><input type="text" id="c-note" maxlength="200" placeholder="${T('생각날 때 한 줄씩 적어 두기')}" autocomplete="off">
-          <button class="mini" data-act="clinicNoteAdd">${T('추가')}</button></div>
+        ${c.notes.map((x, i) => `<div class="li"><span class="lk talk">${esc(x)}</span>${del('clinicNoteDel', i)}</div>`).join('')}
+        ${demo ? '' : `<div class="li"><input type="text" id="c-note" maxlength="200" placeholder="${T('생각날 때 한 줄씩 적어 두기')}" autocomplete="off">
+          <button class="mini" data-act="clinicNoteAdd">${T('추가')}</button></div>`}
       </section>
       <div class="sec">${T('진료 · 약 변경 기록')}</div>
       <section class="card list">
-        ${c.log.map((x, i) => `<div class="li"><span class="lk talk"><small>${shortDate(x.date)} · ${kindName(x.kind)}</small>${esc(x.text)}</span>
-          <button class="txt dim" data-act="logDel" data-i="${i}" aria-label="${T('삭제')}">✕</button></div>`).reverse().join('')}
-        <div class="li logadd"><button class="mini" data-act="logAdd" data-kind="visit">${T('+ 진료 메모')}</button>
-          <button class="mini" data-act="logAdd" data-kind="med">${T('+ 약 바꾼 날')}</button></div>
+        ${c.log.map((x, i) => `<div class="li"><span class="lk talk"><small>${shortDate(x.date)} · ${kindName(x.kind)}</small>${esc(x.text)}</span>${del('logDel', i)}</div>`).reverse().join('')}
+        ${demo ? '' : `<div class="li logadd"><button class="mini" data-act="logAdd" data-kind="visit">${T('+ 진료 메모')}</button>
+          <button class="mini" data-act="logAdd" data-kind="med">${T('+ 약 바꾼 날')}</button></div>`}
       </section>
       ${summaryHtml(weeks)}
     </div>

@@ -7,13 +7,13 @@ import { esc } from '../dom.js';
 import { F, T } from '../i18n.js';
 import { clinicView } from '../state.js';
 import { customDefs, itemOn } from '../store.js';
-import { clinicData, figures, kindName, lineDefs, lineSample, shortDate, summaryRows } from './clinic.js';
+import { clinicData, clinicDemo, figures, kindName, lineDefs, lineSample, shortDate, summaryRows } from './clinic.js';
 
 const PAGE = 680;   // 그림 너비 (A4에서 여백을 뺀 너비쯤). 그림은 종이 너비에 맞춰 늘거나 준다.
 const one = (x) => (Math.round(x * 10) / 10).toFixed(1);
 
 export function printoutHtml(weeks) {
-  const s = summary(weeks), r = summaryRows(s), c = clinicData();
+  const demo = clinicDemo(), s = summary(weeks, demo), r = summaryRows(s), c = demo || clinicData();
   const show = { fx: s.fx.length > 0, custom: customDefs().filter((d) => s.got.some((e) => customLevel(d, (e.custom || {})[d.id]))) };
   const fig = figures(s, PAGE, 130, show, true);
   const lines = lineDefs().filter(([key]) => clinicView.lines.includes(key));
@@ -28,7 +28,7 @@ export function printoutHtml(weeks) {
   const count = ([name, n]) => [esc(name), F('{0}일', n)];
   const log = c.log.filter((x) => x.date >= s.dates[0]);
   return `
-    <header class="po-head"><div><h1>${T('진료용 요약')}</h1>
+    <header class="po-head"><div><h1>${T('진료용 요약')}${demo ? ` · ${T('예시')}` : ''}</h1>
       <p>${md(parse(s.dates[0]))} – ${md(parse(s.dates[s.dates.length - 1]))} · ${F('기록 {0}일 / {1}일', s.got.length, s.dates.length)}</p></div>
       <div class="po-brand">Tidemark<small>${longDate(today())}</small></div></header>
     ${stats ? `<div class="po-stats">${stats}</div>` : ''}
